@@ -2,7 +2,7 @@
   "schema_version": "aether.release-gate-policy.v1",
   "policy_id": "commercial-beta-r9-v1",
   "claim_stage": "commercial_beta_candidate",
-  "official_repository": "fyremael/AETHER",
+  "official_repository": "grandchallenge/AETHER",
   "official_workflow": ".github/workflows/reusable-exact-candidate-evidence.yml",
   "official_attestation_workflow": ".github/workflows/reusable-exact-candidate-evidence.yml",
   "official_caller_workflow": ".github/workflows/release-readiness.yml",
@@ -16,6 +16,7 @@
   "qualification_tooling_allowed_paths": [
     ".github/dependabot.yml",
     ".github/hardening-promotion-state.json",
+    ".github/repository-controls.json",
     ".github/workflows/",
     "docs/ADR/",
     "docs/KNOWN_LIMITATIONS.md",

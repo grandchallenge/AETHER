@@ -36,6 +36,11 @@ def dependency_names(path: Path) -> set[str]:
 def validate_static(root: Path) -> dict[str, Any]:
     policy = evidence.load_json(root / "fixtures" / "release" / "gate-policy.json")
     evidence.validate_policy(policy)
+    repository_controls = evidence.load_json(root / ".github" / "repository-controls.json")
+    require(
+        policy["official_repository"] == repository_controls.get("repository"),
+        "release policy official repository does not match repository controls",
+    )
     subjects = policy.get("future_required_bundle_subjects", [])
     require(len(subjects) == EXPECTED_SUBJECT_COUNT, "release policy subject count changed")
     require(len(subjects) == len(set(subjects)), "release policy has duplicate subjects")
@@ -56,6 +61,7 @@ def validate_static(root: Path) -> dict[str, Any]:
     require(policy["official_workflow"] in {".github/workflows/reusable-exact-candidate-evidence.yml"}, "official workflow projection changed")
     return {
         "policy_id": policy["policy_id"],
+        "official_repository": policy["official_repository"],
         "gate_count": len(policy["gates"]),
         "subject_count": len(subjects),
         "schema_count": len(schema_paths),
