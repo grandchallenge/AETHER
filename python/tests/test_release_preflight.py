@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -25,8 +26,30 @@ QUALIFICATION_SPEC.loader.exec_module(release_qualification)
 class ReleasePreflightTests(unittest.TestCase):
     def test_static_contract_validates_policy_dependencies_schemas_and_workflows(self) -> None:
         result = release_preflight.validate_static(REPO_ROOT)
+        self.assertEqual(result["official_repository"], "grandchallenge/AETHER")
         self.assertEqual(result["subject_count"], 18)
         self.assertGreaterEqual(result["schema_count"], 3)
+
+    def test_static_contract_rejects_repository_identity_drift(self) -> None:
+        load_json = release_preflight.evidence.load_json
+
+        def load_json_with_stale_policy(path: Path) -> dict:
+            document = load_json(path)
+            if path.name == "gate-policy.json":
+                document = dict(document)
+                document["official_repository"] = "fyremael/AETHER"
+            return document
+
+        with mock.patch.object(
+            release_preflight.evidence,
+            "load_json",
+            side_effect=load_json_with_stale_policy,
+        ):
+            with self.assertRaisesRegex(
+                release_preflight.evidence.EvidenceError,
+                "release policy official repository does not match repository controls",
+            ):
+                release_preflight.validate_static(REPO_ROOT)
 
     def test_required_dependency_parser_is_exact(self) -> None:
         names = release_preflight.dependency_names(REPO_ROOT / "requirements-release.txt")
@@ -45,6 +68,7 @@ class ReleasePreflightTests(unittest.TestCase):
         )
         rules = policy["qualification_tooling_allowed_paths"]
         release_control_files = {
+            ".github/repository-controls.json",
             "python/tests/test_commercial_beta_promotion.py",
             "python/tests/test_release_evidence.py",
             "python/tests/test_release_preflight.py",
