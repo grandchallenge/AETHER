@@ -8,15 +8,20 @@ protected `main` candidate `62272646689b726bdb54bd94b86f42efc812f618`.
 The recent Orbital work remains separately preserved in draft PR #53 at
 `a4b513bdb63b65a29463656d56bfbec035882401`; it is not part of `main`.
 
-The bounded admission profile is proposed in `gcl-standards` PR #33 as a
-high-risk provider with no claim-promotion authority and a fail-closed
-`controlled_alpha` policy. Post-transfer live settings verification passes,
-including private vulnerability reporting. Fresh exact-main Supply Chain and
-Pages runs failed closed at startup because protected `main` still references
-actions excluded by the GCL organization policy. No prerelease or promotion
-record is authorized, the live INTELLECT/GCL bridge remains on hold, and
-controlled alpha remains the active label. The exact admission and AETHER #51
-pilot evidence is recorded in
+The bounded admission profile is protected through `gcl-standards` PR #33 as
+a high-risk provider with no claim-promotion authority and a fail-closed
+`controlled_alpha` policy. Repository-controls PR #54 and release-identity PR
+#57 are also protected. Live `main` remains under classic branch protection;
+the provider ruleset, immutable release-tag ruleset, shared conformance checks,
+and their exact post-migration readback are not yet effective.
+
+The `GCL-AETHER-CONFORMANCE-001` migration adds CODEOWNERS, the shared policy
+and action-security checks, an exact governed-profile source, and ruleset-aware
+fail-closed verification. Classic protection remains required throughout the
+transition and may be removed only after the replacement readback is complete
+and equivalent or stricter. No prerelease or promotion record is authorized,
+the live INTELLECT/GCL bridge remains on hold, and controlled alpha remains the
+active label. The exact admission and AETHER #51 pilot evidence is recorded in
 [`docs/evidence/AETHER_GCL_ECOSYSTEM_ADMISSION_2026-08-08.md`](evidence/AETHER_GCL_ECOSYSTEM_ADMISSION_2026-08-08.md).
 
 ## Release-control reset (2026-07-21)
