@@ -14,6 +14,8 @@
     "github/codeql-action/analyze@1ad29ea4a422cce9a242a9fae469541dcd08addc",
     "github/codeql-action/autobuild@1ad29ea4a422cce9a242a9fae469541dcd08addc",
     "github/codeql-action/init@1ad29ea4a422cce9a242a9fae469541dcd08addc",
+    "grandchallenge/.github/.github/workflows/gcl-policy.yml@8100e4589ea3edbcddcdb692ef6d078de798fdf4",
+    "grandchallenge/.github/.github/workflows/gcl-security.yml@8100e4589ea3edbcddcdb692ef6d078de798fdf4",
     "zricethezav/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7"
   ],
   "container_images": [

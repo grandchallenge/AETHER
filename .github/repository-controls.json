@@ -5,7 +5,9 @@
     "name": "main",
     "required_status_checks": [
       "Required CI gate",
-      "Required Supply Chain gate"
+      "Required Supply Chain gate",
+      "policy / policy",
+      "security / action-policy"
     ],
     "strict": true,
     "minimum_approvals": 0,
@@ -17,6 +19,41 @@
     "lock_branch": true,
     "allow_force_pushes": false,
     "allow_deletions": false
+  },
+  "governed_profile_source": {
+    "repository": "grandchallenge/gcl-standards",
+    "path": "fixtures/repository_profiles/AETHER.json",
+    "commit_sha": "2801dcfd8d6fc647f85fcb0840ddb029c8df9dbb",
+    "git_blob_sha1": "11eddb9be26051a74dbc7ccff00e792017ae5d2c",
+    "profile": "provider",
+    "risk_tier": "high",
+    "claim_promotion_role": "none",
+    "release_policy": "controlled_alpha"
+  },
+  "protection_model": {
+    "classic_protection": "transition_only_optional_after_verified_ruleset",
+    "default_branch_ruleset": {
+      "name": "Provider profile - main",
+      "target": "branch",
+      "enforcement": "active",
+      "include": ["~DEFAULT_BRANCH"],
+      "bypass_actors": [],
+      "required_rules": [
+        "deletion",
+        "non_fast_forward",
+        "pull_request",
+        "required_status_checks"
+      ],
+      "allowed_merge_methods": ["merge", "squash"]
+    },
+    "release_tag_ruleset": {
+      "name": "Immutable release tags",
+      "target": "tag",
+      "enforcement": "active",
+      "include": ["refs/tags/*"],
+      "bypass_actors": [],
+      "required_rules": ["deletion", "non_fast_forward"]
+    }
   },
   "actions": {
     "allowed_actions": "selected",

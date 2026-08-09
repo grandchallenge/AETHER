@@ -1,0 +1,5 @@
+* @grandchallenge/provider-maintainers
+/.github/ @grandchallenge/security @grandchallenge/provider-maintainers
+/docs/ @grandchallenge/provider-maintainers
+/scripts/ @grandchallenge/provider-maintainers
+

@@ -1,0 +1,25 @@
+name: GCL conformance
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  merge_group:
+  schedule:
+    - cron: "53 7 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  policy:
+    uses: grandchallenge/.github/.github/workflows/gcl-policy.yml@8100e4589ea3edbcddcdb692ef6d078de798fdf4
+    with:
+      profile: Provider
+      standards_ref: 2801dcfd8d6fc647f85fcb0840ddb029c8df9dbb
+
+  security:
+    permissions:
+      contents: read
+    uses: grandchallenge/.github/.github/workflows/gcl-security.yml@8100e4589ea3edbcddcdb692ef6d078de798fdf4
+
