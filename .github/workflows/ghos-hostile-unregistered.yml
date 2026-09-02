@@ -1,0 +1,16 @@
+name: GHOS hostile unregistered workflow proof
+
+on:
+  schedule:
+    - cron: '17 3 * * 6'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inert:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Inert proof payload
+        run: echo "inert hostile GH-OS routing proof; no mutation"
