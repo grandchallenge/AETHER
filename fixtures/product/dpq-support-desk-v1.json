@@ -1,0 +1,106 @@
+{
+  "schema_version": "aether.design-partner-qualification.v1",
+  "qualification_id": "AETHER-DPQ-SUPPORT-DESK-001",
+  "claim_boundary": "controlled_single_node_alpha",
+  "metric_boundary": {
+    "operator_cost_metric": "synthetic_reconstruction_proxy_only",
+    "human_time_claim_allowed": false,
+    "monetary_cost_claim_allowed": false,
+    "product_superiority_claim_allowed": false
+  },
+  "synthetic_evaluator_boundary": {
+    "semantic_authority": false,
+    "case_status_gates_readiness": false,
+    "dependency_absence_counts_as_blocked": false,
+    "reason": "Mirror the current support-desk DSL slice for fixed qualification scenarios; do not invent additional product policy."
+  },
+  "runtime_markers": [
+    "Active support cases on the desk",
+    "Retrieved evidence from the support-memory sidecar",
+    "Which resolution is actually ready",
+    "Who owns the case now",
+    "Fenced stale recommendations at Current",
+    "Why the current selected resolution is true",
+    "root tuple"
+  ],
+  "source_contract_markers": [
+    "resolution_policy_approved(resolution) <- resolution_approval_state(resolution, \"approved\")",
+    "resolution_blocked(resolution) <- resolution_dependency_closure(resolution, dep), not step_complete(dep)",
+    "resolution_suppressed(resolution) <- resolution_suppression_state(resolution, \"suppressed\")",
+    "resolution_confident(resolution) <- resolution_confidence_band(resolution, \"high\")",
+    "resolution_has_retrieved_evidence(resolution) <- resolution_case(resolution, case), retrieved_support_evidence(case, evidence, score)",
+    "active_assignment(case, owner, epoch) <- case_claimed_by(case, owner), case_lease_epoch(case, epoch), case_lease_state(case, \"active\")",
+    "case_claimed(case) <- active_assignment(case, owner, epoch)",
+    "case_action_ready(resolution) <- candidate_resolution(resolution), resolution_policy_approved(resolution), resolution_confident(resolution), resolution_has_retrieved_evidence(resolution), not resolution_blocked(resolution), not resolution_suppressed(resolution), resolution_case(resolution, case), not case_claimed(case)",
+    "case_resolution_selected(resolution, case, owner, epoch) <- candidate_resolution(resolution), resolution_policy_approved(resolution), resolution_confident(resolution), resolution_has_retrieved_evidence(resolution), not resolution_blocked(resolution), not resolution_suppressed(resolution), resolution_case(resolution, case), active_assignment(case, owner, epoch)",
+    "stale_assignment_attempt(case, owner, epoch) <- assignment_attempt(case, owner, epoch), not active_assignment(case, owner, epoch)"
+  ],
+  "scenarios": [
+    {
+      "id": "normal_resolution",
+      "purpose": "A fully evidenced and approved resolution can become ready before assignment.",
+      "events": [
+        {"kind": "case", "status": "open"},
+        {"kind": "dependency", "status": "done"},
+        {"kind": "resolution", "approval": "approved", "suppression": "clear", "confidence": "high"},
+        {"kind": "evidence", "present": true}
+      ],
+      "questions": ["ready", "current_owner", "why"],
+      "expected": {"ready": true, "current_owner": null, "why": "evidence+approval+dependency+confidence"}
+    },
+    {
+      "id": "missing_approval_block",
+      "purpose": "A resolution without approval must fail closed even when evidence and dependencies are present.",
+      "events": [
+        {"kind": "case", "status": "open"},
+        {"kind": "dependency", "status": "done"},
+        {"kind": "resolution", "approval": "pending", "suppression": "clear", "confidence": "high"},
+        {"kind": "evidence", "present": true}
+      ],
+      "questions": ["ready", "why"],
+      "expected": {"ready": false, "why": "approval_missing"}
+    },
+    {
+      "id": "handoff_and_stale_fencing",
+      "purpose": "A later active lease owns the case and earlier assignment attempts remain historical but stale.",
+      "events": [
+        {"kind": "case", "status": "open"},
+        {"kind": "resolution", "approval": "approved", "suppression": "clear", "confidence": "high"},
+        {"kind": "dependency", "status": "done"},
+        {"kind": "evidence", "present": true},
+        {"kind": "assignment", "owner": "triage-agent", "epoch": 1, "state": "active"},
+        {"kind": "assignment", "owner": "lead-ana", "epoch": 2, "state": "active"}
+      ],
+      "questions": ["current_owner", "stale_owners", "ready", "why"],
+      "expected": {"current_owner": "lead-ana", "stale_owners": ["triage-agent"], "ready": false, "why": "already_claimed"}
+    },
+    {
+      "id": "suppressed_resolution",
+      "purpose": "A suppressed recommendation must not become ready.",
+      "events": [
+        {"kind": "case", "status": "open"},
+        {"kind": "dependency", "status": "done"},
+        {"kind": "resolution", "approval": "approved", "suppression": "suppressed", "confidence": "high"},
+        {"kind": "evidence", "present": true}
+      ],
+      "questions": ["ready", "why"],
+      "expected": {"ready": false, "why": "suppressed"}
+    }
+  ],
+  "decision_policy": {
+    "technical_acceptance_requires": [
+      "existing_customer_workflow_acceptance_passes",
+      "runtime_markers_are_enforced_by_existing_acceptance",
+      "source_contract_markers_present",
+      "synthetic_baseline_reconstructs_expected_scenarios"
+    ],
+    "technical_acceptance_does_not_establish": [
+      "commercial_beta",
+      "production_readiness",
+      "human_operator_cost",
+      "economic_superiority",
+      "managed_multi_tenant_readiness",
+      "distributed_truth"
+    ]
+  }
+}
