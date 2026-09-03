@@ -1,0 +1,166 @@
+{
+  "record_type": "AETHER_DESIGN_PARTNER_QUALIFICATION",
+  "schema_version": "aether.design-partner-qualification.v1",
+  "qualification_id": "AETHER-DPQ-SUPPORT-DESK-001",
+  "generated_at": "2026-09-03T23:31:20+00:00",
+  "subject_revision": "2431dd888765c995c5f876759dd591307397c9ed",
+  "claim_boundary": "controlled_single_node_alpha",
+  "technical_acceptance": "PASS",
+  "productization_signal": "TECHNICAL_DPQ_PASS__PRODUCT_SUPERIORITY_UNESTABLISHED",
+  "existing_customer_workflow_acceptance": {
+    "passed": true,
+    "runner_exit_code": 0,
+    "workflow_ready": true
+  },
+  "runtime_contract": {
+    "required_markers": [
+      "Active support cases on the desk",
+      "Retrieved evidence from the support-memory sidecar",
+      "Which resolution is actually ready",
+      "Who owns the case now",
+      "Fenced stale recommendations at Current",
+      "Why the current selected resolution is true",
+      "root tuple"
+    ],
+    "enforced_by_existing_acceptance": [
+      "AETHER Demo 05: AI Support Resolution Desk",
+      "Active support cases on the desk",
+      "Retrieved evidence from the support-memory sidecar",
+      "Published candidate resolutions",
+      "Which resolution is actually ready",
+      "Who owns the case now",
+      "Fenced stale recommendations at Current",
+      "Why the current selected resolution is true",
+      "case/501",
+      "apply-migration-credit",
+      "lead-ana",
+      "root tuple"
+    ],
+    "missing_runtime_enforcement": [],
+    "missing_source_contract_markers": [],
+    "passed": true
+  },
+  "synthetic_evaluator_boundary": {
+    "semantic_authority": false,
+    "case_status_gates_readiness": false,
+    "dependency_absence_counts_as_blocked": false,
+    "reason": "Mirror the current support-desk DSL slice for fixed qualification scenarios; do not invent additional product policy."
+  },
+  "scenarios": [
+    {
+      "id": "normal_resolution",
+      "purpose": "A fully evidenced and approved resolution can become ready before assignment.",
+      "passed": true,
+      "expected": {
+        "ready": true,
+        "current_owner": null,
+        "why": "evidence+approval+dependency+confidence"
+      },
+      "observed": {
+        "ready": true,
+        "current_owner": null,
+        "why": "evidence+approval+dependency+confidence"
+      },
+      "proxy": {
+        "baseline_event_log_inspection_units": 12,
+        "aether_semantic_query_units": 3,
+        "unit_definition": "synthetic structural reconstruction proxy; not human time or monetary cost"
+      }
+    },
+    {
+      "id": "missing_approval_block",
+      "purpose": "A resolution without approval must fail closed even when evidence and dependencies are present.",
+      "passed": true,
+      "expected": {
+        "ready": false,
+        "why": "approval_missing"
+      },
+      "observed": {
+        "ready": false,
+        "why": "approval_missing"
+      },
+      "proxy": {
+        "baseline_event_log_inspection_units": 8,
+        "aether_semantic_query_units": 2,
+        "unit_definition": "synthetic structural reconstruction proxy; not human time or monetary cost"
+      }
+    },
+    {
+      "id": "handoff_and_stale_fencing",
+      "purpose": "A later active lease owns the case and earlier assignment attempts remain historical but stale.",
+      "passed": true,
+      "expected": {
+        "current_owner": "lead-ana",
+        "stale_owners": [
+          "triage-agent"
+        ],
+        "ready": false,
+        "why": "already_claimed"
+      },
+      "observed": {
+        "current_owner": "lead-ana",
+        "stale_owners": [
+          "triage-agent"
+        ],
+        "ready": false,
+        "why": "already_claimed"
+      },
+      "proxy": {
+        "baseline_event_log_inspection_units": 24,
+        "aether_semantic_query_units": 4,
+        "unit_definition": "synthetic structural reconstruction proxy; not human time or monetary cost"
+      }
+    },
+    {
+      "id": "suppressed_resolution",
+      "purpose": "A suppressed recommendation must not become ready.",
+      "passed": true,
+      "expected": {
+        "ready": false,
+        "why": "suppressed"
+      },
+      "observed": {
+        "ready": false,
+        "why": "suppressed"
+      },
+      "proxy": {
+        "baseline_event_log_inspection_units": 8,
+        "aether_semantic_query_units": 2,
+        "unit_definition": "synthetic structural reconstruction proxy; not human time or monetary cost"
+      }
+    }
+  ],
+  "synthetic_comparator": {
+    "baseline_event_log_inspection_units": 52,
+    "aether_semantic_query_units": 11,
+    "query_to_inspection_ratio": 0.2115,
+    "interpretation": "STRUCTURAL_PROXY_ONLY__NO_HUMAN_TIME_COST_OR_PRODUCT_SUPERIORITY_CLAIM"
+  },
+  "metric_boundary": {
+    "operator_cost_metric": "synthetic_reconstruction_proxy_only",
+    "human_time_claim_allowed": false,
+    "monetary_cost_claim_allowed": false,
+    "product_superiority_claim_allowed": false
+  },
+  "decision_boundary": {
+    "may_support_bounded_design_partner_technical_acceptance": true,
+    "may_establish_product_superiority": false,
+    "may_establish_human_operator_cost_savings": false,
+    "may_promote_commercial_beta": false,
+    "may_promote_production_readiness": false,
+    "residual_semantic_question": "Current case_action_ready does not consume case_status; DPQ mirrors that fact and does not endorse it as product policy.",
+    "next_evidence_if_technical_passes": [
+      "bind an exact supported/unsupported pilot matrix",
+      "decide whether closed-case status must fence readiness, then test that requirement explicitly if adopted",
+      "measure real operator effort with human/design-partner participants before making cost or superiority claims",
+      "prioritize only product-wedge remediation that blocks the bounded pilot"
+    ]
+  },
+  "execution_receipt": {
+    "authenticated_admin": "fyremael",
+    "checkout_revision": "2431dd888765c995c5f876759dd591307397c9ed",
+    "runner_exit_code": 0,
+    "working_tree_changes_after_run": 0,
+    "handoff_result": "DPQ_COMMAND_SUCCEEDED"
+  }
+}
