@@ -110,17 +110,19 @@ def missing_required_items(actual: list[str], required: list[str]) -> list[str]:
 def scenario_state(events: list[dict[str, Any]]) -> dict[str, Any]:
     """Reconstruct only the fixed support-DPQ slice mirrored from the current DSL.
 
-    Case status is intentionally not a readiness input because the current
-    `case_action_ready` rule does not consume `case_status`. Likewise, absence
-    of dependencies does not itself create `resolution_blocked`; the source rule
-    blocks only when a dependency exists and is not complete. These are mirrors
-    of the current source contract, not endorsements of broader product policy.
+    Readiness and selected-resolution state are gated by an explicit open case,
+    matching the repaired support rules. Assignment facts remain independently
+    reconstructible so a non-open case can preserve history without presenting
+    that assignment as a currently selected resolution. Absence of dependencies
+    does not itself create `resolution_blocked`; the source rule blocks only when
+    a dependency exists and is not complete.
     """
 
     resolution: dict[str, Any] = {}
     dependency_states: list[str] = []
     evidence_present = False
     assignments: list[dict[str, Any]] = []
+    case_status: str | None = None
 
     for event in events:
         kind = event.get("kind")
@@ -133,8 +135,8 @@ def scenario_state(events: list[dict[str, Any]]) -> dict[str, Any]:
         elif kind == "assignment":
             assignments.append(event)
         elif kind == "case":
-            # Current readiness semantics do not consume case status.
-            continue
+            value = event.get("status")
+            case_status = str(value) if value is not None else None
 
     active_assignments = [item for item in assignments if item.get("state") == "active"]
     current_assignment = max(active_assignments, key=lambda item: int(item.get("epoch", -1)), default=None)
@@ -151,8 +153,21 @@ def scenario_state(events: list[dict[str, Any]]) -> dict[str, Any]:
     approval = resolution.get("approval")
     suppression = resolution.get("suppression")
     confidence = resolution.get("confidence")
+    case_open = case_status == "open"
 
-    if approval != "approved":
+    semantic_prerequisites = (
+        case_open
+        and approval == "approved"
+        and not dependency_blocked
+        and evidence_present
+        and suppression != "suppressed"
+        and confidence == "high"
+    )
+    selected = semantic_prerequisites and current_owner is not None
+
+    if not case_open:
+        why = "case_not_open"
+    elif approval != "approved":
         why = "approval_missing"
     elif dependency_blocked:
         why = "dependency_incomplete"
@@ -169,8 +184,10 @@ def scenario_state(events: list[dict[str, Any]]) -> dict[str, Any]:
 
     return {
         "ready": why == "evidence+approval+dependency+confidence",
+        "selected": selected,
         "current_owner": current_owner,
         "stale_owners": stale_owners,
+        "case_status": case_status,
         "why": why,
     }
 
@@ -260,13 +277,13 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
             "may_promote_commercial_beta": False,
             "may_promote_production_readiness": False,
             "residual_semantic_question": (
-                "Current case_action_ready does not consume case_status; DPQ mirrors that fact and does not endorse it as product policy."
+                "Readiness and selection now require case_status == open in the bound support-DPQ slice; richer case-lifecycle semantics remain outside this qualification."
             ),
             "next_evidence_if_technical_passes": [
-                "bind an exact supported/unsupported pilot matrix",
-                "decide whether closed-case status must fence readiness, then test that requirement explicitly if adopted",
+                "bind or refresh the exact supported/unsupported pilot matrix against the repaired subject",
                 "measure real operator effort with human/design-partner participants before making cost or superiority claims",
                 "prioritize only product-wedge remediation that blocks the bounded pilot",
+                "keep any richer case-lifecycle states explicit and separately tested before expanding beyond open versus non-open fencing",
             ],
         },
     }
