@@ -2,15 +2,16 @@
 """Bounded design-partner qualification for the AETHER support-desk exemplar.
 
 This is a product-decision harness, not a semantic authority or release-promotion
-mechanism. It deliberately reuses the existing customer-workflow acceptance
-runner, binds the actual support DSL contract, and adds a synthetic conventional
-workflow comparator. Comparator units are structural proxies only; they are not
-human-time, monetary-cost, or product-superiority evidence.
+mechanism. It reuses the existing customer-workflow acceptance runner, binds the
+actual support-desk DSL contract, and adds a synthetic conventional-workflow
+comparator. Comparator units are structural proxies only; they are not human
+operator time, monetary cost, or product-superiority evidence.
 """
 
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import subprocess
 import sys
@@ -52,6 +53,20 @@ def current_revision() -> str:
     return completed.stdout.strip() if completed.returncode == 0 else "UNKNOWN"
 
 
+def load_customer_acceptance_module() -> Any:
+    spec = importlib.util.spec_from_file_location("aether_customer_workflow_acceptance", CUSTOMER_ACCEPTANCE)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("cannot load customer_workflow_acceptance.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def enforced_customer_runtime_markers() -> list[str]:
+    module = load_customer_acceptance_module()
+    return list(module.REQUIRED_DEMO_MARKERS)
+
+
 def run_existing_customer_acceptance(timeout_seconds: int) -> dict[str, Any]:
     with tempfile.TemporaryDirectory(prefix="aether-dpq-") as tmp:
         out_json = Path(tmp) / "customer-workflow.json"
@@ -77,40 +92,39 @@ def run_existing_customer_acceptance(timeout_seconds: int) -> dict[str, Any]:
             timeout=timeout_seconds + 60,
             check=False,
         )
-        payload = load_json(out_json) if out_json.exists() else {
-            "workflow_ready": False,
-            "gates": [],
-        }
+        payload = load_json(out_json) if out_json.exists() else {"workflow_ready": False, "gates": []}
         payload["runner_exit_code"] = completed.returncode
         payload["runner_output_tail"] = "\n".join(completed.stdout.splitlines()[-80:])
         return payload
-
-
-def runtime_output(customer_payload: dict[str, Any]) -> str:
-    parts: list[str] = []
-    for gate in customer_payload.get("gates", []):
-        tail = gate.get("output_tail")
-        if isinstance(tail, str):
-            parts.append(tail)
-    return "\n".join(parts)
 
 
 def missing_markers(text: str, markers: list[str]) -> list[str]:
     return [marker for marker in markers if marker not in text]
 
 
+def missing_required_items(actual: list[str], required: list[str]) -> list[str]:
+    actual_set = set(actual)
+    return [item for item in required if item not in actual_set]
+
+
 def scenario_state(events: list[dict[str, Any]]) -> dict[str, Any]:
+    """Reconstruct only the fixed support-DPQ slice mirrored from the current DSL.
+
+    Case status is intentionally not a readiness input because the current
+    `case_action_ready` rule does not consume `case_status`. Likewise, absence
+    of dependencies does not itself create `resolution_blocked`; the source rule
+    blocks only when a dependency exists and is not complete. These are mirrors
+    of the current source contract, not endorsements of broader product policy.
+    """
+
     resolution: dict[str, Any] = {}
     dependency_states: list[str] = []
     evidence_present = False
     assignments: list[dict[str, Any]] = []
-    case_open = False
 
     for event in events:
         kind = event.get("kind")
-        if kind == "case":
-            case_open = event.get("status") == "open"
-        elif kind == "resolution":
+        if kind == "resolution":
             resolution.update(event)
         elif kind == "dependency":
             dependency_states.append(str(event.get("status")))
@@ -118,6 +132,9 @@ def scenario_state(events: list[dict[str, Any]]) -> dict[str, Any]:
             evidence_present = evidence_present or event.get("present") is True
         elif kind == "assignment":
             assignments.append(event)
+        elif kind == "case":
+            # Current readiness semantics do not consume case status.
+            continue
 
     active_assignments = [item for item in assignments if item.get("state") == "active"]
     current_assignment = max(active_assignments, key=lambda item: int(item.get("epoch", -1)), default=None)
@@ -130,14 +147,14 @@ def scenario_state(events: list[dict[str, Any]]) -> dict[str, Any]:
         and (current_owner is None or item.get("owner") != current_owner or int(item.get("epoch", -1)) != current_epoch)
     ]
 
-    dependencies_complete = bool(dependency_states) and all(state == "done" for state in dependency_states)
+    dependency_blocked = any(state != "done" for state in dependency_states)
     approval = resolution.get("approval")
     suppression = resolution.get("suppression")
     confidence = resolution.get("confidence")
 
     if approval != "approved":
         why = "approval_missing"
-    elif not dependencies_complete:
+    elif dependency_blocked:
         why = "dependency_incomplete"
     elif not evidence_present:
         why = "evidence_missing"
@@ -147,14 +164,11 @@ def scenario_state(events: list[dict[str, Any]]) -> dict[str, Any]:
         why = "confidence_low"
     elif current_owner is not None:
         why = "already_claimed"
-    elif not case_open:
-        why = "case_not_open"
     else:
         why = "evidence+approval+dependency+confidence"
 
-    ready = why == "evidence+approval+dependency+confidence"
     return {
-        "ready": ready,
+        "ready": why == "evidence+approval+dependency+confidence",
         "current_owner": current_owner,
         "stale_owners": stale_owners,
         "why": why,
@@ -168,18 +182,13 @@ def evaluate_scenario(scenario: dict[str, Any]) -> dict[str, Any]:
     state = scenario_state(events)
     observed = {question: state.get(question) for question in questions}
     expected_for_questions = {question: expected.get(question) for question in questions}
-    passed = observed == expected_for_questions
 
-    # The comparator intentionally models a naive event-log workflow. Each
-    # question requires a complete event scan to reconstruct current state.
-    # AETHER query units model one semantic query per question. These units are
-    # structural proxies only and cannot be translated into human time/cost.
     baseline_inspection_units = len(events) * len(questions)
     aether_query_proxy_units = len(questions)
     return {
         "id": scenario.get("id"),
         "purpose": scenario.get("purpose"),
-        "passed": passed,
+        "passed": observed == expected_for_questions,
         "expected": expected_for_questions,
         "observed": observed,
         "proxy": {
@@ -193,22 +202,23 @@ def evaluate_scenario(scenario: dict[str, Any]) -> dict[str, Any]:
 def build_report(args: argparse.Namespace) -> dict[str, Any]:
     fixture = load_json(FIXTURE)
     customer = run_existing_customer_acceptance(args.timeout_seconds)
-    output = runtime_output(customer)
     source = DEMO_SOURCE.read_text(encoding="utf-8")
 
-    missing_runtime = missing_markers(output, list(fixture["runtime_markers"]))
+    required_runtime = list(fixture["runtime_markers"])
+    enforced_runtime = enforced_customer_runtime_markers()
+    missing_runtime_enforcement = missing_required_items(enforced_runtime, required_runtime)
     missing_contract = missing_markers(source, list(fixture["source_contract_markers"]))
     scenarios = [evaluate_scenario(item) for item in fixture["scenarios"]]
 
     workflow_passed = customer.get("workflow_ready") is True and customer.get("runner_exit_code") == 0
     scenario_passed = all(item["passed"] for item in scenarios)
-    technical_acceptance = workflow_passed and not missing_runtime and not missing_contract and scenario_passed
+    technical_acceptance = workflow_passed and not missing_runtime_enforcement and not missing_contract and scenario_passed
 
     baseline_units = sum(item["proxy"]["baseline_event_log_inspection_units"] for item in scenarios)
     aether_units = sum(item["proxy"]["aether_semantic_query_units"] for item in scenarios)
     ratio = round(aether_units / baseline_units, 4) if baseline_units else None
-
     generated_at = args.generated_at or datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
     return {
         "record_type": "AETHER_DESIGN_PARTNER_QUALIFICATION",
         "schema_version": fixture["schema_version"],
@@ -228,10 +238,13 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
             "workflow_ready": customer.get("workflow_ready"),
         },
         "runtime_contract": {
-            "missing_runtime_markers": missing_runtime,
+            "required_markers": required_runtime,
+            "enforced_by_existing_acceptance": enforced_runtime,
+            "missing_runtime_enforcement": missing_runtime_enforcement,
             "missing_source_contract_markers": missing_contract,
-            "passed": not missing_runtime and not missing_contract,
+            "passed": not missing_runtime_enforcement and not missing_contract,
         },
+        "synthetic_evaluator_boundary": fixture["synthetic_evaluator_boundary"],
         "scenarios": scenarios,
         "synthetic_comparator": {
             "baseline_event_log_inspection_units": baseline_units,
@@ -246,8 +259,12 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
             "may_establish_human_operator_cost_savings": False,
             "may_promote_commercial_beta": False,
             "may_promote_production_readiness": False,
+            "residual_semantic_question": (
+                "Current case_action_ready does not consume case_status; DPQ mirrors that fact and does not endorse it as product policy."
+            ),
             "next_evidence_if_technical_passes": [
                 "bind an exact supported/unsupported pilot matrix",
+                "decide whether closed-case status must fence readiness, then test that requirement explicitly if adopted",
                 "measure real operator effort with human/design-partner participants before making cost or superiority claims",
                 "prioritize only product-wedge remediation that blocks the bounded pilot",
             ],
@@ -267,10 +284,10 @@ def render_markdown(payload: dict[str, Any]) -> str:
         "",
         "> Comparator units are synthetic reconstruction proxies only. They are not human-time, monetary-cost, or product-superiority evidence.",
         "",
-        "## Runtime and contract",
+        "## Runtime and source contract",
         "",
         f"- Existing customer-workflow acceptance passed: `{payload['existing_customer_workflow_acceptance']['passed']}`",
-        f"- Missing runtime markers: `{payload['runtime_contract']['missing_runtime_markers']}`",
+        f"- DPQ markers not enforced by existing acceptance: `{payload['runtime_contract']['missing_runtime_enforcement']}`",
         f"- Missing source-contract markers: `{payload['runtime_contract']['missing_source_contract_markers']}`",
         "",
         "## Fail-capable scenarios",
@@ -310,6 +327,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
             "- Human operator-cost savings established: `false`",
             "- Commercial beta promoted: `false`",
             "- Production readiness promoted: `false`",
+            f"- Residual semantic question: {payload['decision_boundary']['residual_semantic_question']}",
             "",
             "### Next evidence after a technical pass",
             "",
