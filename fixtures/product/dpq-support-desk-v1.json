@@ -8,12 +8,17 @@
     "monetary_cost_claim_allowed": false,
     "product_superiority_claim_allowed": false
   },
+  "synthetic_evaluator_boundary": {
+    "semantic_authority": false,
+    "case_status_gates_readiness": false,
+    "dependency_absence_counts_as_blocked": false,
+    "reason": "Mirror the current support-desk DSL slice for fixed qualification scenarios; do not invent additional product policy."
+  },
   "runtime_markers": [
     "Active support cases on the desk",
     "Retrieved evidence from the support-memory sidecar",
     "Which resolution is actually ready",
     "Who owns the case now",
-    "The same case before the handoff",
     "Fenced stale recommendations at Current",
     "Why the current selected resolution is true",
     "root tuple"
@@ -25,6 +30,7 @@
     "resolution_confident(resolution) <- resolution_confidence_band(resolution, \"high\")",
     "resolution_has_retrieved_evidence(resolution) <- resolution_case(resolution, case), retrieved_support_evidence(case, evidence, score)",
     "active_assignment(case, owner, epoch) <- case_claimed_by(case, owner), case_lease_epoch(case, epoch), case_lease_state(case, \"active\")",
+    "case_claimed(case) <- active_assignment(case, owner, epoch)",
     "case_action_ready(resolution) <- candidate_resolution(resolution), resolution_policy_approved(resolution), resolution_confident(resolution), resolution_has_retrieved_evidence(resolution), not resolution_blocked(resolution), not resolution_suppressed(resolution), resolution_case(resolution, case), not case_claimed(case)",
     "case_resolution_selected(resolution, case, owner, epoch) <- candidate_resolution(resolution), resolution_policy_approved(resolution), resolution_confident(resolution), resolution_has_retrieved_evidence(resolution), not resolution_blocked(resolution), not resolution_suppressed(resolution), resolution_case(resolution, case), active_assignment(case, owner, epoch)",
     "stale_assignment_attempt(case, owner, epoch) <- assignment_attempt(case, owner, epoch), not active_assignment(case, owner, epoch)"
@@ -84,7 +90,7 @@
   "decision_policy": {
     "technical_acceptance_requires": [
       "existing_customer_workflow_acceptance_passes",
-      "runtime_markers_present",
+      "runtime_markers_are_enforced_by_existing_acceptance",
       "source_contract_markers_present",
       "synthetic_baseline_reconstructs_expected_scenarios"
     ],
