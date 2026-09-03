@@ -28,6 +28,19 @@ class DesignPartnerQualificationTests(unittest.TestCase):
         self.assertFalse(fixture["metric_boundary"]["human_time_claim_allowed"])
         self.assertFalse(fixture["metric_boundary"]["monetary_cost_claim_allowed"])
         self.assertFalse(fixture["metric_boundary"]["product_superiority_claim_allowed"])
+        self.assertFalse(fixture["synthetic_evaluator_boundary"]["semantic_authority"])
+
+    def test_runtime_markers_are_enforced_by_existing_acceptance(self) -> None:
+        module = load_module()
+        fixture = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+
+        self.assertEqual(
+            module.missing_required_items(
+                module.enforced_customer_runtime_markers(),
+                fixture["runtime_markers"],
+            ),
+            [],
+        )
 
     def test_source_contract_markers_bind_real_support_rules(self) -> None:
         module = load_module()
@@ -63,6 +76,30 @@ class DesignPartnerQualificationTests(unittest.TestCase):
         self.assertEqual(state["stale_owners"], ["triage-agent"])
         self.assertFalse(state["ready"])
         self.assertEqual(state["why"], "already_claimed")
+
+    def test_case_status_does_not_silently_extend_current_readiness_rule(self) -> None:
+        module = load_module()
+        events = [
+            {"kind": "case", "status": "closed"},
+            {"kind": "dependency", "status": "done"},
+            {"kind": "resolution", "approval": "approved", "suppression": "clear", "confidence": "high"},
+            {"kind": "evidence", "present": True},
+        ]
+
+        state = module.scenario_state(events)
+        self.assertTrue(state["ready"])
+        self.assertEqual(state["why"], "evidence+approval+dependency+confidence")
+
+    def test_absent_dependency_does_not_silently_create_a_block(self) -> None:
+        module = load_module()
+        events = [
+            {"kind": "resolution", "approval": "approved", "suppression": "clear", "confidence": "high"},
+            {"kind": "evidence", "present": True},
+        ]
+
+        state = module.scenario_state(events)
+        self.assertTrue(state["ready"])
+        self.assertEqual(state["why"], "evidence+approval+dependency+confidence")
 
     def test_comparator_units_are_structural_proxy_only(self) -> None:
         module = load_module()
