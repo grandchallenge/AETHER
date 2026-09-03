@@ -25,6 +25,8 @@
     "resolution_confident(resolution) <- resolution_confidence_band(resolution, \"high\")",
     "resolution_has_retrieved_evidence(resolution) <- resolution_case(resolution, case), retrieved_support_evidence(case, evidence, score)",
     "active_assignment(case, owner, epoch) <- case_claimed_by(case, owner), case_lease_epoch(case, epoch), case_lease_state(case, \"active\")",
+    "case_action_ready(resolution) <- candidate_resolution(resolution), resolution_policy_approved(resolution), resolution_confident(resolution), resolution_has_retrieved_evidence(resolution), not resolution_blocked(resolution), not resolution_suppressed(resolution), resolution_case(resolution, case), not case_claimed(case)",
+    "case_resolution_selected(resolution, case, owner, epoch) <- candidate_resolution(resolution), resolution_policy_approved(resolution), resolution_confident(resolution), resolution_has_retrieved_evidence(resolution), not resolution_blocked(resolution), not resolution_suppressed(resolution), resolution_case(resolution, case), active_assignment(case, owner, epoch)",
     "stale_assignment_attempt(case, owner, epoch) <- assignment_attempt(case, owner, epoch), not active_assignment(case, owner, epoch)"
   ],
   "scenarios": [
