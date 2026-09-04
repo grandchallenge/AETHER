@@ -1,4 +1,6 @@
-use aether_api::{KernelService, ResolveTraceHandleRequest, RunDocumentRequest, SqliteKernelService};
+use aether_api::{
+    KernelService, ResolveTraceHandleRequest, RunDocumentRequest, SqliteKernelService,
+};
 use aether_ast::{QueryRow, Value};
 use serde::Deserialize;
 use std::{env, fs, path::PathBuf, process::Command};
@@ -117,7 +119,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn verify_source_contract() -> Result<(), Box<dyn std::error::Error>> {
     for marker in SOURCE_CONTRACT_MARKERS {
         if !SUPPORT_DEMO_SOURCE.contains(marker) {
-            return Err(format!("qualified support-desk source contract marker missing: {marker}").into());
+            return Err(
+                format!("qualified support-desk source contract marker missing: {marker}").into(),
+            );
         }
     }
     Ok(())
@@ -358,7 +362,11 @@ fn print_trace(
 }
 
 fn format_values(values: &[Value]) -> String {
-    values.iter().map(format_value).collect::<Vec<_>>().join(", ")
+    values
+        .iter()
+        .map(format_value)
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 fn format_value(value: &Value) -> String {
