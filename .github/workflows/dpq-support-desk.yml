@@ -1,0 +1,102 @@
+name: Support Desk DPQ
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/dpq-support-desk.yml"
+      - "crates/aether_api/examples/demo_05_ai_support_resolution_desk.rs"
+      - "docs/COMMERCIALIZATION/AI_SUPPORT_RESOLUTION_DESK.md"
+      - "examples/demo-05-ai-support-resolution-desk.md"
+      - "fixtures/product/dpq-support-desk-v1.json"
+      - "python/notebooks/06_ai_support_resolution_desk.ipynb"
+      - "scripts/customer_workflow_acceptance.py"
+      - "scripts/design_partner_qualification.py"
+      - "site/support-resolution-desk.html"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/dpq-support-desk.yml"
+      - "crates/aether_api/examples/demo_05_ai_support_resolution_desk.rs"
+      - "docs/COMMERCIALIZATION/AI_SUPPORT_RESOLUTION_DESK.md"
+      - "examples/demo-05-ai-support-resolution-desk.md"
+      - "fixtures/product/dpq-support-desk-v1.json"
+      - "python/notebooks/06_ai_support_resolution_desk.ipynb"
+      - "scripts/customer_workflow_acceptance.py"
+      - "scripts/design_partner_qualification.py"
+      - "site/support-resolution-desk.html"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: support-desk-dpq-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  support-desk-dpq:
+    name: Support desk DPQ
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout exact subject
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify checkout identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+          test -z "$(git status --porcelain --untracked-files=all)"
+
+      - name: Install stable Rust toolchain
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - name: Execute bounded support-desk qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/dpq
+          python scripts/design_partner_qualification.py run \
+            --out-json artifacts/dpq/report.json \
+            --out-md artifacts/dpq/report.md \
+            --timeout-seconds 300 \
+            --enforce
+
+      - name: Verify evidence subject identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          report = json.loads(Path("artifacts/dpq/report.json").read_text(encoding="utf-8"))
+          expected = os.environ["GITHUB_SHA"]
+          if report.get("subject_revision") != expected:
+              raise SystemExit(
+                  f"DPQ subject mismatch: {report.get('subject_revision')} != {expected}"
+              )
+          if report.get("technical_acceptance") != "PASS":
+              raise SystemExit("DPQ technical acceptance is not PASS")
+          PY
+
+      - name: Upload exact DPQ evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: aether-support-desk-dpq-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/dpq
+          if-no-files-found: error
