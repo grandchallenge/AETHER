@@ -1,0 +1,233 @@
+{
+  "schema_version": "aether.support-desk-real-operator-case-pack.v1",
+  "case_set_id": "AETHER-SUPPORT-DESK-REAL-OPERATOR-CASES-001",
+  "protocol_id": "AETHER-SUPPORT-DESK-REAL-OPERATOR-PILOT-001",
+  "authority": "grandchallenge/GCT-EXECUTIVE#34:APPROVE_A_SYNTHETIC_OR_SANITIZED_REAL_OPERATOR_PILOT",
+  "protected_protocol_revision": "7f1a169d9c078792f057c0a72d60338acbb600c9",
+  "dpq_002_qualified_subject": "f0f20532c40fcb389e55cdf10c44e5a3ac1423e9",
+  "data_classification": "synthetic",
+  "sanitization_provenance": "All names, identifiers, account references, evidence handles, timestamps, cases, and actions in this pack were invented for the bounded pilot. No customer/private production source was used.",
+  "operator_questions": [
+    "What support cases are active now?",
+    "What evidence is available for this case?",
+    "Which resolution, if any, is actually ready?",
+    "Who owns the case now, and what assignment is stale?",
+    "Why is the current selected resolution true or not true?"
+  ],
+  "comparator_contract": {
+    "condition_id": "conventional_event_log",
+    "description": "Readable chronological ticket/event log containing the same decision-relevant facts as the AETHER condition, without semantic derivation, proof trace, replay query, or current-state projection.",
+    "no_intentional_handicap": true,
+    "facts_must_match_aether_condition": true,
+    "operator_may_filter_or_sort": true,
+    "operator_may_not_receive_derived_current_state": true
+  },
+  "cases": [
+    {
+      "case_id": "pilot-case-01-normal-resolution",
+      "purpose": "Fully evidenced and approved open case becomes action-ready before assignment.",
+      "support_case": "case/601",
+      "semantic_facts": [
+        ["case_status", "case/601", "open"],
+        ["retrieved_evidence", "case/601", "evidence/601-credit-policy"],
+        ["candidate_resolution", "case/601", "apply-migration-credit"],
+        ["resolution_policy_approval", "case/601", "apply-migration-credit", "approved"],
+        ["resolution_confidence", "case/601", "apply-migration-credit", "high"],
+        ["resolution_suppression", "case/601", "apply-migration-credit", "clear"],
+        ["resolution_dependency", "case/601", "apply-migration-credit", "verify-plan-migration"],
+        ["dependency_status", "case/601", "verify-plan-migration", "complete"]
+      ],
+      "conventional_event_log": [
+        {"event_index": 1, "at": "2026-01-10T09:00:00Z", "type": "case_opened", "detail": "case/601 opened"},
+        {"event_index": 2, "at": "2026-01-10T09:01:00Z", "type": "evidence_attached", "detail": "evidence/601-credit-policy attached"},
+        {"event_index": 3, "at": "2026-01-10T09:02:00Z", "type": "resolution_proposed", "detail": "apply-migration-credit proposed"},
+        {"event_index": 4, "at": "2026-01-10T09:03:00Z", "type": "approval_changed", "detail": "apply-migration-credit approved"},
+        {"event_index": 5, "at": "2026-01-10T09:04:00Z", "type": "confidence_changed", "detail": "confidence high"},
+        {"event_index": 6, "at": "2026-01-10T09:05:00Z", "type": "suppression_changed", "detail": "suppression clear"},
+        {"event_index": 7, "at": "2026-01-10T09:06:00Z", "type": "dependency_declared", "detail": "verify-plan-migration required"},
+        {"event_index": 8, "at": "2026-01-10T09:07:00Z", "type": "dependency_completed", "detail": "verify-plan-migration complete"}
+      ],
+      "ground_truth": {
+        "active_cases": ["case/601"],
+        "evidence": ["evidence/601-credit-policy"],
+        "ready_resolution": "apply-migration-credit",
+        "current_owner": null,
+        "stale_owners": [],
+        "selected_resolution": null,
+        "why": "The case is open; evidence is present; policy approval is approved; confidence is high; suppression is clear; the required dependency is complete; no assignment exists, so the resolution is ready but not selected."
+      }
+    },
+    {
+      "case_id": "pilot-case-02-missing-approval",
+      "purpose": "Missing approval must fail closed even when the other readiness facts are present.",
+      "support_case": "case/602",
+      "semantic_facts": [
+        ["case_status", "case/602", "open"],
+        ["retrieved_evidence", "case/602", "evidence/602-refund-policy"],
+        ["candidate_resolution", "case/602", "issue-service-refund"],
+        ["resolution_policy_approval", "case/602", "issue-service-refund", "pending"],
+        ["resolution_confidence", "case/602", "issue-service-refund", "high"],
+        ["resolution_suppression", "case/602", "issue-service-refund", "clear"],
+        ["resolution_dependency", "case/602", "issue-service-refund", "verify-outage-window"],
+        ["dependency_status", "case/602", "verify-outage-window", "complete"]
+      ],
+      "conventional_event_log": [
+        {"event_index": 1, "at": "2026-01-11T10:00:00Z", "type": "case_opened", "detail": "case/602 opened"},
+        {"event_index": 2, "at": "2026-01-11T10:01:00Z", "type": "evidence_attached", "detail": "evidence/602-refund-policy attached"},
+        {"event_index": 3, "at": "2026-01-11T10:02:00Z", "type": "resolution_proposed", "detail": "issue-service-refund proposed"},
+        {"event_index": 4, "at": "2026-01-11T10:03:00Z", "type": "approval_changed", "detail": "issue-service-refund approval pending"},
+        {"event_index": 5, "at": "2026-01-11T10:04:00Z", "type": "confidence_changed", "detail": "confidence high"},
+        {"event_index": 6, "at": "2026-01-11T10:05:00Z", "type": "suppression_changed", "detail": "suppression clear"},
+        {"event_index": 7, "at": "2026-01-11T10:06:00Z", "type": "dependency_completed", "detail": "verify-outage-window complete"}
+      ],
+      "ground_truth": {
+        "active_cases": ["case/602"],
+        "evidence": ["evidence/602-refund-policy"],
+        "ready_resolution": null,
+        "current_owner": null,
+        "stale_owners": [],
+        "selected_resolution": null,
+        "why": "Approval remains pending, so the resolution fails closed despite evidence, high confidence, clear suppression, and a complete dependency."
+      }
+    },
+    {
+      "case_id": "pilot-case-03-dependency-incomplete",
+      "purpose": "An incomplete declared dependency blocks readiness.",
+      "support_case": "case/603",
+      "semantic_facts": [
+        ["case_status", "case/603", "open"],
+        ["retrieved_evidence", "case/603", "evidence/603-account-note"],
+        ["candidate_resolution", "case/603", "restore-account-access"],
+        ["resolution_policy_approval", "case/603", "restore-account-access", "approved"],
+        ["resolution_confidence", "case/603", "restore-account-access", "high"],
+        ["resolution_suppression", "case/603", "restore-account-access", "clear"],
+        ["resolution_dependency", "case/603", "restore-account-access", "verify-account-owner"],
+        ["dependency_status", "case/603", "verify-account-owner", "incomplete"]
+      ],
+      "conventional_event_log": [
+        {"event_index": 1, "at": "2026-01-12T11:00:00Z", "type": "case_opened", "detail": "case/603 opened"},
+        {"event_index": 2, "at": "2026-01-12T11:01:00Z", "type": "evidence_attached", "detail": "evidence/603-account-note attached"},
+        {"event_index": 3, "at": "2026-01-12T11:02:00Z", "type": "resolution_proposed", "detail": "restore-account-access proposed"},
+        {"event_index": 4, "at": "2026-01-12T11:03:00Z", "type": "approval_changed", "detail": "restore-account-access approved"},
+        {"event_index": 5, "at": "2026-01-12T11:04:00Z", "type": "confidence_changed", "detail": "confidence high"},
+        {"event_index": 6, "at": "2026-01-12T11:05:00Z", "type": "suppression_changed", "detail": "suppression clear"},
+        {"event_index": 7, "at": "2026-01-12T11:06:00Z", "type": "dependency_declared", "detail": "verify-account-owner required"},
+        {"event_index": 8, "at": "2026-01-12T11:07:00Z", "type": "dependency_status", "detail": "verify-account-owner incomplete"}
+      ],
+      "ground_truth": {
+        "active_cases": ["case/603"],
+        "evidence": ["evidence/603-account-note"],
+        "ready_resolution": null,
+        "current_owner": null,
+        "stale_owners": [],
+        "selected_resolution": null,
+        "why": "The required verify-account-owner dependency is incomplete, so readiness is blocked."
+      }
+    },
+    {
+      "case_id": "pilot-case-04-handoff-stale-fencing",
+      "purpose": "A later active assignment owns the open case; prior ownership remains historical and stale.",
+      "support_case": "case/604",
+      "semantic_facts": [
+        ["case_status", "case/604", "open"],
+        ["retrieved_evidence", "case/604", "evidence/604-migration-log"],
+        ["candidate_resolution", "case/604", "apply-migration-credit"],
+        ["resolution_policy_approval", "case/604", "apply-migration-credit", "approved"],
+        ["resolution_confidence", "case/604", "apply-migration-credit", "high"],
+        ["resolution_suppression", "case/604", "apply-migration-credit", "clear"],
+        ["resolution_dependency", "case/604", "apply-migration-credit", "verify-plan-migration"],
+        ["dependency_status", "case/604", "verify-plan-migration", "complete"],
+        ["case_assignment", "case/604", "triage-agent", "epoch-1"],
+        ["case_assignment", "case/604", "lead-ana", "epoch-2"],
+        ["active_assignment", "case/604", "lead-ana", "epoch-2"]
+      ],
+      "conventional_event_log": [
+        {"event_index": 1, "at": "2026-01-13T12:00:00Z", "type": "case_opened", "detail": "case/604 opened"},
+        {"event_index": 2, "at": "2026-01-13T12:01:00Z", "type": "evidence_attached", "detail": "evidence/604-migration-log attached"},
+        {"event_index": 3, "at": "2026-01-13T12:02:00Z", "type": "resolution_proposed", "detail": "apply-migration-credit proposed"},
+        {"event_index": 4, "at": "2026-01-13T12:03:00Z", "type": "approval_changed", "detail": "apply-migration-credit approved"},
+        {"event_index": 5, "at": "2026-01-13T12:04:00Z", "type": "confidence_changed", "detail": "confidence high"},
+        {"event_index": 6, "at": "2026-01-13T12:05:00Z", "type": "suppression_changed", "detail": "suppression clear"},
+        {"event_index": 7, "at": "2026-01-13T12:06:00Z", "type": "dependency_completed", "detail": "verify-plan-migration complete"},
+        {"event_index": 8, "at": "2026-01-13T12:07:00Z", "type": "assignment", "detail": "triage-agent assigned at epoch-1"},
+        {"event_index": 9, "at": "2026-01-13T12:10:00Z", "type": "assignment", "detail": "lead-ana assigned at epoch-2 and is current"}
+      ],
+      "ground_truth": {
+        "active_cases": ["case/604"],
+        "evidence": ["evidence/604-migration-log"],
+        "ready_resolution": null,
+        "current_owner": "lead-ana",
+        "stale_owners": ["triage-agent"],
+        "selected_resolution": "apply-migration-credit",
+        "why": "The case is open and all resolution prerequisites are satisfied. lead-ana is the active epoch-2 owner, so the resolution is selected for the current assignment; triage-agent is historical/stale. The resolution is not unassigned action-ready because the case is already claimed."
+      }
+    },
+    {
+      "case_id": "pilot-case-05-suppressed-resolution",
+      "purpose": "A suppressed recommendation must not become ready or selected.",
+      "support_case": "case/605",
+      "semantic_facts": [
+        ["case_status", "case/605", "open"],
+        ["retrieved_evidence", "case/605", "evidence/605-policy-note"],
+        ["candidate_resolution", "case/605", "grant-manual-exception"],
+        ["resolution_policy_approval", "case/605", "grant-manual-exception", "approved"],
+        ["resolution_confidence", "case/605", "grant-manual-exception", "high"],
+        ["resolution_suppression", "case/605", "grant-manual-exception", "suppressed"]
+      ],
+      "conventional_event_log": [
+        {"event_index": 1, "at": "2026-01-14T13:00:00Z", "type": "case_opened", "detail": "case/605 opened"},
+        {"event_index": 2, "at": "2026-01-14T13:01:00Z", "type": "evidence_attached", "detail": "evidence/605-policy-note attached"},
+        {"event_index": 3, "at": "2026-01-14T13:02:00Z", "type": "resolution_proposed", "detail": "grant-manual-exception proposed"},
+        {"event_index": 4, "at": "2026-01-14T13:03:00Z", "type": "approval_changed", "detail": "grant-manual-exception approved"},
+        {"event_index": 5, "at": "2026-01-14T13:04:00Z", "type": "confidence_changed", "detail": "confidence high"},
+        {"event_index": 6, "at": "2026-01-14T13:05:00Z", "type": "suppression_changed", "detail": "grant-manual-exception suppressed"}
+      ],
+      "ground_truth": {
+        "active_cases": ["case/605"],
+        "evidence": ["evidence/605-policy-note"],
+        "ready_resolution": null,
+        "current_owner": null,
+        "stale_owners": [],
+        "selected_resolution": null,
+        "why": "The recommendation is explicitly suppressed, so it cannot become ready or selected despite approval and high confidence."
+      }
+    },
+    {
+      "case_id": "pilot-case-06-closed-case-fencing",
+      "purpose": "A non-open case must not derive a ready or selected resolution while historical ownership remains reconstructible.",
+      "support_case": "case/606",
+      "semantic_facts": [
+        ["case_status", "case/606", "closed"],
+        ["retrieved_evidence", "case/606", "evidence/606-credit-policy"],
+        ["candidate_resolution", "case/606", "apply-migration-credit"],
+        ["resolution_policy_approval", "case/606", "apply-migration-credit", "approved"],
+        ["resolution_confidence", "case/606", "apply-migration-credit", "high"],
+        ["resolution_suppression", "case/606", "apply-migration-credit", "clear"],
+        ["resolution_dependency", "case/606", "apply-migration-credit", "verify-plan-migration"],
+        ["dependency_status", "case/606", "verify-plan-migration", "complete"],
+        ["case_assignment", "case/606", "lead-ana", "epoch-1"],
+        ["active_assignment", "case/606", "lead-ana", "epoch-1"]
+      ],
+      "conventional_event_log": [
+        {"event_index": 1, "at": "2026-01-15T14:00:00Z", "type": "case_opened", "detail": "case/606 opened"},
+        {"event_index": 2, "at": "2026-01-15T14:01:00Z", "type": "evidence_attached", "detail": "evidence/606-credit-policy attached"},
+        {"event_index": 3, "at": "2026-01-15T14:02:00Z", "type": "resolution_proposed", "detail": "apply-migration-credit proposed"},
+        {"event_index": 4, "at": "2026-01-15T14:03:00Z", "type": "approval_changed", "detail": "apply-migration-credit approved"},
+        {"event_index": 5, "at": "2026-01-15T14:04:00Z", "type": "confidence_changed", "detail": "confidence high"},
+        {"event_index": 6, "at": "2026-01-15T14:05:00Z", "type": "suppression_changed", "detail": "suppression clear"},
+        {"event_index": 7, "at": "2026-01-15T14:06:00Z", "type": "dependency_completed", "detail": "verify-plan-migration complete"},
+        {"event_index": 8, "at": "2026-01-15T14:07:00Z", "type": "assignment", "detail": "lead-ana assigned at epoch-1"},
+        {"event_index": 9, "at": "2026-01-15T14:12:00Z", "type": "case_closed", "detail": "case/606 closed; assignment history retained"}
+      ],
+      "ground_truth": {
+        "active_cases": [],
+        "evidence": ["evidence/606-credit-policy"],
+        "ready_resolution": null,
+        "current_owner": "lead-ana",
+        "stale_owners": [],
+        "selected_resolution": null,
+        "why": "The case is closed. DPQ-002-qualified semantics require an open case for readiness and selection, so neither can derive. Historical/current assignment reconstruction still shows lead-ana as the retained owner fact."
+      }
+    }
+  ]
+}
