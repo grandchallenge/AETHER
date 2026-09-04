@@ -1,6 +1,6 @@
 {
   "schema_version": "aether.design-partner-qualification.v1",
-  "qualification_id": "AETHER-DPQ-SUPPORT-DESK-001",
+  "qualification_id": "AETHER-DPQ-SUPPORT-DESK-002",
   "claim_boundary": "controlled_single_node_alpha",
   "metric_boundary": {
     "operator_cost_metric": "synthetic_reconstruction_proxy_only",
@@ -10,9 +10,10 @@
   },
   "synthetic_evaluator_boundary": {
     "semantic_authority": false,
-    "case_status_gates_readiness": false,
+    "case_status_gates_readiness": true,
+    "case_status_gates_selection": true,
     "dependency_absence_counts_as_blocked": false,
-    "reason": "Mirror the current support-desk DSL slice for fixed qualification scenarios; do not invent additional product policy."
+    "reason": "Mirror the repaired support-desk DSL slice for fixed qualification scenarios; non-open cases cannot derive ready or selected resolutions."
   },
   "runtime_markers": [
     "Active support cases on the desk",
@@ -31,14 +32,14 @@
     "resolution_has_retrieved_evidence(resolution) <- resolution_case(resolution, case), retrieved_support_evidence(case, evidence, score)",
     "active_assignment(case, owner, epoch) <- case_claimed_by(case, owner), case_lease_epoch(case, epoch), case_lease_state(case, \"active\")",
     "case_claimed(case) <- active_assignment(case, owner, epoch)",
-    "case_action_ready(resolution) <- candidate_resolution(resolution), resolution_policy_approved(resolution), resolution_confident(resolution), resolution_has_retrieved_evidence(resolution), not resolution_blocked(resolution), not resolution_suppressed(resolution), resolution_case(resolution, case), not case_claimed(case)",
-    "case_resolution_selected(resolution, case, owner, epoch) <- candidate_resolution(resolution), resolution_policy_approved(resolution), resolution_confident(resolution), resolution_has_retrieved_evidence(resolution), not resolution_blocked(resolution), not resolution_suppressed(resolution), resolution_case(resolution, case), active_assignment(case, owner, epoch)",
+    "case_action_ready(resolution) <- candidate_resolution(resolution), resolution_policy_approved(resolution), resolution_confident(resolution), resolution_has_retrieved_evidence(resolution), not resolution_blocked(resolution), not resolution_suppressed(resolution), resolution_case(resolution, case), case_status(case, \"open\"), not case_claimed(case)",
+    "case_resolution_selected(resolution, case, owner, epoch) <- candidate_resolution(resolution), resolution_policy_approved(resolution), resolution_confident(resolution), resolution_has_retrieved_evidence(resolution), not resolution_blocked(resolution), not resolution_suppressed(resolution), resolution_case(resolution, case), case_status(case, \"open\"), active_assignment(case, owner, epoch)",
     "stale_assignment_attempt(case, owner, epoch) <- assignment_attempt(case, owner, epoch), not active_assignment(case, owner, epoch)"
   ],
   "scenarios": [
     {
       "id": "normal_resolution",
-      "purpose": "A fully evidenced and approved resolution can become ready before assignment.",
+      "purpose": "A fully evidenced and approved resolution on an open case can become ready before assignment.",
       "events": [
         {"kind": "case", "status": "open"},
         {"kind": "dependency", "status": "done"},
@@ -62,7 +63,7 @@
     },
     {
       "id": "handoff_and_stale_fencing",
-      "purpose": "A later active lease owns the case and earlier assignment attempts remain historical but stale.",
+      "purpose": "A later active lease owns an open case, selects the resolution, and leaves earlier assignment attempts historical but stale.",
       "events": [
         {"kind": "case", "status": "open"},
         {"kind": "resolution", "approval": "approved", "suppression": "clear", "confidence": "high"},
@@ -71,8 +72,8 @@
         {"kind": "assignment", "owner": "triage-agent", "epoch": 1, "state": "active"},
         {"kind": "assignment", "owner": "lead-ana", "epoch": 2, "state": "active"}
       ],
-      "questions": ["current_owner", "stale_owners", "ready", "why"],
-      "expected": {"current_owner": "lead-ana", "stale_owners": ["triage-agent"], "ready": false, "why": "already_claimed"}
+      "questions": ["current_owner", "stale_owners", "ready", "selected", "why"],
+      "expected": {"current_owner": "lead-ana", "stale_owners": ["triage-agent"], "ready": false, "selected": true, "why": "already_claimed"}
     },
     {
       "id": "suppressed_resolution",
@@ -85,6 +86,19 @@
       ],
       "questions": ["ready", "why"],
       "expected": {"ready": false, "why": "suppressed"}
+    },
+    {
+      "id": "closed_case_block",
+      "purpose": "A non-open case must not expose a ready or selected resolution even when approval, evidence, dependencies, confidence, and assignment are otherwise satisfied.",
+      "events": [
+        {"kind": "case", "status": "closed"},
+        {"kind": "dependency", "status": "done"},
+        {"kind": "resolution", "approval": "approved", "suppression": "clear", "confidence": "high"},
+        {"kind": "evidence", "present": true},
+        {"kind": "assignment", "owner": "lead-ana", "epoch": 3, "state": "active"}
+      ],
+      "questions": ["ready", "selected", "current_owner", "why"],
+      "expected": {"ready": false, "selected": false, "current_owner": "lead-ana", "why": "case_not_open"}
     }
   ],
   "decision_policy": {
