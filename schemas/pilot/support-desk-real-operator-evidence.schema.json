@@ -1,0 +1,219 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grandchallenge.ai/schemas/aether/support-desk-real-operator-evidence.schema.json",
+  "title": "AETHER Support Desk Real-Operator Pilot Evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "protocol_id",
+    "authority",
+    "session",
+    "operator",
+    "execution",
+    "data_boundary",
+    "tasks",
+    "session_observations",
+    "stop_conditions",
+    "claim_boundary"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "aether.support-desk-real-operator-evidence.v1"
+    },
+    "protocol_id": {
+      "const": "AETHER-SUPPORT-DESK-REAL-OPERATOR-PILOT-001"
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gct_issue", "disposition"],
+      "properties": {
+        "gct_issue": {"const": "grandchallenge/GCT-EXECUTIVE#34"},
+        "disposition": {"const": "APPROVE_A_SYNTHETIC_OR_SANITIZED_REAL_OPERATOR_PILOT"}
+      }
+    },
+    "session": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["session_id", "started_at", "ended_at", "facilitator_interventions"],
+      "properties": {
+        "session_id": {"type": "string", "minLength": 1},
+        "started_at": {"type": "string", "format": "date-time"},
+        "ended_at": {"type": "string", "format": "date-time"},
+        "facilitator_interventions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["task_id", "kind", "substantive_answer_changed", "note"],
+            "properties": {
+              "task_id": {"type": ["string", "null"]},
+              "kind": {"type": "string"},
+              "substantive_answer_changed": {"type": "boolean"},
+              "note": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    "operator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operator_id", "role_class", "briefing_acknowledged"],
+      "properties": {
+        "operator_id": {"type": "string", "pattern": "^operator-[0-9]{2,}$"},
+        "role_class": {"enum": ["internal_operator", "external_design_partner_operator"]},
+        "briefing_acknowledged": {"const": true}
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "aether_revision",
+        "support_desk_configuration_id",
+        "journal_backend",
+        "visibility_authority_domain",
+        "trusted_appenders",
+        "case_fixture_revision",
+        "comparator_revision"
+      ],
+      "properties": {
+        "aether_revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "support_desk_configuration_id": {"type": "string", "minLength": 1},
+        "journal_backend": {"enum": ["sqlite"]},
+        "visibility_authority_domain": {"type": "string", "minLength": 1},
+        "trusted_appenders": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "case_fixture_revision": {"type": "string", "minLength": 1},
+        "comparator_revision": {"type": "string", "minLength": 1}
+      }
+    },
+    "data_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["classification", "sanitization_provenance", "customer_private_production_data_present"],
+      "properties": {
+        "classification": {"enum": ["synthetic", "demonstrator", "sanitized"]},
+        "sanitization_provenance": {"type": "string", "minLength": 1},
+        "customer_private_production_data_present": {"const": false}
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "minItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "task_id",
+          "case_id",
+          "condition",
+          "order_index",
+          "completion_status",
+          "ground_truth_answers_correct",
+          "duration_seconds",
+          "operator_steps",
+          "backtracks",
+          "stale_state_errors",
+          "unsupported_workflow_requests",
+          "recovery_actions",
+          "replay_used",
+          "proof_provenance_used",
+          "replay_provenance_usefulness",
+          "defect_codes",
+          "invalidated",
+          "invalidation_reason"
+        ],
+        "properties": {
+          "task_id": {"type": "string", "minLength": 1},
+          "case_id": {"type": "string", "minLength": 1},
+          "condition": {"enum": ["aether", "conventional_event_log"]},
+          "order_index": {"type": "integer", "minimum": 1},
+          "completion_status": {"enum": ["complete", "partial", "failed"]},
+          "ground_truth_answers_correct": {
+            "type": "array",
+            "minItems": 5,
+            "maxItems": 5,
+            "items": {"type": "boolean"}
+          },
+          "duration_seconds": {"type": "number", "minimum": 0},
+          "operator_steps": {"type": "integer", "minimum": 0},
+          "backtracks": {"type": "integer", "minimum": 0},
+          "stale_state_errors": {"type": "integer", "minimum": 0},
+          "unsupported_workflow_requests": {"type": "integer", "minimum": 0},
+          "recovery_actions": {"type": "integer", "minimum": 0},
+          "replay_used": {"type": "boolean"},
+          "proof_provenance_used": {"type": "boolean"},
+          "replay_provenance_usefulness": {
+            "type": ["integer", "null"],
+            "minimum": 1,
+            "maximum": 5
+          },
+          "defect_codes": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "sanitized_free_text": {"type": "string"},
+          "invalidated": {"type": "boolean"},
+          "invalidation_reason": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "session_observations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "setup_defects",
+        "authentication_configuration_friction",
+        "backup_recovery_actions",
+        "unsupported_requests",
+        "semantic_confusion",
+        "interface_packaging_confusion"
+      ],
+      "properties": {
+        "setup_defects": {"type": "array", "items": {"type": "string"}},
+        "authentication_configuration_friction": {"type": "array", "items": {"type": "string"}},
+        "backup_recovery_actions": {"type": "array", "items": {"type": "string"}},
+        "unsupported_requests": {"type": "array", "items": {"type": "string"}},
+        "semantic_confusion": {"type": "array", "items": {"type": "string"}},
+        "interface_packaging_confusion": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "stop_conditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["triggered", "codes", "pilot_paused", "disposition_note"],
+      "properties": {
+        "triggered": {"type": "boolean"},
+        "codes": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "pilot_paused": {"type": "boolean"},
+        "disposition_note": {"type": "string"}
+      }
+    },
+    "claim_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "controlled_single_node_alpha",
+        "product_superiority_claim_allowed",
+        "operator_savings_claim_allowed",
+        "commercial_beta_claim_allowed",
+        "production_readiness_claim_allowed"
+      ],
+      "properties": {
+        "controlled_single_node_alpha": {"const": true},
+        "product_superiority_claim_allowed": {"const": false},
+        "operator_savings_claim_allowed": {"const": false},
+        "commercial_beta_claim_allowed": {"const": false},
+        "production_readiness_claim_allowed": {"const": false}
+      }
+    }
+  }
+}
