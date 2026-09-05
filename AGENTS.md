@@ -2,6 +2,17 @@
 
 This repository is designed for coding agents. Follow these rules strictly.
 
+## Governance staffing
+
+`GCL-AGENT-STAFFING-001` version `1.0.0` permits one Codex system to implement
+and staff multiple non-reserved roles through distinct logical audit passes;
+authoring-system Adversary and Referee passes are `non_authoring_read_only`.
+Routine and non-reserved substantive work may merge through satisfied protected
+controls and be read back without identity or approval multiplication.
+Production-semantic activation and autonomous permission escalation remain
+reserved to AETHER's declared authority gates. The staffing standard does not
+widen production, safety, credential, or deployment authority.
+
 ## 1. Primary objective
 
 Build the **Rust mainline semantic kernel** first.
