@@ -1,96 +1,98 @@
 # AETHER/FABRIC E0 Ambiguity Register
 
-Status: E0 candidate
+Status: E0 candidate, revised after Adversary pass
 Issue: #83
 
-This register contains only seams that are not yet justified as clean AETHER or
-FABRIC responsibilities. An ambiguity is not a defect. It is a prohibition on
-premature extraction.
+An ambiguity is not a defect. It is a prohibition on premature extraction.
+Entries close only through a narrower contract plus discriminating evidence.
 
-| ID | Ambiguous seam | Why unresolved | Discriminating evidence / test | Failure if misclassified | Earliest decision stage |
+| ID | Ambiguous seam | Why unresolved | Discriminating evidence / test | Misclassification failure | Earliest decision |
 | --- | --- | --- | --- | --- | --- |
-| AF-A01 | Durable journal backend mechanics versus authoritative journal semantics | SQLite/Postgres/filesystem work is mechanical, but transactional append, expected-cut identity, durability, and receipt semantics are part of AETHER truth. | Implement or model a backend adapter whose failure/retry/restart behavior is opaque to semantic replay; prove identical accepted cuts/receipts under backend substitution. | Moving the backend wholesale into FABRIC could let transport/storage success redefine accepted history. | E1/E2 |
-| AF-A02 | Sidecar payload storage/locality versus semantic sidecar contract | Artifact/vector bytes are not inline semantic state, but current sidecar catalog, provenance, policy, and retrieval return path are intentionally journal-subordinated. | Separate physical object/shard locator from semantic reference identity; prove cache hit/miss, replica placement, and search execution cannot change visibility/provenance/admission. | Availability/rank becomes de facto semantic judgment or leaks policy. | E1/E2 |
-| AF-A03 | Replica movement/follower catch-up versus authority-partition fencing | `aether_partition` contains both byte/prefix movement and semantic leader epoch, stale-epoch rejection, divergent-prefix fencing, explicit cuts, and imported-fact provenance. | Define an opaque `ReplicatePrefix` mechanical contract; hostile tests must show stale or divergent replicas can receive bytes but cannot gain append authority until AETHER validates epoch/prefix. | FABRIC liveness/replication becomes authority. | E1/E2 |
-| AF-A04 | HTTP transport versus AETHER semantic service edge | HTTP framing is mechanical, while bearer auth, principal binding, policy narrowing, semantic namespace identity, append admission, and audit content are AETHER responsibilities. | Split request transport from a typed AETHER request contract; prove the same semantic service can run direct/in-process and over a transport adapter with equivalent semantic outputs. | Moving `aether_http` wholesale moves policy/admission into FABRIC or makes AETHER correctness network-dependent. | E1/E2 |
-| AF-A05 | Namespace routing versus worker/queue realization | Selecting a semantic namespace and its policy context is meaning-bearing; selecting a worker/queue for an already resolved namespace is mechanical. | Produce `NamespaceResolved` then `MechanicalEnvelopeAuthorized`; run starvation/priority tests with worker selection varied while semantic namespace resolution remains fixed. | FABRIC scheduling can silently alter semantic tenant/policy selection. | E1/E2 |
-| AF-A06 | Resource limits that are semantic safety versus operational backpressure | Document/rule/runtime/result limits may prevent undefined/unbounded semantic behavior, while queue/body/worker limits may simply protect resources. | For each limit, change it in a test: if canonical semantic meaning for accepted inputs changes, retain in AETHER; if only latency/admission-to-execution capacity changes under a fixed semantic contract, treat as mechanical. | A safety invariant could be relaxed by FABRIC, or an operational limit could unnecessarily ossify AETHER semantics. | E1 |
-| AF-A07 | `aether_api` compatibility facade as a possible interface seam | The facade re-exports all public surfaces and is explicitly temporary after R6. It is not a principled AETHER/FABRIC contract. | E1 interface must compile/test without depending on `aether_api` as the normative owner. | Temporary compatibility becomes permanent cross-plane architecture and recreates coupling. | E1 |
-| AF-A08 | Cross-plane performance and telemetry ownership | `aether_perf` measures semantic execution, HTTP, partition, sidecar, host facts, drift, and capacity. These are different semantic domains. | Partition metrics into semantic-correctness/performance, FABRIC transport/capacity, and deployment qualification; prove production crates remain independent of measurement tooling. | FABRIC may treat benchmark score as authority, or AETHER may absorb host scheduling policy. | E1 |
-| AF-A09 | Coordination lease terminology | Current AETHER leases are semantic authority facts with epochs/fencing; future FABRIC likely needs operational resource leases. | Introduce distinct types/names in E1. Test that an operational lease cannot satisfy any semantic `lease_active` or fenced-action predicate. | Resource ownership is mistaken for institutional/action authority. | E1 |
-| AF-A10 | Heartbeat terminology | Current coordination heartbeats contribute to semantic lease/fence state; endpoint liveness heartbeats are mechanical observations. | Define `SemanticLeaseHeartbeat` versus `EndpointLivenessObservation`; test missing endpoint heartbeat does not directly expire semantic authority unless an AETHER rule explicitly consumes admitted evidence. | Network failure directly rewrites institutional authority without semantic policy. | E1/E2 |
-| AF-A11 | Manual replica promotion versus future mechanical failover | Current manual promotion increments an AETHER leader epoch and changes append authority; ordinary failover/placement belongs to operations. | Separate physical endpoint failover from authority promotion. Hostile test: a mechanically selected replacement remains read-only/unadmitted until AETHER authority transition succeeds. | FABRIC becomes an election/authority system by accident. | E2/E3 |
-| AF-A12 | Federated import payload transport | Imported-fact semantics require explicit partition cuts and provenance, while moving the payload between hosts is mechanical. | Run identical federated evaluation with local direct import and transported import; compare canonical imported fact identity, cuts, provenance, policy visibility, and derived outputs. | A transport rewrite changes source identity or creates a fake global clock. | E2 |
-| AF-A13 | Audit sink delivery versus required audit evidence | Event buffering/writing is mechanical, but some audit records are required for provenance/accountability. | Simulate blocked/full sink. System must fail or degrade according to declared audit policy without silently claiming a completed semantic action whose required audit evidence was lost. | Mechanical logging loss destroys accountability while semantic state claims success. | E2 |
-| AF-A14 | AETHER-POL realization status | PR #10 defines a clean institutional layer but is not on live `main`; later repository history has diverged substantially. | Rebase conceptually, not mechanically: compare its object/fact model against current schema/policy/provenance and Council separation before any fresh candidate. | Stale design is treated as already admitted architecture. | separate POL admission |
-| AF-A15 | AETHER-Learn location and objective authority | Desired allocation is institutionally meaningful, but no live implementation was found in current AETHER main under E0 search. | Establish exact owner/repository, objective contract, outcome ledger, and review route. Prove FABRIC telemetry can update evidence without directly changing the institutional objective. | Mechanical latency/cost becomes undeclared utility or routing policy. | separate AETHER-Learn admission |
-| AF-A16 | GHOS payload transport integration | A future FABRIC could physically move GHOS work/results, but GHOS owns controller admission and protected execution authority. | Define a transport-only bridge; prove an unadmitted endpoint can receive bytes but cannot execute under GHOS authority or produce an accepted protected receipt. | FABRIC endpoint identity launders controller authority. | separate GHOS integration review |
+| AF-A01 | Durable journal backend mechanics vs authoritative journal semantics | SQLite/Postgres/filesystem I/O is mechanical; exact append/cut/receipt semantics are AETHER authority. | Backend substitution must preserve identical accepted cuts, receipts, replay, restart and failure postconditions. | Storage success/failure silently changes accepted history. | E1/E2 |
+| AF-A02 | Sidecar payload locality vs semantic sidecar contract | Physical bytes/vectors are external, but identity/provenance/policy/replay are journal-subordinated. | Permute/cache/move payloads while holding semantic references fixed; identity, visibility, provenance and admission must remain unchanged. | Availability/rank becomes semantic judgment. | E1/E2 |
+| AF-A03 | Replica movement vs authority-partition fencing | Follower movement is mechanical; epoch, prefix, cut and authority checks are semantic. | Allow stale follower to receive all bytes; it must remain unable to gain append authority until AETHER validates epoch/prefix. | Replication/liveness becomes authority. | E1/E2 |
+| AF-A04 | HTTP transport vs AETHER service semantics | Framing is mechanical; auth, policy, namespace, admission and audit are semantic. | Direct/in-process and transported service calls must yield identical canonical semantic outcomes. | Moving HTTP wholesale makes AETHER network-dependent or moves policy/admission into FABRIC. | E1/E2 |
+| AF-A05 | Namespace identity vs worker realization | Namespace/policy selection is semantic; concrete worker/queue selection is mechanical. | Produce a resolved semantic namespace first, then vary worker choice while semantic results remain invariant. | Scheduler silently changes tenant/policy domain. | E1/E2 |
+| AF-A06 | Semantic safety limits vs operational limits | Rule/runtime/tuple/document limits can protect semantic boundedness; body/queue capacity may be mechanical. | Change one limit at a time. If accepted-input meaning/atomicity changes, retain in AETHER; if only resource realization changes, mechanical ownership is plausible. | FABRIC can relax semantic safety or AETHER unnecessarily ossifies capacity policy. | E1 |
+| AF-A07 | Worker queues/backpressure vs semantic serialization/cancellation | The live resource contract combines mechanical worker/queue capacity with one-active-operation same-namespace order and `cancel_before_start_complete_after_start`. | Vary worker count, queue capacity, wait, timeout and scheduling. Operations that start must preserve accepted cuts/receipts; pre-start timeout must never produce a later hidden commit; same-namespace order must remain deterministic where required. | Mechanical timeout reports failure while semantic mutation later commits, or queue policy changes semantic order. | E1/E2 |
+| AF-A08 | `aether_api` compatibility facade | It re-exports many surfaces and is explicitly temporary under ADR 0019. | E1 contract must compile/test without making the facade the normative owner. | Temporary compatibility becomes permanent cross-plane coupling. | E1 |
+| AF-A09 | Cross-plane performance/telemetry ownership | `aether_perf` measures semantic runtime plus HTTP/partition/host/capacity behavior. | Split metric vocabulary into semantic, mechanical and qualification observations; production crates remain independent of measurement tooling. | Metrics become policy/authority or obscure causality. | E1 |
+| AF-A10 | Coordination lease terminology | Current AETHER lease is semantic authority with epoch/fencing; FABRIC may need operational resource leases. | Distinct types/names; prove operational lease cannot satisfy semantic `lease_active`/fenced predicates. | Resource ownership is mistaken for action authority. | E1 |
+| AF-A11 | Heartbeat terminology | Current coordination heartbeat can participate in semantic lease state; endpoint liveness is mechanical observation. | Separate semantic lease heartbeat from endpoint liveness evidence; missing endpoint heartbeat cannot directly expire authority unless an admitted AETHER rule says so. | Network loss directly rewrites institutional authority. | E1/E2 |
+| AF-A12 | Manual authority promotion vs mechanical failover | Current promotion increments leader epoch and changes append authority. | Physically select a replacement endpoint while withholding semantic promotion; it must remain non-authoritative. | FABRIC becomes election/authority system. | E2/E3 |
+| AF-A13 | Federated import payload transport | Import semantics bind explicit cuts/provenance; moving bytes is mechanical. | Local-direct vs transported import must preserve source cut, provenance, policy and derived results. | Transport changes source identity or invents global order. | E2 |
+| AF-A14 | Audit sink delivery vs required audit evidence | Buffering is mechanical; some audit records are accountability requirements. | Block/fill sink; system must follow declared fail-visible policy and never claim a completed accountable operation whose required evidence silently vanished. | Mechanical loss destroys accountability. | E2 |
+| AF-A15 | AETHER-POL realization status | PR #10 is semantically aligned but stale and absent from live main. | Fresh candidate must be reviewed against current schema/policy/provenance and Council architecture. | Stale design is treated as already admitted. | separate POL admission |
+| AF-A16 | AETHER-Learn location/objective authority | Desired allocation is institutional, but no live implementation was found in current main search. | Establish exact owner/objective/outcome-ledger contract; FABRIC telemetry may enter only as evidence. | Cost/latency becomes undeclared utility/policy. | separate Learn admission |
+| AF-A17 | GHOS payload transport integration | FABRIC may later move GHOS payloads; GHOS owns controller admission. | Transport-only bridge must prove unadmitted endpoint can receive bytes but cannot execute with GHOS authority. | Endpoint identity launders controller authority. | separate GHOS review |
+| AF-A18 | Audit/log backpressure vs semantic completion | Event queue is mechanical but AETHER may require audit evidence for semantic accountability. | Exercise full/blocked audit queue during semantic operations; completion/failure must follow declared contract and remain reconstructible. | Backpressure silently erases evidence or changes truth. | E2 |
 
-## Highest-priority discriminating experiments
+## Priority experiments
 
 ### D1 — Direct versus transported semantic equivalence
 
-Run the same AETHER workload through:
+For identical admitted semantic inputs, compare direct/local AETHER with an
+AETHER-over-reference-transport path after removing schema-declared operational
+metadata. Compare:
 
-1. direct/in-process semantic service;
-2. a deliberately simple reference transport adapter.
-
-Compare after removing schema-declared operational metadata:
-
-- accepted journal cuts;
-- append receipts;
-- resolved state;
-- derived tuples;
+- accepted journal cuts and append receipts;
+- resolved state and derived tuples;
 - policy visibility;
-- provenance;
-- proof traces;
+- provenance and proof traces;
 - semantic admission outcomes.
 
-Any unexplained divergence blocks extraction.
+Unexplained divergence blocks extraction.
 
 ### D2 — Influence-without-authority hostile scheduler
 
-Keep `AllocationDesired` and semantic inputs fixed. Vary only mechanical
-realization using a hostile scheduler that attempts:
+Hold institutional allocation and semantic inputs fixed. Vary only mechanical
+realization using:
 
-- starvation;
+- starvation and selective delay;
 - priority inversion;
-- selective delay;
-- selective result suppression;
+- namespace/principal unfairness;
+- head-of-line blocking;
+- queue-capacity pressure;
+- pre-start timeout;
 - retry asymmetry;
-- locality bias.
+- locality bias;
+- result suppression.
 
-Required result:
+Required:
 
-- operational completion/latency may change;
-- AETHER must distinguish unknown/undelivered from false/rejected;
-- no new institutional permission or semantic acceptance may appear.
+- latency/completion may change;
+- unknown/undelivered remains distinct from false/rejected;
+- no permission or semantic acceptance is created;
+- no operation reported timed out before start may later commit;
+- once semantic execution begins, mechanical timeout cannot convert it into a
+  background unobserved mutation;
+- same-namespace semantic ordering remains deterministic where the AETHER
+  contract requires serialization.
 
-### D3 — Replica fencing under mechanically successful replication
+### D3 — Replica fencing despite mechanically successful replication
 
-Allow a stale follower to receive every byte successfully while retaining an
-old epoch.
-
-Required result:
-
-- physical synchronization can succeed;
-- semantic append authority remains rejected until the AETHER authority
-  transition is valid;
-- divergent-prefix conditions remain fail-closed.
+A stale follower may receive all bytes successfully while retaining an old
+epoch. It must remain unable to append authoritatively; divergent prefix remains
+fail-closed.
 
 ### D4 — Sidecar locality permutation
 
-Move/cache artifact or vector payloads among locations while holding AETHER
-semantic references fixed.
+Move/cache artifact/vector payloads among locations while holding AETHER
+semantic references fixed. Semantic identity, provenance and visibility remain
+unchanged; availability/rank remains operational evidence until admitted.
 
-Required result:
+### D5 — Resource-control semantic/mechanical split
 
-- semantic identity/provenance/visibility are unchanged;
-- availability/rank is reported as operational/retrieval evidence only;
-- semantic admission still occurs through AETHER.
+Sweep global worker count, namespace queue length and queue wait independently
+from semantic operation limits. Demonstrate:
 
-## E0 closure rule
+1. mechanical capacity changes throughput/latency, not meaning;
+2. one-active-operation same-namespace order is preserved;
+3. `cancel_before_start_complete_after_start` holds;
+4. rejected resource admission cannot partially append authority or publish an
+   AETHER execution receipt/trace handle.
 
-This register may shrink only when a discriminating contract/test is recorded.
-Entries must not be closed merely because a target architecture would be
-cleaner if they belonged to FABRIC.
+## Closure rule
+
+An entry may be removed from this register only when a versioned contract and
+discriminating evidence resolve it. Architectural elegance is not evidence.
