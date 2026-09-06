@@ -1,5 +1,9 @@
 # KNOWN_LIMITATIONS
 
+## Operator pilot setup
+
+The first operator attempt stopped before a timed task because the protected pilot generator emitted invalid inline schema syntax. The stopped attempt contains no operator-performance evidence. Windows line-ending conversion can also change frozen byte identities while appearing content-equivalent to Git. Session preflight rejects that difference; prepare an isolated checkout with `core.autocrlf=false`. A correction passing tests does not itself complete the real-operator pilot or authorize product claims.
+
 - Release evidence v2 is prospective. Historical v1 bundles remain auditable
   with their original revision but are rejected by the v2 verifier; no automatic
   migration can manufacture an unrecorded tooling identity.

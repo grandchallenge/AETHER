@@ -1,5 +1,9 @@
 # ROADMAP
 
+## Immediate: restore the bounded operator session surface
+
+Protect the #81 pilot-tool correction after the six-case runtime smoke test and required checks pass. Use an isolated checkout preserving committed line endings; verify exact fixture/schema/protocol/runtime bytes before a separately identified session. Preserve the stopped #79 attempt and collect no replacement timing for it.
+
 ## Immediate: prove release-control v2
 
 - confirm stable required check names and event-specific skip policy on a PR
