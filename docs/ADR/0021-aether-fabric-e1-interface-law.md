@@ -1,111 +1,151 @@
 # ADR 0021 — AETHER/FABRIC E1 Versioned Interface Law
 
-Status: Proposed for E1 review
+Status: Proposed for E1 review, Revision 1 after Formalist pass
 Date: 2026-09-05
 Issue: #85
 Protocol candidate: `aether-fabric/1.0`
 
 ## Context
 
-E0 classified the live AETHER estate at responsibility granularity and was
-merged at `411411dfcc29757bbf68589b817b8bffeceb7bcb`.
-
-The central E0 result was that the AETHER/FABRIC seam is real but cuts through
-existing outer responsibilities rather than aligning with whole crates.
+E0 merged at `411411dfcc29757bbf68589b817b8bffeceb7bcb`
+classified the live AETHER estate at responsibility rather than crate granularity.
+The Council-approved AETHER/FABRIC direction therefore requires a narrower
+versioned contract before any implementation can move.
 
 E0 retained in AETHER:
 
 - append/admission, cuts/replay, policy, provenance and proof identity;
 - semantic coordination lease/fence meaning;
-- partition/federation semantics and leader epoch/fencing;
+- partition/federation semantics, leader epoch and fencing;
 - semantic namespace identity;
 - same-namespace semantic serialization and started-operation lifecycle;
-- sidecar semantic identity/provenance/policy;
+- semantic sidecar identity/provenance/policy;
 - no-partial-authority guarantees.
 
 E0 identified mechanical candidates:
 
 - endpoint/resource liveness and location;
-- concrete route/worker realization;
+- route/worker realization;
 - global capacity and pre-start queue/backpressure;
 - replica byte/prefix movement beneath AETHER fencing;
-- physical artifact/vector locality;
+- artifact/vector physical locality;
 - audit-event transport;
 - host/capacity/locality/cost/latency observations.
 
-The Council required versioned contracts before any extraction and required
-FABRIC influence to remain bounded by attributable mechanical envelopes.
-
 ## Decision
 
-Adopt a candidate E1 contract family named:
+Adopt a candidate transport-neutral E1 contract family:
 
 ```text
 aether-fabric/1.0
 ```
 
-The contract is transport-neutral and non-runtime in E1.
+E1 defines specification/schema law only. It does not create a FABRIC runtime or
+move responsibility.
 
-It defines:
+The contract comprises:
 
-1. a closed `MechanicalEnvelopeAuthorized` that may be narrowed but not widened;
-2. distinct identity strata for endpoint/resource, semantic actor,
-   institutional principal and GHOS controller;
-3. a typed event algebra separating institutional allocation, mechanical
-   realization, semantic execution/admission and protected execution;
-4. a resource handoff boundary at `SemanticExecutionStarted`;
-5. evidence-return telemetry rather than direct policy mutation;
-6. replica movement without authority promotion;
-7. physical object/vector locality without semantic relevance/visibility;
-8. fail-closed protocol/capability negotiation;
-9. stable cross-plane correlation without treating correlation as authority;
-10. conformance vectors to be executed in E2.
+1. closed `MechanicalEnvelopeAuthorized` records;
+2. explicit child-envelope derivation and replacement/supersession semantics;
+3. upstream-owned `MechanicalEnvelopeRevoked` control records;
+4. exact mechanical-attempt identity across route/queue/delivery;
+5. AETHER semantic-start binding to the exact mechanical attempt when FABRIC
+   participates;
+6. non-collapsible endpoint/actor/institutional/controller identities;
+7. telemetry evidence-return rather than direct policy mutation;
+8. replica movement without authority promotion;
+9. sidecar physical locality without semantic relevance/visibility;
+10. fail-closed version/capability negotiation;
+11. E2 conformance vectors and schema fixtures.
 
 ## Mechanical envelope law
 
-The mechanical envelope binds an already-authorized upstream decision to an
-immutable mechanical scope.
+`MechanicalEnvelopeAuthorized` binds an upstream governed authorization to a
+closed mechanical scope.
 
-A downstream hop may narrow the envelope but cannot widen:
+Required identity includes:
 
-- permitted actions;
-- eligible resource classes;
-- trust/locality constraints;
-- retry budget;
-- priority ceiling;
-- deadline/TTL;
-- security requirements.
+- immutable `envelope_id`;
+- `authorization_ref` and `issuer_ref`;
+- `scope_ref` plus `scope_digest`;
+- payload reference;
+- permitted actions/resources/zones;
+- mechanical/fairness policy refs;
+- retry/redundancy/priority/deadline;
+- required capabilities;
+- optional child-derivation or supersession lineage.
 
-FABRIC cannot self-issue a broader superseding envelope.
+`scope_digest` is SHA-256 over the **exact immutable byte sequence identified by
+`scope_ref`**. E1 does not rely on conceptual-object canonicalization.
 
-Expiry/supersession prevents new pre-start work but does not erase AETHER
-semantic execution that already started.
+A derived child names `derived_from_envelope_id` and must be a verified narrowing
+of that exact parent. `derived_from_envelope_id` is distinct from
+`supersedes_envelope_id`; a child does not invalidate its parent merely by
+existing.
 
-## Semantic-start law
+Downstream envelopes may narrow but never widen actions, resources, trust zones,
+retry, priority, deadline, redundancy or security constraints.
 
-The resource-control boundary is:
+## Revocation law
+
+Early revocation is explicit rather than implied by liveness or queue state.
+
+`MechanicalEnvelopeRevoked`:
+
+- is a `control_bridge` record owned by an upstream governed record;
+- names the exact envelope, issuer and authorization reference;
+- requires an `integrity_profile_ref`;
+- prevents new/pre-start work after verified revocation;
+- may cause queued-but-not-started work to terminate with
+  `PreStartRejected(reason=envelope_revoked)`;
+- cannot mechanically erase an AETHER `SemanticExecutionStarted` attempt;
+- cannot be self-issued by FABRIC as authority.
+
+Revocation does not itself create a replacement envelope.
+
+## Attempt identity and semantic-start law
+
+Every FABRIC realization attempt has a required `mechanical_attempt_id`.
+Retries use a new mechanical attempt ID while retaining the higher-level
+correlation ID.
+
+Mechanical path:
 
 ```text
-AETHER: semantic namespace resolution
-AETHER/POL: mechanical envelope authorization
-FABRIC: route + pre-start queue admission/rejection
-AETHER: SemanticExecutionStarted
-AETHER: SemanticExecutionCompleted
+MechanicalEnvelopeAuthorized(E)
+ -> RouteRealized(E,M)
+ -> QueueAdmitted(E,M) | PreStartRejected(E,M)
+ -> PayloadDispatched/Delivered/Receipt(E,M)?
 ```
 
-Before semantic start, FABRIC may reject for capacity, queue timeout,
-unsupported capability, trust-zone failure, expiry or other declared mechanical
-reason.
+If AETHER crosses semantic start through FABRIC:
 
-After semantic start, FABRIC may report operational failure but cannot
-reinterpret the operation as cancelled or safely not-started.
+```text
+SemanticExecutionStarted(
+  semantic_attempt_id=S,
+  mechanical_envelope_id=E,
+  mechanical_attempt_id=M)
+```
 
-This preserves the existing AETHER
-`cancel_before_start_complete_after_start` contract.
+The envelope and mechanical-attempt bindings are either both present or both
+absent. Both absent is the local/no-FABRIC AETHER path.
+
+Critical invariant:
+
+```text
+PreStartRejected(E,M) xor SemanticExecutionStarted(S,E,M)
+```
+
+Once semantic start exists, FABRIC timeout, disconnect, revocation or scheduler
+state cannot reinterpret the attempt as safely not-started. AETHER owns semantic
+completion/failure.
+
+This preserves the existing
+`cancel_before_start_complete_after_start` resource contract.
 
 ## Identity law
 
-Four identity strata remain non-collapsible:
+At least four strata remain distinct:
 
 ```text
 EndpointResourceId
@@ -114,60 +154,56 @@ InstitutionalPrincipalRef
 ControllerRef
 ```
 
-Textual equality, co-location, reachability, liveness, capability, common
-credential material or matching correlation IDs do not collapse identity kinds
-or create authority.
+String equality, co-location, reachability, liveness, capability, correlation ID
+or common credential material is insufficient to collapse them.
 
-Cross-stratum relationships require explicit bounded bridge/governing records.
+Cross-stratum mappings require explicit bounded observation/reference records.
+Authorization scope references bind an immutable `scope_ref` and SHA-256 of its
+exact bytes.
 
 ## Event law
 
-The core event families are:
+Mechanical, semantic, institutional, execution and upstream control events are
+separate domains.
 
-```text
-AllocationDesired                         INSTITUTIONAL
-MechanicalEnvelopeAuthorized              bridge/authorized upstream
-RouteRealized                             MECHANICAL
-QueueAdmitted | PreStartRejected          MECHANICAL
-PayloadDispatched / PayloadDelivered      MECHANICAL
-DeliveryReceiptObserved                   MECHANICAL
-SemanticExecutionStarted/Completed        SEMANTIC
-SemanticSubmissionProposed                SEMANTIC
-SemanticAdmissionAccepted/Rejected        SEMANTIC
-ExternalExecutionRequested/Started/...    EXECUTION / GHOS
-InstitutionalDecisionRecorded             INSTITUTIONAL
-TelemetryEvidenceObserved                 MECHANICAL observation
-ReplicaMovementObserved                   MECHANICAL observation
-PhysicalObjectLocationObserved            MECHANICAL observation
-```
+Mechanical events carry `authority_effect: none` and exact
+`mechanical_attempt_id`.
+AETHER semantic lifecycle events are in a separate schema with
+`authority_owner: AETHER`.
+Upstream envelope revocation is in a separate control schema.
 
-Mechanical events never imply semantic or institutional dispositions.
+Delivery, completion, semantic admission and institutional judgment are never
+collapsed into one status.
 
-## Version law
+## Version and integrity law
 
-- unknown protocol major: reject before start;
+- unsupported protocol major: reject before start;
 - unsupported required capability: reject before start;
-- no implicit major downgrade;
-- no dropping required capabilities/constraints to make work routable;
 - unknown required record type: fail closed;
-- unknown optional audit material may be retained only if it causes no state
-  transition.
+- no implicit downgrade;
+- no dropping constraints to make work routable;
+- schema validation is structural only;
+- authority/integrity verification is separate;
+- integrity failure rejects before start with no weaker fallback.
+
+E1 does not choose the final cryptographic signature/credential/key profile.
+It requires explicit profile references on authority-bearing control paths.
 
 ## Telemetry law
 
-Operational observations may include liveness, queue depth/wait, replication
-lag, capacity, locality, latency, cost, backpressure and transport failure.
-
-They enter governed reasoning only through:
+Operational observations are mechanical only:
 
 ```text
-mechanical observation
+observation
  -> provenance-bearing semantic submission
  -> AETHER admission/rejection
- -> later governed allocation/decision
+ -> later governed allocator/decision may consume admitted evidence
 ```
 
-No direct telemetry-to-policy edge is admitted in E1.
+Integer queue-depth/replication-lag values and floating latency/cost values are
+both valid JSON numeric observations under the candidate schema.
+
+No unadmitted telemetry-to-policy edge exists in E1.
 
 ## Replica law
 
@@ -184,106 +220,103 @@ Byte equality and endpoint health do not confer authority.
 
 ## Sidecar law
 
-FABRIC/storage may later coordinate physical locality for artifacts/vectors.
-AETHER retains semantic identity, provenance, visibility/policy and result
-admission.
+FABRIC/storage may later coordinate physical locality. AETHER retains semantic
+identity, provenance, visibility/policy and result admission.
 
 Cache hit, object availability and vector rank are observations only.
 
-## Integrity law
+## Formalist Revision-1 closure
 
-E1 defines the integrity binding surface but not the final cryptographic
-profile. A future profile must bind the exact envelope version, IDs, upstream
-authorization references, scope/payload, mechanical constraints, policy refs,
-expiry/supersession and required capabilities.
+The first Formalist pass returned five material defects. Revision 1 resolves
+them as follows:
 
-Integrity failure rejects before start. It cannot trigger a weaker fallback.
+1. **attempt identity** — mechanical attempt ID is mandatory across mechanical
+   path; semantic start binds exact envelope+attempt or neither;
+2. **child-envelope lineage** — `derived_from_envelope_id` added and separated
+   from supersession;
+3. **revocation** — explicit upstream-owned `MechanicalEnvelopeRevoked` record
+   and schema added;
+4. **scope digest domain** — `scope_ref` plus SHA-256 over exact referenced bytes;
+5. **telemetry JSON Schema overlap** — numeric telemetry uses non-overlapping
+   type semantics; integer/floating fixtures added.
 
-## E0 ambiguity treatment
+## Candidate schema set
 
-E1 proposes boundaries for:
+- `mechanical_envelope.schema.json`
+- `envelope_control.schema.json`
+- `mechanical_event.schema.json`
+- `semantic_lifecycle_event.schema.json`
+- `telemetry_evidence.schema.json`
+- `identity_binding.schema.json`
+- valid/invalid examples under `schemas/aether_fabric/e1/examples/`
+
+## E0 ambiguity disposition
+
+Candidate boundaries now exist for:
 
 - sidecar physical locality;
 - replica movement;
-- namespace-to-worker handoff;
+- namespace-to-worker realization;
 - pre-start queue/resource realization;
 - telemetry evidence return.
 
-E1 intentionally leaves these unresolved pending E2 evidence:
+Still unresolved pending E2 evidence:
 
 - durable storage adapter extraction;
-- generic transport adapter extraction from `aether_http`;
-- per-limit classification where semantic safety and operational capacity are
-  still mixed.
+- generic transport extraction from `aether_http`;
+- per-limit classification where semantic safety and operational capacity remain
+  mixed.
 
-The temporary `aether_api` facade is explicitly not the AETHER/FABRIC boundary.
+The temporary `aether_api` facade is not a protocol owner.
 
 ## Consequences
 
-Positive:
+Benefits:
 
-- future FABRIC can optimize mechanics without acquiring semantic power;
-- AETHER local correctness remains possible;
-- event and identity collapse become mechanically testable;
-- influence-without-authority is attributable via policy references;
-- retry/version/downgrade behavior is fail-closed;
-- existing resource-control and partition-fencing semantics are preserved.
+- future FABRIC optimization is explicitly non-authoritative;
+- attempt/retry/hidden-commit invariants are testable;
+- child/supersession/revocation lifecycles are distinguishable;
+- identity/event collapse is testable;
+- existing resource and partition-fencing semantics remain AETHER-owned;
+- telemetry and physical locality become evidence rather than policy.
 
 Costs:
 
 - more typed records and explicit handoffs;
-- mechanical systems cannot infer authority from convenient local state;
-- E2 must build a nontrivial conformance harness before extraction;
-- final integrity/security profile remains separate work;
-- some current code remains mixed until tests justify decomposition.
+- final integrity/security profile remains future work;
+- E2 must build substantial conformance evidence before extraction;
+- some current outer-crate responsibilities remain mixed.
 
 ## Rejected alternatives
 
-### A. Use one generic `status` object
-
-Rejected because it collapses delivered/completed/admitted/approved and makes
-authority laundering difficult to detect.
-
-### B. Treat endpoint capability as permission
-
-Rejected because resource availability is not institutional authorization.
-
-### C. Let FABRIC own lease/epoch failover generically
-
-Rejected because current AETHER lease epochs and partition epochs are semantic
-authority/fencing concepts, not merely liveness locks.
-
-### D. Exactly-once transport as the semantic solution
-
-Rejected as an E1 assumption. Mechanical delivery may be at-least-once or
-otherwise defined later; AETHER must preserve idempotent semantic admission and
-explicit identity rather than delegating truth to transport guarantees.
-
-### E. Move `aether_http` or `aether_partition` wholesale
-
-Rejected by E0: both contain mixed semantic and mechanical responsibilities.
+- one generic cross-plane status object;
+- endpoint capability as permission;
+- FABRIC-owned semantic lease/leader epoch;
+- exactly-once transport as truth semantics;
+- wholesale move of `aether_http` or `aether_partition`;
+- implicit revocation from endpoint failure;
+- child-envelope existence as implicit parent supersession.
 
 ## Non-authority
 
 This ADR does not:
 
-- create or activate FABRIC;
+- create/activate FABRIC;
 - move implementation;
 - modify Article IX/AETHER authority;
 - activate POL/AETHER-Learn;
 - change GHOS controller admission;
-- authorize deployment/claim promotion.
+- authorize deployment or claim promotion.
 
-## Verification
+## Verification and next stage
 
-E1 verification is specification-level:
+E1 requires:
 
-- Formalist checks closed contracts and transition completeness;
-- Adversary attacks widening, downgrade, identity collapse, starvation, hidden
-  commit, replica authority laundering and telemetry policy bypass;
-- Referee decides whether E1 is complete enough to authorize E2 test
-  implementation.
+- Formalist re-review of Revision 1;
+- Adversary attack on widening, revocation forgery, attempt replay, downgrade,
+  starvation, event/identity collapse and telemetry bypass;
+- Referee completeness disposition;
+- exact-head protected checks.
 
-E2 must implement the vectors in
-`AETHER_FABRIC_E1_CONFORMANCE_VECTORS.md`, including D1-D5, before any
-corresponding responsibility can be extracted.
+If E1 closes, only E2 conformance-harness work is authorized. Runtime extraction
+remains prohibited until corresponding E2/D1-D5 evidence passes.
