@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grandchallenge.dev/aether/schemas/aether_fabric/e1/identity_binding.schema.json",
+  "title": "AETHER/FABRIC E1 cross-stratum identity binding record",
+  "description": "Non-runtime candidate schema for explicit cross-stratum identity observations/references. Textual equality, reachability, liveness, capability, co-location, correlation, or credential possession never collapses endpoint, semantic actor, institutional principal, or GHOS controller identities.",
+  "oneOf": [
+    {"$ref": "#/$defs/actor_endpoint"},
+    {"$ref": "#/$defs/institutional_actor_authorization"},
+    {"$ref": "#/$defs/controller_endpoint"}
+  ],
+  "$defs": {
+    "common": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "protocol_family",
+        "protocol_major",
+        "protocol_minor",
+        "record_type",
+        "binding_id",
+        "source_ref"
+      ],
+      "properties": {
+        "schema_version": {"const": "1.0"},
+        "protocol_family": {"const": "aether-fabric"},
+        "protocol_major": {"const": 1},
+        "protocol_minor": {"const": 0},
+        "record_type": {"type": "string"},
+        "binding_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "source_ref": {"type": "string", "minLength": 1, "maxLength": 2048},
+        "correlation_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "observed_at": {"type": "string", "format": "date-time"},
+        "expires_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "actor_endpoint": {
+      "allOf": [
+        {"$ref": "#/$defs/common"},
+        {
+          "type": "object",
+          "required": ["semantic_actor_ref", "endpoint_id", "observed_at", "expires_at", "authority_effect"],
+          "properties": {
+            "record_type": {"const": "ActorEndpointBindingObserved"},
+            "semantic_actor_ref": {"type": "string", "minLength": 1, "maxLength": 1024},
+            "endpoint_id": {"type": "string", "minLength": 1, "maxLength": 256},
+            "authority_effect": {"const": "none"}
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "institutional_actor_authorization": {
+      "allOf": [
+        {"$ref": "#/$defs/common"},
+        {
+          "type": "object",
+          "required": ["institutional_principal_ref", "semantic_actor_ref", "authorization_ref", "scope_digest", "authority_owner"],
+          "properties": {
+            "record_type": {"const": "InstitutionalActorAuthorizationRef"},
+            "institutional_principal_ref": {"type": "string", "minLength": 1, "maxLength": 1024},
+            "semantic_actor_ref": {"type": "string", "minLength": 1, "maxLength": 1024},
+            "authorization_ref": {"type": "string", "minLength": 1, "maxLength": 2048},
+            "scope_digest": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["algorithm", "value"],
+              "properties": {
+                "algorithm": {"const": "sha256"},
+                "value": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+              }
+            },
+            "authority_owner": {"const": "upstream_governed_record"}
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "controller_endpoint": {
+      "allOf": [
+        {"$ref": "#/$defs/common"},
+        {
+          "type": "object",
+          "required": ["controller_ref", "endpoint_id", "ghos_binding_ref", "authority_owner"],
+          "properties": {
+            "record_type": {"const": "ControllerEndpointBindingRef"},
+            "controller_ref": {"type": "string", "minLength": 1, "maxLength": 1024},
+            "endpoint_id": {"type": "string", "minLength": 1, "maxLength": 256},
+            "ghos_binding_ref": {"type": "string", "minLength": 1, "maxLength": 2048},
+            "authority_owner": {"const": "GHOS"}
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}
