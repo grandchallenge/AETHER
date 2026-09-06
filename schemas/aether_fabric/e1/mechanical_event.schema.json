@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grandchallenge.dev/aether/schemas/aether_fabric/e1/mechanical_event.schema.json",
+  "title": "AETHER/FABRIC E1 Mechanical Event",
+  "description": "Non-runtime candidate schema for FABRIC-domain mechanical events. No event validated by this schema confers semantic, institutional, constitutional, or GHOS-controller authority.",
+  "oneOf": [
+    {"$ref": "#/$defs/route_realized"},
+    {"$ref": "#/$defs/queue_admitted"},
+    {"$ref": "#/$defs/pre_start_rejected"},
+    {"$ref": "#/$defs/payload_dispatched"},
+    {"$ref": "#/$defs/payload_delivered"},
+    {"$ref": "#/$defs/delivery_receipt"},
+    {"$ref": "#/$defs/replica_movement"},
+    {"$ref": "#/$defs/object_location"}
+  ],
+  "$defs": {
+    "common": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "protocol_family",
+        "protocol_major",
+        "protocol_minor",
+        "domain",
+        "authority_effect",
+        "record_type",
+        "event_id",
+        "correlation_id",
+        "occurred_at"
+      ],
+      "properties": {
+        "schema_version": {"const": "1.0"},
+        "protocol_family": {"const": "aether-fabric"},
+        "protocol_major": {"const": 1},
+        "protocol_minor": {"const": 0},
+        "domain": {"const": "mechanical"},
+        "authority_effect": {"const": "none"},
+        "record_type": {"type": "string"},
+        "event_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "correlation_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "causation_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "attempt_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "occurred_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "route_realized": {
+      "allOf": [
+        {"$ref": "#/$defs/common"},
+        {
+          "type": "object",
+          "required": ["envelope_id", "endpoint_id", "resource_class", "route_class", "mechanical_policy_ref"],
+          "properties": {
+            "record_type": {"const": "RouteRealized"},
+            "envelope_id": {"type": "string", "minLength": 1, "maxLength": 256},
+            "endpoint_id": {"type": "string", "minLength": 1, "maxLength": 256},
+            "resource_class": {"type": "string", "minLength": 1, "maxLength": 256},
+            "route_class": {"type": "string", "minLength": 1, "maxLength": 256},
+            "mechanical_policy_ref": {"type": "string", "minLength": 1, "maxLength": 1024}
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "queue_admitted": {
+      "allOf": [
+        {"$ref": "#/$defs/common"},
+        {
+          "type": "object",
+          "required": ["envelope_id", "endpoint_id", "queue_class"],
+          "properties": {
+            "record_type": {"const": "QueueAdmitted"},
+            "envelope_id": {"type": "string", "minLength": 1, "maxLength": 256},
+            "endpoint_id": {"type": "string", "minLength": 1, "maxLength": 256},
+            "queue_class": {"type": "string", "minLength": 1, "maxLength": 256}
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "pre_start_rejected": {
+      "allOf": [
+        {"$ref": "#/$defs/common"},
+        {
+          "type": "object",
+          "required": ["envelope_id", "reason"],
+          "properties": {
+            "record_type": {"const": "PreStartRejected"},
+            "envelope_id": {"type": "string", "minLength": 1, "maxLength": 256},
+            "reason": {
+              "enum": [
+                "capacity_exhausted",
+                "queue_timeout",
+                "endpoint_unavailable",
+                "envelope_expired",
+                "envelope_superseded",
+                "protocol_incompatible",
+                "required_capability_missing",
+                "trust_zone_unsatisfied",
+                "mechanical_policy_unsatisfied",
+                "payload_unavailable",
+                "integrity_validation_failed",
+                "envelope_widening"
+              ]
+            },
+            "detail": {"type": "string", "maxLength": 2048}
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "payload_dispatched": {
+      "allOf": [
+        {"$ref": "#/$defs/common"},
+        {
+          "type": "object",
+          "required": ["envelope_id", "endpoint_id", "payload_ref"],
+          "properties": {
+            "record_type": {"const": "PayloadDispatched"},
+            "envelope_id": {"type": "string", "minLength": 1, "maxLength": 256},
+            "endpoint_id": {"type": "string", "minLength": 1, "maxLength": 256},
+            "payload_ref": {"type": "string", "minLength": 1, "maxLength": 2048}
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "payload_delivered": {
+      "allOf": [
+        {"$ref": "#/$defs/common"},
+        {
+          "type": "object",
+          "required": ["envelope_id", "endpoint_id", "payload_ref"],
+          "properties": {
+            "record_type": {"const": "PayloadDelivered"},
+            "envelope_id": {"type": "string", "minLength": 1, "maxLength": 256},
+            "endpoint_id": {"type": "string", "minLength": 1, "maxLength": 256},
+            "payload_ref": {"type": "string", "minLength": 1, "maxLength": 2048}
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "delivery_receipt": {
+      "allOf": [
+        {"$ref": "#/$defs/common"},
+        {
+          "type": "object",
+          "required": ["envelope_id", "endpoint_id", "payload_ref", "delivery_status"],
+          "properties": {
+            "record_type": {"const": "DeliveryReceiptObserved"},
+            "envelope_id": {"type": "string", "minLength": 1, "maxLength": 256},
+            "endpoint_id": {"type": "string", "minLength": 1, "maxLength": 256},
+            "payload_ref": {"type": "string", "minLength": 1, "maxLength": 2048},
+            "delivery_status": {"enum": ["delivered", "transport_failed", "unknown"]}
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "replica_movement": {
+      "allOf": [
+        {"$ref": "#/$defs/common"},
+        {
+          "type": "object",
+          "required": ["envelope_id", "source_endpoint_id", "destination_endpoint_id", "payload_ref", "transport_status"],
+          "properties": {
+            "record_type": {"const": "ReplicaMovementObserved"},
+            "envelope_id": {"type": "string", "minLength": 1, "maxLength": 256},
+            "source_endpoint_id": {"type": "string", "minLength": 1, "maxLength": 256},
+            "destination_endpoint_id": {"type": "string", "minLength": 1, "maxLength": 256},
+            "payload_ref": {"type": "string", "minLength": 1, "maxLength": 2048},
+            "bytes_transferred": {"type": "integer", "minimum": 0},
+            "items_transferred": {"type": "integer", "minimum": 0},
+            "transport_status": {"enum": ["complete", "partial", "failed", "unknown"]},
+            "observed_replication_lag": {"type": "integer", "minimum": 0}
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "object_location": {
+      "allOf": [
+        {"$ref": "#/$defs/common"},
+        {
+          "type": "object",
+          "required": ["object_ref", "endpoint_id", "presence"],
+          "properties": {
+            "record_type": {"const": "PhysicalObjectLocationObserved"},
+            "object_ref": {"type": "string", "minLength": 1, "maxLength": 2048},
+            "endpoint_id": {"type": "string", "minLength": 1, "maxLength": 256},
+            "presence": {"enum": ["present", "absent", "unknown"]},
+            "cache_hit": {"type": "boolean"},
+            "shard_ref": {"type": "string", "minLength": 1, "maxLength": 2048}
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}
