@@ -1,6 +1,6 @@
 # ADR 0020 — AETHER/FABRIC E0 Boundary Classification Before Extraction
 
-Status: Proposed for E0 review
+Status: Proposed for E0 review, revised after Adversary pass
 Date: 2026-09-05
 Issue: #83
 
@@ -8,9 +8,8 @@ Issue: #83
 
 INTELLECT Council matter `GI-COUNCIL-AETHER-FABRIC-ENCAP-001` approved with
 conditions the architectural direction of independently encapsulating AETHER
-and FABRIC while preserving asymmetric semantics.
-
-The Council's durable record is merged in `grandchallenge/INTELLECT` at
+and FABRIC while preserving asymmetric semantics. Its durable Council record is
+merged at `grandchallenge/INTELLECT` commit
 `18df1c3ef89712fe00af37a484cc03ce270e99bd`.
 
 The approved doctrine is:
@@ -22,20 +21,15 @@ The approved doctrine is:
 - GHOS retains protected execution/controller governance;
 - INTELLECT retains constitutional authority.
 
-The Referee required E0 before any code movement. In particular, existing
-AETHER crates must not be moved wholesale merely because their names or current
-implementation mix semantic and operational responsibilities.
-
-AETHER protected `main` at E0 intake is
-`159cf930ae9130060f16d9fbc2608ad8a4069fae`.
+The Council requires E0 before code movement. AETHER protected `main` at E0
+intake is `159cf930ae9130060f16d9fbc2608ad8a4069fae`.
 
 ## Decision
 
-Perform a responsibility-level classification of the live AETHER estate before
-introducing an AETHER/FABRIC interface, moving code, creating a FABRIC runtime,
-or changing repository custody.
+Classify material live AETHER **responsibilities**, not crates, before defining
+an AETHER/FABRIC interface or moving implementation.
 
-Each material responsibility is assigned exactly one E0 classification:
+Each responsibility receives one E0 class:
 
 - `SEMANTIC`;
 - `INSTITUTIONAL`;
@@ -43,19 +37,18 @@ Each material responsibility is assigned exactly one E0 classification:
 - `FABRIC`;
 - `AMBIGUOUS`.
 
-`AMBIGUOUS` is a first-class result. It records that evidence or a finer
-contract boundary is still required.
+`AMBIGUOUS` is a first-class result and prohibits extraction until a narrower
+contract and discriminating evidence resolve the seam.
 
-The canonical E0 artifacts are:
+Canonical E0 artifacts:
 
 - `docs/ARCHITECTURE/AETHER_FABRIC_E0_BOUNDARY_MATRIX.md`;
 - `docs/ARCHITECTURE/AETHER_FABRIC_DEPENDENCY_GRAPH.md`;
 - `docs/ARCHITECTURE/AETHER_FABRIC_AMBIGUITY_REGISTER.md`;
+- `docs/ARCHITECTURE/AETHER_FABRIC_E0_EVIDENCE_INDEX.md`;
 - this ADR.
 
-## Classification principles
-
-### Semantic retention principle
+## Semantic retention rule
 
 A responsibility remains in AETHER when it determines or validates:
 
@@ -66,71 +59,105 @@ A responsibility remains in AETHER when it determines or validates:
 - policy visibility;
 - provenance;
 - recursive derivation;
-- proof/explanation;
+- proof identity/explanation;
 - semantic lease/fence authority;
+- semantic operation ordering/atomicity;
 - partition/cut/import meaning;
 - semantic leader epoch/fencing;
 - semantic admission/rejection.
 
-### Mechanical candidate principle
+## Mechanical candidate rule
 
-A responsibility may be a FABRIC candidate when it can be specified entirely
-as mechanical realization under an already authorized envelope, such as:
+A responsibility may be a FABRIC candidate only when it can be specified as
+non-authoritative physical realization inside an already authorized envelope,
+for example:
 
-- endpoint/resource discovery;
-- physical placement;
+- endpoint/resource observation;
+- concrete placement;
 - delivery;
-- queueing/backpressure;
-- retry mechanics;
 - replica byte movement;
-- endpoint/resource liveness;
+- pre-start worker/queue capacity;
+- pre-start backpressure/timeout;
 - locality/capacity observation.
 
-Mechanical success must not create semantic authority.
+Mechanical success or failure must not create semantic authority or reinterpret
+an already-started semantic operation.
 
-### Influence-without-authority principle
+## Influence-without-authority rule
 
-A responsibility is not safely mechanical merely because it never writes a
-semantic fact directly. Scheduling, priority, selective delivery, starvation,
-retry asymmetry, endpoint eligibility, or locality policy can materially shape
-what the polity gets to observe.
+FABRIC can shape what the polity gets to observe even without writing semantic
+facts. Scheduling, starvation, selective delivery, retry asymmetry, endpoint
+eligibility, locality, and priority are therefore governed influence channels.
 
-A future FABRIC may optimize only inside a bounded, attributable mechanical
-envelope supplied by an authorized upstream decision.
+FABRIC may optimize only inside a bounded, attributable mechanical envelope
+supplied by an authorized upstream decision.
 
-### Execution separation principle
+## Resource-control refinement
+
+The first Adversary pass found that current AETHER queue/resource control is
+mixed, not purely mechanical. `docs/RESOURCE_CONTROL_CONTRACT.md` combines:
+
+### Mechanical candidates
+
+- global worker-pool capacity;
+- concrete worker realization;
+- queue occupancy/wait;
+- pre-start timeout/backpressure observations.
+
+### Semantic obligations retained in AETHER
+
+- one-active-operation same-namespace serialization where required for
+  deterministic semantic order;
+- `cancel_before_start_complete_after_start`;
+- a pre-start timeout may prevent start, but cannot later produce a hidden
+  semantic commit;
+- once semantic execution starts, a mechanical timeout cannot report failure
+  while an authority mutation may still commit in the background;
+- resource rejection cannot partially append authority or publish an AETHER
+  execution receipt/trace handle;
+- semantic runtime/rule/tuple boundedness remains an AETHER safety contract.
+
+Therefore E0 does **not** classify queueing/backpressure wholesale as FABRIC.
+The mechanical scheduler can realize capacity, but AETHER owns the semantic
+start/completion/atomicity contract.
+
+## Execution separation rule
 
 GHOS controller admission, protected execution, credential authority, release
-promotion, and similar protected execution responsibilities do not become
-FABRIC responsibilities merely because FABRIC might later transport their
-payloads.
+promotion, and protected workflow execution do not become FABRIC
+responsibilities merely because FABRIC may later transport payloads.
+
+`.ghos-routing/workflows.json` currently binds governed workflows to the
+`GITHUB_ACTIONS` persistent controller and does not grant AETHER or FABRIC
+controller authority.
 
 ## Live-main findings
 
-### Clean semantic center
+### Clean AETHER semantic center
 
-The following current crates/responsibilities are strongly semantic and are not
-E0 extraction candidates:
+Strongly semantic responsibilities include:
 
-- `aether_ast` canonical semantic types;
-- `aether_schema` schema/type contracts;
-- resolver replay/merge/dependency certification;
-- rules/plan/runtime recursive semantics;
-- explanation/provenance;
-- semantic service admission and execution receipts;
-- semantic coordination facts and lease/fence meaning;
-- partition/cut/federated-import semantics;
-- authority epochs, stale-epoch rejection, and divergent-prefix fencing.
+- AST/DSL/schema;
+- append admission/order/cuts/receipts;
+- replay and merge;
+- policy projection;
+- rule plan/runtime/closure;
+- provenance/proof identity;
+- semantic coordination facts and lease fencing;
+- semantic resource ordering/atomicity;
+- partition/cut/import/federated meaning;
+- leader epoch, semantic promotion, stale/divergent-prefix fencing;
+- sidecar identity/provenance/policy.
 
-### Clean mechanical candidates
+### Clear mechanical candidates
 
-The current estate already contains a smaller set of clearly mechanical
-responsibilities:
+Subject to the authorized-envelope constraints:
 
 - replica lag/health observations;
-- concrete replica endpoint/path configuration;
-- queue/backpressure mechanics under fixed semantic namespace identity;
-- audit-event buffering/delivery;
+- concrete endpoint/location configuration;
+- worker-pool capacity and concrete worker realization;
+- queue occupancy/wait/backpressure before semantic execution starts;
+- audit-event transport;
 - process/service liveness;
 - host/capacity observations.
 
@@ -138,94 +165,82 @@ These remain in place during E0.
 
 ### Mixed seams
 
-The most important E1 candidates are not whole crates. They are mixed seams
-inside or across:
+E1 must decompose:
 
-- storage backend mechanics versus authoritative journal semantics;
-- sidecar payload locality versus semantic reference/provenance/policy;
-- replica movement versus authority-partition epoch/fencing;
-- HTTP transport versus AETHER auth/policy/admission;
-- namespace semantic resolution versus worker/queue realization;
-- semantic safety limits versus operational resource limits;
+- storage backend mechanics vs authoritative journal semantics;
+- sidecar locality vs semantic reference/provenance/policy;
+- replica movement vs epoch/prefix fencing;
+- HTTP transport vs auth/policy/admission;
+- namespace resolution vs worker realization;
+- mechanical queue capacity vs semantic serialization/cancellation;
+- semantic safety limits vs operational limits;
 - compatibility facade ownership;
-- cross-plane telemetry/performance measurement.
+- cross-plane telemetry/performance.
 
 ## AETHER-POL lineage
 
-PR #10, `Introduce AETHER-POL semantic layer`, is preserved as historical
-lineage and is not present in current protected `main`.
+PR #10 (`Introduce AETHER-POL semantic layer`) is historical lineage and is not
+present on current protected `main`. Its explicit non-goals excluded scheduler,
+workflow engine, queue, graph runner, model serving and autonomous runtime.
 
-Its explicit non-goals excluded scheduler, workflow engine, queue, graph runner,
-model-serving layer, and autonomous agent runtime. That separation is
-compatible with the Council doctrine, but the stale PR is not itself an
-admitted current implementation.
-
-Any future POL candidate must be freshly reviewed against current AETHER
-schema/policy/provenance contracts and the AETHER/FABRIC separation.
+Any new POL realization requires fresh review against current AETHER contracts
+and the approved AETHER/FABRIC doctrine.
 
 ## AETHER-Learn finding
 
-No live AETHER-Learn implementation was found on current AETHER `main` using
-the E0 router/allocation search vocabulary.
-
-Desired allocation therefore remains a future institutional/learning contract,
-not a responsibility that can be inferred from existing HTTP namespace routing
-or partition mechanics.
+No live AETHER-Learn implementation was found on current protected AETHER main
+under the E0 searched router/allocation vocabulary. Desired allocation remains
+a future governed institutional/learning contract, not something inferred from
+HTTP namespace routing, queueing, partitions or capacity tooling.
 
 ## Consequences
 
-### Positive
+Positive:
 
-- prevents premature repository surgery;
-- preserves semantic authority around cuts, replay, admission, and fencing;
-- identifies genuine mechanical extraction candidates;
-- makes mixed responsibilities explicit rather than hiding them behind crate
-  names;
-- provides concrete E1 contract and E2 falsification targets;
-- preserves a local AETHER correctness path.
+- semantic authority is protected around replay/admission/fencing/atomicity;
+- genuine mechanical candidates are exposed without crate-level overreach;
+- mixed seams receive concrete E1/E2 tests;
+- local AETHER correctness remains a required path;
+- FABRIC can later evolve for performance without becoming policy/authority.
 
-### Costs
+Costs:
 
-- E1 must decompose existing outer-layer responsibilities before extraction;
-- some apparently operational code remains inside AETHER until tests prove a
-  narrower boundary;
-- future FABRIC work cannot begin as a broad rewrite of `aether_partition` or
-  `aether_http`;
-- historical terminology requires careful migration.
+- operational code may remain inside AETHER until a narrower interface is
+  proven;
+- E1 must decompose responsibilities before extraction;
+- resource scheduling needs an explicit start/completion handoff contract;
+- historical terminology requires migration discipline.
 
-## Forbidden effects of this ADR
+## Forbidden effects
 
 This ADR does not:
 
-- create a FABRIC repository or runtime;
-- move code;
-- change the AETHER production semantic authority boundary;
+- create a FABRIC repository/runtime;
+- move code/APIs;
+- alter AETHER production semantic authority;
 - amend INTELLECT Article IX;
-- activate AETHER-POL;
-- establish AETHER-Learn;
-- admit AETHER/FABRIC as GHOS controller infrastructure;
-- authorize a production deployment.
+- activate AETHER-POL or AETHER-Learn;
+- admit AETHER/FABRIC as GHOS controllers;
+- authorize production deployment or claim promotion.
 
 ## E0 acceptance
 
 E0 may close only if:
 
-1. the matrix represents all material current responsibility families;
-2. every responsibility has exactly one classification;
-3. every `AMBIGUOUS` entry has a discriminating evidence requirement;
-4. semantic fencing/cuts/admission are not assigned to FABRIC;
-5. GHOS/INTELLECT boundaries remain explicit;
+1. material live responsibility families are represented;
+2. each responsibility has one classification;
+3. every `AMBIGUOUS` item has discriminating evidence requirements;
+4. semantic cuts/fencing/admission/order/atomicity are not assigned to FABRIC;
+5. GHOS and INTELLECT authority boundaries remain explicit;
 6. historical lineage is preserved;
-7. no code/runtime responsibility moved during E0;
-8. a non-authoring Adversary pass attacks authority leakage and selective
-   influence;
+7. no code/runtime responsibility moved;
+8. a non-authoring Adversary pass finds no unresolved material authority leak;
 9. a non-authoring Referee pass confirms completeness.
 
 ## Next decision
 
 If E0 is accepted, E1 may specify narrow versioned interface contracts for the
-mixed seams.
-
-E1 is not authorized to extract code merely because it can name an interface.
-Any E2/E3/E4 transition remains subject to the Council's semantic-equivalence,
-hostile-testing, non-AETHER utility, maintenance, and rollback conditions.
+mixed seams. E1 is not itself authority to extract code. E2/E3/E4 remain gated
+by semantic-equivalence, hostile scheduling/failure tests, non-AETHER FABRIC
+utility, maintenance ownership, rollback and the Council's remaining
+conditions.
