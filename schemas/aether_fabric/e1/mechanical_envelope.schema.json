@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grandchallenge.dev/aether/schemas/aether_fabric/e1/mechanical_envelope.schema.json",
+  "title": "AETHER/FABRIC E1 MechanicalEnvelopeAuthorized",
+  "description": "Non-runtime candidate contract for a closed mechanical realization envelope. Validation does not confer semantic, institutional, constitutional, or GHOS-controller authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "protocol_family",
+    "protocol_major",
+    "protocol_minor",
+    "record_type",
+    "authority_effect",
+    "envelope_id",
+    "correlation_id",
+    "authorization_ref",
+    "issuer_ref",
+    "scope_digest",
+    "payload_ref",
+    "permitted_actions",
+    "eligible_resource_classes",
+    "trust_zones",
+    "locality_constraints",
+    "mechanical_policy_ref",
+    "priority_class",
+    "fairness_policy_ref",
+    "retry_policy",
+    "redundancy_policy",
+    "expires_at",
+    "required_capabilities"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "protocol_family": {"const": "aether-fabric"},
+    "protocol_major": {"const": 1},
+    "protocol_minor": {"const": 0},
+    "record_type": {"const": "MechanicalEnvelopeAuthorized"},
+    "authority_effect": {"const": "none"},
+    "envelope_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "correlation_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "authorization_ref": {"type": "string", "minLength": 1, "maxLength": 1024},
+    "issuer_ref": {"type": "string", "minLength": 1, "maxLength": 1024},
+    "scope_digest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "value"],
+      "properties": {
+        "algorithm": {"const": "sha256"},
+        "value": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "payload_ref": {"type": "string", "minLength": 1, "maxLength": 2048},
+    "permitted_actions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "dispatch_payload",
+          "deliver_payload",
+          "queue_pre_start",
+          "copy_replica_prefix",
+          "place_object",
+          "move_object",
+          "observe_telemetry"
+        ]
+      }
+    },
+    "eligible_resource_classes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1, "maxLength": 256}
+    },
+    "trust_zones": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1, "maxLength": 256}
+    },
+    "locality_constraints": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1, "maxLength": 512}
+    },
+    "mechanical_policy_ref": {"type": "string", "minLength": 1, "maxLength": 1024},
+    "priority_class": {"enum": ["low", "normal", "high", "critical"]},
+    "fairness_policy_ref": {"type": "string", "minLength": 1, "maxLength": 1024},
+    "retry_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_attempts", "backoff_class"],
+      "properties": {
+        "max_attempts": {"type": "integer", "minimum": 1, "maximum": 64},
+        "backoff_class": {"enum": ["none", "fixed", "exponential", "policy_defined"]}
+      }
+    },
+    "redundancy_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_parallel_copies"],
+      "properties": {
+        "max_parallel_copies": {"type": "integer", "minimum": 1, "maximum": 64}
+      }
+    },
+    "expires_at": {"type": "string", "format": "date-time"},
+    "supersedes_envelope_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "required_capabilities": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1, "maxLength": 256}
+    },
+    "integrity_profile_ref": {"type": "string", "minLength": 1, "maxLength": 1024}
+  }
+}
