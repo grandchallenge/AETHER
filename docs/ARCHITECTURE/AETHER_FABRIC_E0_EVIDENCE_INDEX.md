@@ -1,160 +1,191 @@
 # AETHER/FABRIC E0 Evidence Index
 
-Status: E0 evidence map
+Status: E0 evidence map, revised after Adversary pass
 Issue: #83
 AETHER protected-main basis: `159cf930ae9130060f16d9fbc2608ad8a4069fae`
 INTELLECT Council basis: `18df1c3ef89712fe00af37a484cc03ce270e99bd`
 
-## Purpose
+## Scope statement
 
-Bind the E0 responsibility classifications to inspectable live repository
-surfaces. This index does not assert that every file in AETHER has been read
-line-by-line. E0 claims coverage of **material responsibility families**, with
-uncertain seams retained as `AMBIGUOUS` rather than inferred from naming.
+This index binds the E0 classifications to inspectable live repository
+surfaces. E0 claims coverage of **material responsibility families**, not a
+line-by-line permanent assignment of every function. Mixed surfaces remain
+`AMBIGUOUS` precisely to avoid inferring architecture from file/crate names.
 
-## Governing evidence
+## Governing sources
 
-| Evidence | Relevance to E0 |
+| Evidence | E0 use |
 | --- | --- |
-| INTELLECT `governance/council_matters/GI-COUNCIL-AETHER-FABRIC-ENCAP-001/` at merge `18df1c3e...` | Governing architecture recommendation, conditions, influence-without-authority doctrine, E0-before-extraction requirement. |
-| AETHER `AGENTS.md` | Rust semantic kernel is authoritative; service/API concerns must not dictate rule-engine semantics; production-semantic activation and permission escalation remain reserved. |
-| AETHER `SPEC.md` | Defines authoritative semantic substrate, recursive closure, provenance, temporal replay, coordination facts, lease fencing, and sidecar subordination. |
-| AETHER `Cargo.toml` | Enumerates the current Rust workspace responsibility crates. |
-| `docs/ARCHITECTURE_BOUNDARIES.md` | Current R6 crate ownership and dependency contract. |
-| `docs/STATUS.md` | Current controlled-single-node claim, distributed-truth prototype, resource controls, release/governance boundaries, and implemented responsibility extraction. |
+| INTELLECT `GI-COUNCIL-AETHER-FABRIC-ENCAP-001` at `18df1c3e...` | Governing separation doctrine, influence-without-authority threat, E0-before-extraction and semantic-equivalence conditions. |
+| AETHER `AGENTS.md` | Rust semantic kernel is authoritative; service/API concerns may not dictate rule semantics; production-semantic activation remains gated. |
+| AETHER `SPEC.md` | Authoritative datom/replay/rule/provenance/coordination semantics, lease fencing and sidecar subordination. |
+| `Cargo.toml` | Live workspace crate inventory. |
+| `docs/ARCHITECTURE_BOUNDARIES.md` | Current R6 crate ownership/dependency contract. |
+| ADR 0019 | Responsibility-crate extraction already separated service, HTTP, sidecar, partition, perf and pilot from the `aether_api` catch-all; facade remains temporary. |
+| `docs/STATUS.md` | Current controlled-alpha scope and implemented partition/resource/release surfaces. |
 
-## Semantic-kernel evidence
+## Semantic authority evidence
 
-| Responsibility family | Evidence | E0 implication |
+| Family | Primary evidence | E0 conclusion |
 | --- | --- | --- |
-| canonical semantic types / DSL | `AGENTS.md`, `SPEC.md`, `crates/aether_ast`, `crates/aether_rules` | `SEMANTIC`; cannot be a FABRIC concern. |
-| schema/type contracts | `crates/aether_schema`, `SPEC.md` | `SEMANTIC`. |
-| authoritative journal / append order | `SPEC.md`, `crates/aether_storage`, ADR 0012 | Journal history is semantic authority; storage implementation mechanics remain separately ambiguous. |
-| replay / merge / dependency certification | `crates/aether_resolver`, ADR 0010 | `SEMANTIC`; policy projection precedes replay. |
-| rule planning and closure | `crates/aether_rules`, `aether_plan`, `aether_runtime` | `SEMANTIC`; deterministic derived meaning. |
-| proof / explanation | `crates/aether_explain`, ADR 0011 | `SEMANTIC`; proof identity binds exact semantic inputs. |
-| policy visibility | ADR 0010 | Policy is semantic input, not presentation or transport metadata. |
-| append admission | ADR 0012, `aether_service_core::admission` | `SEMANTIC`; validation occurs before authoritative commit. |
-| AETHER evaluation receipt / trace identity | ADR 0011 | `SEMANTIC`; distinct from external process/controller execution receipt. |
+| canonical types/DSL | `AGENTS.md`, `SPEC.md`, AST/rules crates | `SEMANTIC`. |
+| schema/admission | schema crate, ADR 0012 | `SEMANTIC`; validation belongs before authoritative commit. |
+| journal append/cuts/receipts | storage/service, ADR 0012 | Accepted history is `SEMANTIC`; backend I/O remains mixed. |
+| replay/policy projection | resolver, ADR 0010 | `SEMANTIC`; policy is part of input before replay/compile. |
+| rule plan/closure | rules/plan/runtime, ADR 0019 | `SEMANTIC`; executable schedule participates in deterministic meaning. |
+| proof identity | explain crate, ADR 0011 | `SEMANTIC`; trace identity binds exact namespace/cut/schema/program/policy/import material. |
+| coordination lease/fence meaning | `SPEC.md` §10/10.1, pilot/tests | `SEMANTIC`; stale holder fencing is authority, not resource reservation. |
 
-## Coordination and authority evidence
+ADR 0010 is especially dispositive: hidden facts can change negation,
+aggregation, recursion and tuple allocation, so policy filtering after the fact
+is not authorization-safe. A transport/fabric layer therefore cannot own or
+reconstruct policy-scoped semantics.
 
-| Responsibility family | Evidence | E0 implication |
+ADR 0012 is similarly dispositive: the journal is described as immutable
+semantic authority; followers receive leader-admitted revisions/datoms/receipts
+and verify identity rather than make independent semantic decisions.
+
+## Partition / replication evidence
+
+| Family | Evidence | E0 conclusion |
 | --- | --- | --- |
-| tasks / claims / leases / heartbeats / expiries / fences / outcomes | `SPEC.md` §10, `aether_pilot`, demos and test plan | Their **meaning** is `SEMANTIC`, even if later physical dispatch is mechanical. |
-| stale lease holder fencing | `SPEC.md` §10.1 | `SEMANTIC`; future operational resource leases require distinct types. |
-| authority partitions / federated cuts | `aether_partition`, `docs/ARCHITECTURE.md`, `docs/KNOWN_LIMITATIONS.md` | Partition/cut/authority semantics remain in AETHER. |
-| leader epoch / authority promotion | `aether_partition::{LeaderEpoch, PromoteReplica*}` | `SEMANTIC`; promotion changes append authority. |
-| stale-epoch / divergent-prefix rejection | `aether_partition`, distributed-truth docs/status | `SEMANTIC`; physical replica health cannot override fencing. |
-| replica lag / health | `aether_partition::ReplicaStatus` | `FABRIC` candidate as operational evidence. |
-| replica endpoint/database path | `aether_partition::ReplicaConfig` | `FABRIC` candidate as physical realization. |
-| follower data movement | `aether_partition` | `AMBIGUOUS`; mechanics are extraction-shaped but entangled with semantic prefix/epoch verification. |
+| partition/cut/federated identity | AST + `aether_partition` | `SEMANTIC`. |
+| imported-fact source-cut provenance | partition service | `SEMANTIC`. |
+| leader epoch/promotion | `LeaderEpoch`, `PromoteReplica*` | `SEMANTIC`; changes append authority. |
+| stale-epoch/divergent-prefix fencing | partition implementation/docs | `SEMANTIC`. |
+| follower byte/prefix movement | partition prototype | `AMBIGUOUS`; physical movement may become mechanical only beneath AETHER validation. |
+| replica lag/health | `ReplicaStatus` | `FABRIC` candidate as operational evidence. |
+| endpoint/database-path realization | `ReplicaConfig` | `FABRIC` candidate. |
 
 ## Sidecar / memory evidence
 
-| Responsibility family | Evidence | E0 implication |
-| --- | --- | --- |
-| semantic artifact/vector identity, provenance, policy, orchestration reference | ADR 0007, `SPEC.md` §11, `aether_sidecar` | `SEMANTIC`; sidecars are explicitly not a second authority plane. |
-| physical payload/catalog locality and movement | `aether_sidecar`, ADR 0007 consequences | `AMBIGUOUS`; likely mechanical only after identity/policy/replay contract is isolated. |
-| projection of sidecar results into rules | ADR 0007 | `SEMANTIC`; must carry provenance and remain replay-compatible. |
+ADR 0007 explicitly rejects sidecars as independent truth or orchestration
+planes. Identity, provenance, policy, orchestration state and replay scope stay
+anchored in the kernel.
 
-## Service-edge and resource evidence
+Therefore:
 
-| Responsibility family | Evidence | E0 implication |
-| --- | --- | --- |
-| HTTP framing / network delivery | `aether_http`, R6 boundary docs | `AMBIGUOUS`; transport is mechanical but crate also owns AETHER-specific auth/audit/namespace semantics. |
-| authentication and policy ceiling | `aether_http`, ADR 0010, status/remediation docs | `SEMANTIC` at AETHER service edge; credential issuance remains external governance. |
-| semantic namespace resolution | `aether_http`, service-core contracts | `SEMANTIC` side of a mixed route. |
-| concrete worker/queue realization | resource-control paths, status/remediation docs | `FABRIC` candidate when bounded by an already authorized namespace/mechanical envelope. |
-| queueing/backpressure | resource-control contract/status | `FABRIC` candidate subject to starvation/priority hostile tests. |
-| size/runtime/result limits | resource-control contract/status | `AMBIGUOUS`; must be decomposed into semantic-safety versus operational-resource limits. |
-| audit event meaning/content | HTTP audit path | `SEMANTIC`; preserves principal/cut/query/provenance lineage. |
-| audit sink buffering/delivery | resource-control/audit implementation | `FABRIC` candidate, but required evidence may not be silently dropped. |
-| health/status | HTTP/partition status surfaces | `FABRIC` candidate as operational evidence only. |
+- semantic artifact/vector references and result re-entry are `SEMANTIC`;
+- physical payload/cache/shard locality is `AMBIGUOUS` until E1/E2 proves it can
+  vary without changing identity, visibility, provenance or replay.
 
-## Execution/GHOS evidence
+## Service edge and resource-control evidence
 
-| Responsibility family | Evidence | E0 implication |
-| --- | --- | --- |
-| persistent workflow execution | `.ghos-routing/workflows.json` | `EXECUTION`; all listed final workflows are bound to the admitted `GITHUB_ACTIONS` persistent controller. |
-| controller admission | `.ghos-routing/workflows.json`, AETHER `AGENTS.md` | Neither AETHER nor future FABRIC gains controller authority by implementation or transport. |
-| release qualification / supply-chain / readiness execution | `.github/workflows/*`, `.ghos-routing/workflows.json`, status | `EXECUTION`; may produce evidence but does not become semantic or FABRIC authority. |
-| Go/Python clients/tooling | `go/`, `python/`, `AGENTS.md` | non-authoritative client/execution/tooling surfaces, not extraction targets merely because they are outside the Rust kernel. |
+### HTTP
 
-The routing registry specifically records `GITHUB_ACTIONS` as the
-`PERSISTENT_CONTROLLER` for the governed workflows and explicitly sets all
-listed claim-boundary flags, including `constitutional`, `merge`,
-`certification`, `production`, and `claim_promotion`, to `false`.
+R6/ADR 0019 makes `aether_http` an outward consumer of service contracts, but
+that crate still combines:
 
-## POL lineage evidence
+- mechanical HTTP framing;
+- principal/auth binding;
+- policy narrowing;
+- semantic namespace selection;
+- audit content;
+- worker/queue/resource mechanics.
 
-### Preserved PR #10
+Therefore `aether_http` cannot move wholesale.
 
-PR #10, `Introduce AETHER-POL semantic layer`, is not present on live protected
-`main`. Its proposal described typed `Polity`, `Guild`, `AgentContract`,
-`WorkObject`, `Claim`, `EvidenceBundle`, `Critique`, `Verification`, `Decision`,
-`RouteProposal`, `RouteDecision`, and `RouterUpdate` objects projected into
-AETHER facts.
+### Resource control — Adversary correction
 
-Its explicit non-goals included:
+`docs/RESOURCE_CONTROL_CONTRACT.md` proves the resource-control surface contains
+both mechanical and semantic obligations.
 
-- autonomous agent runtime;
-- routing logic;
-- scheduler;
-- workflow engine;
-- queue;
-- graph runner;
-- model-serving layer.
+Mechanical candidates:
 
-E0 therefore treats this PR as **institutional lineage**, not current code or
-current authority.
+- global blocking-worker capacity;
+- queue occupancy and queue wait;
+- pre-start backpressure/timeout observations;
+- concrete worker realization.
+
+Semantic obligations retained in AETHER:
+
+- one active semantic operation per namespace to preserve deterministic
+  same-namespace order;
+- `cancel_before_start_complete_after_start`;
+- once synchronous semantic work starts, the service must not return timeout
+  while a mutation may still commit in the background;
+- resource rejection must not partially append authority, publish an AETHER
+  execution receipt, or retain a trace handle;
+- semantic runtime/rule/tuple limits are checked before affected semantic
+  metadata persists.
+
+Accordingly, queueing/backpressure is **not** classified wholesale as FABRIC.
+The E0 matrix splits mechanical capacity from semantic serialization,
+cancellation and atomicity. AF-A07/D2/D5 record the discriminating tests.
+
+### Audit
+
+- audit event semantic content is `SEMANTIC`;
+- audit-event buffering/delivery may be mechanical;
+- backpressure cannot silently erase audit evidence required for accountability.
+
+### Health/capacity
+
+Service health, replica lag and host/capacity facts are operational evidence and
+may be `FABRIC` candidates. They create no permission or institutional
+allocation by themselves.
+
+## GHOS / execution evidence
+
+`.ghos-routing/workflows.json` records `GITHUB_ACTIONS` as the
+`PERSISTENT_CONTROLLER` for the governed AETHER workflows. The registry's claim
+boundaries explicitly set `constitutional`, `merge`, `certification`,
+`production`, `publication`, `claim_promotion` and related flags to `false`.
+
+E0 therefore classifies workflow execution/controller routing as `EXECUTION`,
+not FABRIC. A future FABRIC may transport payloads only under a separately
+reviewed bridge; endpoint delivery cannot mint GHOS controller authority.
+
+## POL lineage
+
+PR #10 (`Introduce AETHER-POL semantic layer`) is not on current protected
+`main`. It proposed typed polity/guild/contract/work/claim/evidence/decision
+objects projected into AETHER facts and explicitly excluded scheduler, workflow
+engine, queue, graph runner, model serving and autonomous runtime.
+
+E0 retains this as `INSTITUTIONAL` lineage only. It is not current authority or
+implementation.
 
 ## AETHER-Learn evidence status
 
-E0 repository search on current protected `main` found no live implementation
-under the searched `AETHER-Learn`, regret-router, route-proposal, or allocation
-vocabulary. This is a negative search finding, not proof that no related
-experimental artifact exists anywhere in GCL history.
+Search of current protected `main` under `AETHER-Learn`, regret-router,
+route-proposal and allocation vocabulary found no live implementation. This is
+a bounded negative search finding, not a claim about every historical GCL
+artifact.
 
-E0 therefore records desired allocation as a future `INSTITUTIONAL`/learning
-contract whose exact owner, implementation, and admission route remain open.
-It is not inferred from `aether_http` namespace routing, partition replication,
-or capacity tooling.
+Desired allocation is therefore recorded as a future institutional/learning
+contract, not inferred from HTTP namespace routing, resource scheduling,
+partition replication or capacity tooling.
 
-## Material-coverage statement
+## Material responsibility-family coverage
 
-The boundary matrix covers the following material live responsibility families:
+E0 covers:
 
-1. canonical semantic representation;
-2. schema and admission;
+1. semantic representation/DSL;
+2. schema/admission;
 3. journal/persistence;
-4. replay and closure;
-5. policy and provenance;
-6. proof identity;
-7. coordination facts and lease authority;
-8. sidecars/artifact-vector memory;
-9. partitions/federation/replication;
-10. HTTP/auth/audit/namespace routing;
-11. resource controls/backpressure;
-12. observability/performance/capacity;
-13. client/tooling layers;
-14. GHOS/workflow execution integration;
-15. POL/AETHER-Learn lineage and absent-live-main boundaries.
+4. replay/rules/closure;
+5. policy/provenance/proof identity;
+6. semantic coordination lease/fence state;
+7. sidecar memory/reference boundaries;
+8. partition/federation/replication;
+9. HTTP/auth/namespace/audit;
+10. worker/queue/resource-control semantics and mechanics;
+11. health/performance/capacity telemetry;
+12. compatibility/client/tooling surfaces;
+13. GHOS/workflow execution integration;
+14. POL and AETHER-Learn lineage/boundaries.
 
-The matrix does **not** claim every implementation function has already been
-assigned a permanent plane. Mixed families remain `AMBIGUOUS` precisely to
-prevent that overclaim.
+The packet does not claim every implementation function has a permanent owner.
+Every mixed family has an ambiguity entry and discriminating E1/E2 evidence
+requirement.
 
-## Evidence standard for E0 closure
+## E0 evidence sufficiency rule
 
-A classification is sufficient for E0 when:
+A classification is E0-sufficient when the material responsibility is named,
+its current evidence surface is identified, authority implications are explicit,
+mixed responsibility is not hidden by a crate-level label, and unresolved
+extraction questions have a discriminating test.
 
-- the material responsibility is represented;
-- the current owning surface is identified;
-- its authority implications are explicit;
-- mixed responsibility is not hidden by a crate-level label;
-- unresolved extraction questions have a discriminating E1/E2 test.
-
-E0 does not require executing the future interface or proving semantic
-equivalence; those belong to E1/E2. E0 requires enough evidence to make
-premature extraction demonstrably impermissible.
+E0 does not execute the future interface. Semantic-equivalence execution belongs
+to E2. E0's job is to make premature extraction demonstrably unjustified.
