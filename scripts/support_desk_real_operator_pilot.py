@@ -64,6 +64,17 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def committed_sha256(path: Path) -> str:
+    relative = path.relative_to(ROOT).as_posix()
+    result = subprocess.run(
+        ["git", "show", f"HEAD:{relative}"], cwd=ROOT,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
+    )
+    if result.returncode:
+        raise RuntimeError(f"cannot establish committed pilot bytes: {relative}")
+    return hashlib.sha256(result.stdout).hexdigest()
+
+
 def pack() -> dict[str, Any]:
     payload = read_json(FIXTURE)
     if payload.get("schema_version") != "aether.support-desk-real-operator-case-pack.v1":
@@ -116,6 +127,11 @@ def preflight(operator_id: str) -> dict[str, Any]:
     for path in (FIXTURE, SCHEMA, PROTOCOL, RUST_SURFACE):
         if not path.exists():
             raise RuntimeError(f"required pilot surface missing: {path.relative_to(ROOT)}")
+        if sha256(path) != committed_sha256(path):
+            raise RuntimeError(
+                f"pilot bytes differ from HEAD: {path.relative_to(ROOT)}; "
+                "use an isolated checkout that preserves committed line endings"
+            )
     fixture = pack()
     return {
         "record_type": "AETHER_SUPPORT_DESK_OPERATOR_SESSION_MANIFEST",

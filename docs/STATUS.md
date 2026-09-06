@@ -1,5 +1,9 @@
 # STATUS
 
+## Operator pilot executable correction
+
+Operator-01 stopped during setup at protected revision `159cf930ae9130060f16d9fbc2608ad8a4069fae`: the pilot generated an inline empty schema rejected by the parser. No answers or timing were collected. Issue #81 tracks the correction; #79 retains the stopped attempt. The correction emits a multiline schema, executes all six frozen cases in a Rust example test included in workspace tests, and rejects checkout bytes that differ from their committed identities. Protection and a separately identified new session remain required before collecting operator evidence.
+
 ## GCL ecosystem admission (2026-08-08)
 
 Repository custody moved from `fyremael/AETHER` to

@@ -175,6 +175,13 @@ fn verify_semantic_facts(case: &PilotCase) -> Result<(), Box<dyn std::error::Err
             return Err(format!("bad arity for {predicate}: {} != {expected}", fact.len()).into());
         }
     }
+    if !case
+        .semantic_facts
+        .iter()
+        .any(|fact| fact[0] == "case_status")
+    {
+        return Err("pilot case requires its case-status anchor".into());
+    }
     Ok(())
 }
 
@@ -183,6 +190,7 @@ fn run_query(
     case: &PilotCase,
     query_body: &str,
 ) -> Result<aether_api::RunDocumentResponse, Box<dyn std::error::Error>> {
+    verify_semantic_facts(case)?;
     service
         .run_document(RunDocumentRequest {
             dsl: pilot_dsl(case, query_body),
@@ -206,10 +214,37 @@ fn pilot_dsl(case: &PilotCase, query_body: &str) -> String {
         })
         .collect::<Vec<_>>()
         .join("\n");
+    // An absent fixture input denotes an empty relation, not an unbound input.
+    // A positive atom conjoined with its own negation is empty for every table.
+    // Keep this declaration in the DSL; do not add synthetic fact rows or relax
+    // the kernel's missing-extensional-input check.
+    let empty_inputs = [
+        ("retrieved_evidence", false),
+        ("candidate_resolution", false),
+        ("resolution_policy_approval", true),
+        ("resolution_confidence", true),
+        ("resolution_suppression", true),
+        ("resolution_dependency", true),
+        ("dependency_status", true),
+        ("case_assignment", true),
+        ("active_assignment", true),
+    ]
+    .into_iter()
+    .filter(|(predicate, _)| !case.semantic_facts.iter().any(|fact| fact[0] == *predicate))
+    .map(|(predicate, ternary)| {
+        if ternary {
+            format!("  {predicate}(a, b, c) <- case_status(a, b), case_status(a, c), not case_status(a, b)")
+        } else {
+            format!("  {predicate}(a, b) <- case_status(a, b), not case_status(a, b)")
+        }
+    })
+    .collect::<Vec<_>>()
+    .join("\n");
 
     format!(
         r#"
-schema v1 {{}}
+schema v1 {{
+}}
 
 predicates {{
   case_status(String, String)
@@ -241,6 +276,7 @@ facts {{
 }}
 
 rules {{
+{empty_inputs}
   active_case(case) <- case_status(case, "open")
   resolution_dependency_closure(case, resolution, dep) <- resolution_dependency(case, resolution, dep)
   resolution_dependency_closure(case, resolution, dep) <- resolution_dependency(case, resolution, mid), resolution_dependency_closure(case, mid, dep)
@@ -286,6 +322,56 @@ fn query_rows(response: &aether_api::RunDocumentResponse) -> &[QueryRow] {
         .expect("pilot query should exist")
         .rows
         .as_slice()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn every_frozen_case_executes_all_operator_queries() {
+        let fixture = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../")
+            .join(FIXTURE_PATH);
+        let pack: CasePack = serde_json::from_str(&fs::read_to_string(fixture).unwrap()).unwrap();
+        verify_pack(&pack).unwrap();
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let queries = [
+            "goal active_case(case)\n  keep case",
+            "goal retrieved_evidence(case, evidence)\n  keep case, evidence",
+            "goal ready_resolution(case, resolution)\n  keep case, resolution",
+            "goal active_assignment(case, owner, epoch)\n  keep case, owner, epoch",
+            "goal stale_assignment(case, owner, epoch)\n  keep case, owner, epoch",
+            "goal selected_resolution(case, resolution, owner, epoch)\n  keep case, resolution, owner, epoch",
+        ];
+        assert_eq!(pack.cases.len(), 6);
+        for (index, case) in pack.cases.iter().enumerate() {
+            let path = env::temp_dir().join(format!("aether-pilot-smoke-{nonce}-{index}.sqlite"));
+            {
+                let mut service = SqliteKernelService::open(&path).unwrap();
+                for query in queries {
+                    let response = run_query(&mut service, case, query)
+                        .unwrap_or_else(|error| panic!("{}: {error}", case.case_id));
+                    assert!(response.query.is_some());
+                }
+                if !case
+                    .semantic_facts
+                    .iter()
+                    .any(|fact| fact[0] == "active_assignment")
+                {
+                    let response = run_query(&mut service, case, queries[3]).unwrap();
+                    assert!(query_rows(&response).is_empty());
+                }
+            }
+            for suffix in ["", "-wal", "-shm"] {
+                let _ = fs::remove_file(format!("{}{suffix}", path.display()));
+            }
+        }
+    }
 }
 
 fn print_rows(title: &str, rows: &[QueryRow]) {

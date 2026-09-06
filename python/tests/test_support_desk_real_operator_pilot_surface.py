@@ -3,6 +3,8 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
+import pytest
+
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts" / "support_desk_real_operator_pilot.py"
@@ -55,6 +57,15 @@ def test_preflight_preserves_data_and_claim_boundaries() -> None:
     assert manifest["customer_private_production_data_allowed"] is False
     assert manifest["claim_boundary"] == surface.CLAIM_BOUNDARY
     assert len(manifest["fixture_sha256"]) == 64
+
+
+def test_preflight_rejects_checkout_bytes_that_differ_from_commit(monkeypatch) -> None:
+    surface = load_surface()
+    revision = surface.current_revision()
+    monkeypatch.setattr(surface, "git", lambda *args: "" if args[0] == "status" else revision)
+    monkeypatch.setattr(surface, "committed_sha256", lambda path: "0" * 64)
+    with pytest.raises(RuntimeError, match="pilot bytes differ from HEAD"):
+        surface.preflight("operator-01")
 
 
 def test_rust_surface_does_not_deserialize_or_render_frozen_ground_truth() -> None:
