@@ -54,13 +54,15 @@
         {"$ref": "#/$defs/common"},
         {
           "type": "object",
-          "required": ["institutional_principal_ref", "semantic_actor_ref", "authorization_ref", "scope_digest", "authority_owner"],
+          "required": ["institutional_principal_ref", "semantic_actor_ref", "authorization_ref", "scope_ref", "scope_digest", "authority_owner"],
           "properties": {
             "record_type": {"const": "InstitutionalActorAuthorizationRef"},
             "institutional_principal_ref": {"type": "string", "minLength": 1, "maxLength": 1024},
             "semantic_actor_ref": {"type": "string", "minLength": 1, "maxLength": 1024},
             "authorization_ref": {"type": "string", "minLength": 1, "maxLength": 2048},
+            "scope_ref": {"type": "string", "minLength": 1, "maxLength": 2048},
             "scope_digest": {
+              "description": "SHA-256 of the exact immutable byte sequence identified by scope_ref.",
               "type": "object",
               "additionalProperties": false,
               "required": ["algorithm", "value"],
