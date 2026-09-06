@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://grandchallenge.dev/aether/schemas/aether_fabric/e1/envelope_control.schema.json",
   "title": "AETHER/FABRIC E1 MechanicalEnvelopeRevoked",
-  "description": "Non-runtime candidate schema for an upstream-governed envelope revocation control record. Structural validation does not prove the issuer has authority; a separate integrity/authority profile must verify the referenced upstream authorization. FABRIC may consume a verified revocation but may not self-issue one as authority.",
+  "description": "Non-runtime candidate schema for an upstream-governed envelope revocation control record. Structural validation does not prove issuer authority. A separately selected integrity/authority profile referenced by integrity_profile_ref must verify the upstream binding before the control record is acted upon. FABRIC may consume a verified revocation but may not self-issue one as authority.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -18,7 +18,8 @@
     "authorization_ref",
     "issuer_ref",
     "revoked_at",
-    "reason"
+    "reason",
+    "integrity_profile_ref"
   ],
   "properties": {
     "schema_version": {"const": "1.0"},
