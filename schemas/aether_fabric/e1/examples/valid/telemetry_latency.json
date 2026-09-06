@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "protocol_family": "aether-fabric",
+  "protocol_major": 1,
+  "protocol_minor": 0,
+  "record_type": "TelemetryEvidenceObserved",
+  "domain": "mechanical",
+  "authority_effect": "none",
+  "event_id": "evt-telemetry-latency-001",
+  "correlation_id": "corr-resource-observation-002",
+  "endpoint_id": "endpoint-worker-pool-01",
+  "observation_class": "latency",
+  "observed_value": 12.5,
+  "unit": "ms",
+  "observed_at": "2026-09-05T22:30:01-07:00",
+  "observer_id": "fabric-observer-reference-01",
+  "mechanical_policy_ref": "mechanical-policy-reference-01"
+}
