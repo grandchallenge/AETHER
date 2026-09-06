@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://grandchallenge.dev/aether/schemas/aether_fabric/e1/telemetry_evidence.schema.json",
   "title": "AETHER/FABRIC E1 TelemetryEvidenceObserved",
-  "description": "Non-runtime candidate schema for FABRIC operational observations. Records validated here are observations only and require ordinary AETHER submission/admission before governed reasoning may treat them as semantic evidence.",
+  "description": "Non-runtime candidate schema for FABRIC operational observations. Structural validation does not admit the observation into AETHER or authorize policy mutation.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -45,12 +45,10 @@
       ]
     },
     "observed_value": {
-      "oneOf": [
-        {"type": "number"},
-        {"type": "integer"},
-        {"type": "boolean"},
-        {"type": "string", "minLength": 1, "maxLength": 2048}
-      ]
+      "description": "JSON numbers include integer-valued observations such as queue depth and replication lag; values remain observations until AETHER admission.",
+      "type": ["number", "boolean", "string"],
+      "minLength": 1,
+      "maxLength": 2048
     },
     "unit": {"type": "string", "minLength": 1, "maxLength": 128},
     "observed_at": {"type": "string", "format": "date-time"},
