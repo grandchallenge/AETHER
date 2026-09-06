@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://grandchallenge.dev/aether/schemas/aether_fabric/e1/mechanical_event.schema.json",
   "title": "AETHER/FABRIC E1 Mechanical Event",
-  "description": "Non-runtime candidate schema for FABRIC-domain mechanical events. No event validated by this schema confers semantic, institutional, constitutional, or GHOS-controller authority.",
+  "description": "Non-runtime candidate schema for FABRIC-domain mechanical events. Every event is bound to an exact mechanical attempt. No event validated here confers semantic, institutional, constitutional, or GHOS-controller authority.",
   "oneOf": [
     {"$ref": "#/$defs/route_realized"},
     {"$ref": "#/$defs/queue_admitted"},
@@ -26,6 +26,7 @@
         "record_type",
         "event_id",
         "correlation_id",
+        "mechanical_attempt_id",
         "occurred_at"
       ],
       "properties": {
@@ -39,7 +40,7 @@
         "event_id": {"type": "string", "minLength": 1, "maxLength": 256},
         "correlation_id": {"type": "string", "minLength": 1, "maxLength": 256},
         "causation_id": {"type": "string", "minLength": 1, "maxLength": 256},
-        "attempt_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "mechanical_attempt_id": {"type": "string", "minLength": 1, "maxLength": 256},
         "occurred_at": {"type": "string", "format": "date-time"}
       }
     },
@@ -92,6 +93,7 @@
                 "queue_timeout",
                 "endpoint_unavailable",
                 "envelope_expired",
+                "envelope_revoked",
                 "envelope_superseded",
                 "protocol_incompatible",
                 "required_capability_missing",
@@ -183,9 +185,10 @@
         {"$ref": "#/$defs/common"},
         {
           "type": "object",
-          "required": ["object_ref", "endpoint_id", "presence"],
+          "required": ["envelope_id", "object_ref", "endpoint_id", "presence"],
           "properties": {
             "record_type": {"const": "PhysicalObjectLocationObserved"},
+            "envelope_id": {"type": "string", "minLength": 1, "maxLength": 256},
             "object_ref": {"type": "string", "minLength": 1, "maxLength": 2048},
             "endpoint_id": {"type": "string", "minLength": 1, "maxLength": 256},
             "presence": {"enum": ["present", "absent", "unknown"]},
