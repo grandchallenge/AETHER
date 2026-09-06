@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grandchallenge.dev/aether/schemas/aether_fabric/e1/envelope_control.schema.json",
+  "title": "AETHER/FABRIC E1 MechanicalEnvelopeRevoked",
+  "description": "Non-runtime candidate schema for an upstream-governed envelope revocation control record. Structural validation does not prove the issuer has authority; a separate integrity/authority profile must verify the referenced upstream authorization. FABRIC may consume a verified revocation but may not self-issue one as authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "protocol_family",
+    "protocol_major",
+    "protocol_minor",
+    "record_type",
+    "domain",
+    "authority_owner",
+    "control_id",
+    "envelope_id",
+    "authorization_ref",
+    "issuer_ref",
+    "revoked_at",
+    "reason"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "protocol_family": {"const": "aether-fabric"},
+    "protocol_major": {"const": 1},
+    "protocol_minor": {"const": 0},
+    "record_type": {"const": "MechanicalEnvelopeRevoked"},
+    "domain": {"const": "control_bridge"},
+    "authority_owner": {"const": "upstream_governed_record"},
+    "control_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "envelope_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "authorization_ref": {"type": "string", "minLength": 1, "maxLength": 2048},
+    "issuer_ref": {"type": "string", "minLength": 1, "maxLength": 2048},
+    "correlation_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "revoked_at": {"type": "string", "format": "date-time"},
+    "reason": {
+      "enum": [
+        "upstream_authority_revoked",
+        "scope_invalidated",
+        "security_hold",
+        "operator_hold",
+        "superseded_by_policy",
+        "other_governed_reason"
+      ]
+    },
+    "detail": {"type": "string", "maxLength": 4096},
+    "integrity_profile_ref": {"type": "string", "minLength": 1, "maxLength": 1024}
+  }
+}
