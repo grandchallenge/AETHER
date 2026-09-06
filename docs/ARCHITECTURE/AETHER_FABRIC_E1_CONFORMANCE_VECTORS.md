@@ -1,292 +1,268 @@
 # AETHER/FABRIC E1 Conformance Vectors
 
-Status: E1 candidate
+Status: E1 candidate, Revision 1 after Formalist review
 Issue: #85
 Protocol: `aether-fabric/1.0`
 
 ## 1. Purpose
 
-Define concrete E1 examples that a later E2 harness must encode as executable
-positive and negative tests.
+Define concrete specification vectors for the later E2 executable harness.
+Every mechanically realized vector uses an explicit `mechanical_attempt_id`.
+Every AETHER semantic lifecycle uses `semantic_attempt_id`.
 
-E1 vectors are specification evidence only. They do not claim a FABRIC runtime
-exists.
-
-Each vector declares:
-
-- initial authority/semantic state;
-- input record sequence;
-- expected mechanical/semantic result;
-- forbidden result;
-- E0 ambiguity or Council condition exercised.
-
-## 2. Vector notation
+Notation:
 
 ```text
-+ EVENT(...)   valid observed event
-! EVENT(...)   event that must be rejected/quarantined as invalid
-=>             expected consequence
++ EVENT(...)   valid event
+! EVENT(...)   event/record that must be rejected or quarantined
+=>             expected result
 !=>            forbidden implication
 ```
 
-IDs such as `A1`, `E1`, `EP1`, `C1` are illustrative typed identifiers, not
-production UUID requirements.
-
-## V01 — minimal valid pre-start mechanical realization
-
-Initial:
+## V01 — valid pre-start realization
 
 ```text
-AuthorizationRef=A1 exists upstream.
-No semantic execution has started.
++ MechanicalEnvelopeAuthorized(E1, authorization_ref=A1, scope_ref=SR1,
+  scope_digest=sha256(bytes(SR1)), permitted_actions=[dispatch_payload], ...)
++ RouteRealized(E1, mechanical_attempt=M1, endpoint=EP1)
++ QueueAdmitted(E1, mechanical_attempt=M1, endpoint=EP1)
 ```
 
-Trace:
-
-```text
-+ MechanicalEnvelopeAuthorized(E1, authorization_ref=A1,
-  permitted_actions=[dispatch], eligible_resources=[cpu-worker],
-  expires_at=T2, required_capabilities=[supports_payload_transport])
-+ RouteRealized(E1, endpoint=EP1, resource_class=cpu-worker)
-+ QueueAdmitted(E1, endpoint=EP1)
-```
-
-Expected:
-
-```text
-mechanical_state = queue_admitted
-semantic_state = not_started
-```
+Expected: mechanical `queue_admitted`; semantic `not_started`.
 
 Forbidden:
 
 ```text
-QueueAdmitted !=> SemanticExecutionStarted
-QueueAdmitted !=> SemanticAdmissionAccepted
+QueueAdmitted(M1) !=> SemanticExecutionStarted
+QueueAdmitted(M1) !=> SemanticAdmissionAccepted
 ```
 
 ## V02 — delivery does not admit
 
-Trace:
-
 ```text
-+ MechanicalEnvelopeAuthorized(E2, ...)
-+ RouteRealized(E2, EP2)
-+ QueueAdmitted(E2, EP2)
-+ PayloadDispatched(E2, payload=P1)
-+ PayloadDelivered(E2, payload=P1)
-+ DeliveryReceiptObserved(E2, payload=P1)
++ RouteRealized(E2,M2,EP2)
++ QueueAdmitted(E2,M2,EP2)
++ PayloadDispatched(E2,M2,P2)
++ PayloadDelivered(E2,M2,P2)
++ DeliveryReceiptObserved(E2,M2,P2)
 ```
 
-Expected:
+Expected: delivered mechanically; semantic state may be absent/unadmitted.
+
+Forbidden: delivery or receipt implies accepted claim/fact.
+
+## V03 — valid semantic start handoff
 
 ```text
-mechanical_state = delivered
-semantic_state = not_started OR unadmitted
++ QueueAdmitted(E3,M3,EP3)
++ SemanticExecutionStarted(S3, mechanical_envelope_id=E3,
+  mechanical_attempt_id=M3)
++ SemanticExecutionCompleted(S3)
 ```
 
-Forbidden:
+Expected: after start, AETHER owns lifecycle.
+
+## V04 — local AETHER path has no half-binding
+
+Valid:
 
 ```text
-PayloadDelivered !=> SemanticAdmissionAccepted
-DeliveryReceiptObserved !=> ClaimAccepted
++ SemanticExecutionStarted(S4, mechanical_envelope_id absent,
+  mechanical_attempt_id absent)
 ```
 
-## V03 — valid AETHER semantic start handoff
-
-Trace:
+Invalid:
 
 ```text
-+ MechanicalEnvelopeAuthorized(E3, ...)
-+ RouteRealized(E3, EP3)
-+ QueueAdmitted(E3, EP3)
-+ SemanticExecutionStarted(attempt=S3, correlation=C3)
-+ SemanticExecutionCompleted(attempt=S3, correlation=C3)
+! SemanticExecutionStarted(S4b, mechanical_envelope_id=E4,
+  mechanical_attempt_id absent)
+! SemanticExecutionStarted(S4c, mechanical_envelope_id absent,
+  mechanical_attempt_id=M4)
 ```
 
-Expected:
-
-- no mechanical timeout/rejection may erase `S3`;
-- AETHER completion semantics control the attempt after start.
-
-## V04 — pre-start queue timeout is terminal non-start
-
-Trace:
+## V05 — pre-start queue timeout is exact-attempt terminal
 
 ```text
-+ MechanicalEnvelopeAuthorized(E4, ...)
-+ RouteRealized(E4, EP4)
-+ PreStartRejected(E4, reason=queue_timeout)
++ RouteRealized(E5,M5,EP5)
++ PreStartRejected(E5,M5,reason=queue_timeout)
 ```
 
-Expected:
+Forbidden later:
 
 ```text
-semantic_state = not_started
+! SemanticExecutionStarted(S5, mechanical_envelope_id=E5,
+  mechanical_attempt_id=M5)
 ```
 
-Forbidden later event:
+Any later AETHER append/receipt bound to M5 is a hidden-commit failure.
+
+## V06 — started operation cannot become pre-start rejection
 
 ```text
-! SemanticExecutionStarted(attempt=S4, bound_to=E4)
++ QueueAdmitted(E6,M6,EP6)
++ SemanticExecutionStarted(S6,E6,M6)
++ TelemetryEvidenceObserved(worker_disconnect)
+! PreStartRejected(E6,M6,reason=queue_timeout)
 ```
 
-If a later accepted append/semantic receipt appears for the supposedly
-non-started attempt, the trace fails as a hidden commit.
+Expected: AETHER records its own completion/failure for S6.
 
-## V05 — started operation cannot be converted to timeout
+## V07 — retry creates a new mechanical attempt
 
-Trace:
+First attempt:
 
 ```text
-+ MechanicalEnvelopeAuthorized(E5, ...)
-+ QueueAdmitted(E5, EP5)
-+ SemanticExecutionStarted(S5)
-+ TelemetryEvidenceObserved(observation=worker_disconnect)
++ PreStartRejected(E7,M7a,reason=endpoint_unavailable)
 ```
 
-Forbidden:
+Retry:
 
 ```text
-! PreStartRejected(E5, reason=queue_timeout)
++ RouteRealized(E7,M7b,EP7b) where M7b != M7a
 ```
 
-Expected:
+Forbidden: reuse M7a as the retry attempt ID.
 
-AETHER must eventually record its own completion/failure state. FABRIC may
-report operational failure but cannot reinterpret semantic lifecycle.
-
-## V06 — envelope widening rejected
-
-Authorized envelope:
+## V08 — retry cannot duplicate a started semantic attempt
 
 ```text
-E6:
-  permitted_actions=[dispatch]
-  eligible_resources=[cpu-worker]
-  trust_zones=[gcl-managed]
-  retry_budget=2
-  priority_ceiling=normal
++ SemanticExecutionStarted(S8,E8,M8a)
 ```
 
-Attempted derived envelope:
+FABRIC observes uncertainty and tries new M8b.
+
+Expected: reject retry unless AETHER supplies a separately valid idempotent
+semantic retry contract. Mechanical uncertainty cannot imply S8 never started.
+
+## V09 — envelope widening rejected
+
+Parent:
 
 ```text
-E6b:
-  permitted_actions=[dispatch, promote_replica_authority]
-  eligible_resources=[cpu-worker, public-untrusted]
-  retry_budget=5
-  priority=critical
+E9: actions=[dispatch_payload], resources=[cpu], zones=[managed],
+    max_attempts=2, priority=normal
 ```
 
-Expected:
+Purported child:
 
 ```text
-! E6b
-reason = envelope_widening
+E9c.derived_from_envelope_id=E9
+E9c.actions=[dispatch_payload,copy_replica_prefix]
+E9c.resources=[cpu,public_untrusted]
+E9c.max_attempts=5
+E9c.priority=critical
 ```
 
-No dispatch occurs.
+Expected: reject `envelope_widening` before start.
 
-## V07 — narrowed downstream envelope valid
-
-Authorized:
+## V10 — valid child narrowing
 
 ```text
-E7: resources=[cpu,gpu], zones=[ca-west,ca-central], retry<=3
+E10: resources=[cpu,gpu], zones=[ca-west,ca-central], max_attempts=3
+E10c.derived_from_envelope_id=E10
+E10c: resources=[gpu], zones=[ca-west], max_attempts=1
 ```
 
-Derived:
+Expected: valid structural child plus successful subset check against exact E10.
+Parent remains valid unless separately superseded/revoked/expired.
+
+## V11 — child lineage is distinct from supersession
+
+A child sets `derived_from_envelope_id=E11` but not
+`supersedes_envelope_id`.
+
+Expected: E11 remains available for other valid attempts.
+
+## V12 — supersession stops new starts but not old semantic work
 
 ```text
-E7b: resources=[gpu], zones=[ca-west], retry=1
+E12b.supersedes_envelope_id=E12
++ SemanticExecutionStarted(S12,E12,M12) before supersession observed
 ```
 
-Expected: structurally valid narrowing, subject to integrity/security profile.
+Expected: no new pre-start attempt under E12; S12 continues under AETHER.
 
-## V08 — expired envelope cannot start new work
-
-Trace:
+## V13 — explicit revocation stops pre-start work
 
 ```text
-now > E8.expires_at
-! QueueAdmitted(E8)
++ MechanicalEnvelopeRevoked(control=R13,envelope=E13,
+  authorization_ref=A13,issuer_ref=I13)
+! QueueAdmitted(E13,M13new)
 ```
 
-Expected `PreStartRejected(reason=envelope_expired)`.
+Expected: pre-start rejection reason `envelope_revoked`.
 
-An existing `SemanticExecutionStarted` bound before expiry is not retroactively
-cancelled.
+## V14 — FABRIC cannot self-revoke as authority
 
-## V09 — superseded envelope cannot start new work
+FABRIC emits a record shaped like `MechanicalEnvelopeRevoked` using only local
+endpoint congestion/liveness as basis.
+
+Expected: control record fails authority/integrity verification. FABRIC may
+report telemetry but cannot manufacture upstream revocation.
+
+## V15 — revocation cannot erase semantic start
 
 ```text
-E9b supersedes E9
-! QueueAdmitted(E9, new_attempt)
++ SemanticExecutionStarted(S15,E15,M15)
++ MechanicalEnvelopeRevoked(R15,E15,...)
 ```
 
-Existing started semantic attempt under E9 follows AETHER lifecycle.
+Expected: revocation blocks new/pre-start attempts only; S15 continues under
+AETHER lifecycle.
 
-## V10 — major-version incompatibility fails closed
+## V16 — expired envelope cannot start new work
 
-Sender:
+`now > E16.expires_at` => no new `QueueAdmitted(E16,M)`.
+
+A semantic attempt started before expiry is not retroactively cancelled.
+
+## V17 — scope digest binds exact referenced bytes
+
+Given immutable `scope_ref=SR17` with bytes B:
 
 ```text
-protocol = aether-fabric/2.0
+scope_digest = SHA256(B)
 ```
 
-Receiver supports only `1.x`.
+Expected: valid.
 
-Expected:
+Change any byte in B while retaining digest => integrity/scope validation fails.
+Alternative JSON formatting that changes bytes also changes digest; E1 makes no
+conceptual canonicalization claim.
 
-```text
-PreStartRejected(reason=protocol_incompatible)
-```
+## V18 — missing/unresolvable scope bytes cannot establish scope binding
 
-Forbidden:
+`scope_ref` cannot retrieve/verify exact bytes under selected profile.
 
-```text
-silent downgrade to 1.x
-```
+Expected: fail closed before mechanical start when the profile requires scope
+binding.
 
-## V11 — required capability missing
+## V19 — protocol-major mismatch fails closed
 
-Envelope requires:
+Sender uses `aether-fabric/2.0`; receiver supports 1.x.
 
-```text
-required_capabilities=[supports_replica_prefix_copy]
-```
+Expected `PreStartRejected(reason=protocol_incompatible)`; no downgrade.
 
-Endpoint lacks it.
+## V20 — required capability missing
 
-Expected pre-start rejection. Endpoint may not emulate an unknown operation by
-reinterpreting it as generic payload transport.
+Envelope requires `supports_replica_prefix_copy`; endpoint lacks it.
 
-## V12 — unknown required record type fails closed
+Expected pre-start rejection. Generic payload delivery cannot substitute for an
+unknown required semantic/mechanical contract.
 
-A required transition record is unknown to receiver.
+## V21 — unknown required record type fails closed
 
-Expected: reject before state transition. Receiver may store opaque bytes for
-audit only if it makes no operational/semantic decision from them.
+Receiver cannot interpret a required control/event type.
 
-## V13 — healthy endpoint is not authorized actor
+Expected: no state transition. Opaque retention is allowed only as audit bytes.
 
-Initial:
+## V22 — healthy endpoint is not authorized actor
 
-```text
-EndpointResourceId=agent-17, healthy=true
-No matching institutional authorization.
-```
+`EndpointResourceId="agent-17"`, healthy=true, no governed authorization.
 
-Forbidden:
+Expected: no envelope/permission inferred.
 
-```text
-endpoint healthy !=> actor authorized
-```
-
-No envelope may be minted by FABRIC from liveness alone.
-
-## V14 — equal names across identity strata do not collapse
+## V23 — same text across identity strata remains distinct
 
 ```text
 endpoint_id="agent-17"
@@ -295,309 +271,229 @@ institutional_principal_ref="agent-17"
 controller_ref="agent-17"
 ```
 
-Expected: four typed identities remain distinct. No authority inference occurs
-without explicit bridge/governing record.
+Expected: four typed identities; no equality-based authority.
 
-## V15 — reused correlation ID is not authorization
+## V24 — reused correlation ID is not authorization
 
-An attacker reuses `correlation_id=C15` from a prior valid operation but lacks a
-valid current envelope.
+Attacker reuses valid prior `correlation_id=C24` but lacks current valid
+envelope.
 
-Expected: reject. Correlation groups traces; it is not a capability token.
+Expected: reject. Correlation is not a capability token.
 
-## V16 — trust-zone permission does not imply semantic visibility
+## V25 — trust zone is not AETHER policy visibility
 
-Endpoint belongs to allowed transport zone `gcl-managed` but AETHER policy scope
-does not permit the semantic actor to see the requested namespace/facts.
+Endpoint satisfies transport trust zone while AETHER semantic policy denies the
+requested visibility.
+
+Expected: AETHER denial/narrowing remains controlling.
+
+## V26 — endpoint capability does not widen institutional eligibility
+
+Endpoint advertises required GPU/software but is outside envelope's eligible
+resource/actor class.
+
+Expected: route rejected against envelope.
+
+## V27 — telemetry requires admission before governed reuse
+
+```text
++ TelemetryEvidenceObserved(latency=400.0, unit=ms)
+```
+
+Forbidden direct transition to allocation/policy. Expected path:
+
+```text
+observation -> SemanticSubmissionProposed -> admission -> later allocator use
+```
+
+## V28 — integer telemetry values validate
+
+Valid examples under telemetry schema:
+
+```json
+{"observation_class":"queue_depth","observed_value":7}
+{"observation_class":"replication_lag","observed_value":3}
+```
+
+E1 schema must accept integer values without `oneOf` ambiguity.
+
+## V29 — floating telemetry values validate
+
+Valid examples:
+
+```json
+{"observation_class":"latency","observed_value":12.5,"unit":"ms"}
+{"observation_class":"cost","observed_value":0.03125,"unit":"cad"}
+```
+
+## V30 — transport failure is not negative semantic evidence
+
+Undelivered evidence payload => evidence state unknown/undelivered, not absent or
+false.
+
+## V31 — successful replica copy does not promote authority
+
+Follower epoch=4, leader epoch=5. Complete byte copy and healthy endpoint.
+
+Expected: follower remains non-authoritative until AETHER authority transition
+validates epoch/prefix/promotion.
+
+## V32 — divergent-prefix movement remains semantically rejected
+
+Mechanical copy completes but destination prefix fails expected AETHER prefix
+identity.
+
+Expected: movement observation remains true; semantic replica acceptance fails.
+
+## V33 — cache hit is not semantic relevance
+
+`PhysicalObjectLocationObserved(cache_hit=true)` must not imply relevance,
+visibility, claim support or admission.
+
+## V34 — vector rank is not admission
+
+Nearest-neighbor rank 1 remains an observation/result requiring provenance and
+AETHER admission.
+
+## V35 — principal/namespace starvation is mechanically visible
+
+Scheduler indefinitely delays one valid principal/namespace under a policy that
+promises bounded fairness.
+
+Expected: attributable mechanical conformance failure; semantic state remains
+not-started/unknown rather than rejected.
+
+## V36 — head-of-line blocking does not become semantic failure
+
+Slow request blocks unrelated work beyond declared fairness/latency policy.
+
+Expected: mechanical policy failure only; no semantic rejection inferred.
+
+## V37 — retry budget cannot reset by reroute
+
+Envelope max attempts=2. Two failed M attempts consume budget. New endpoint does
+not permit M3.
+
+## V38 — GHOS endpoint reachability does not confer controller admission
+
+Payload delivered to X; X is not GHOS-admitted controller.
+
+Forbidden: `PayloadDelivered(X) => ExternalExecutionStarted(X)`.
+
+## V39 — GHOS success still requires semantic admission
+
+`ExternalExecutionCompleted` -> optional semantic submission -> AETHER accept or
+reject. GHOS success does not write AETHER truth directly.
+
+## V40 — anonymous mechanical policy is invalid when attribution required
+
+Consequential envelope lacks stable `mechanical_policy_ref` or
+`fairness_policy_ref`.
+
+Expected: structural/conformance rejection before start under E1 profile.
+
+## V41 — audit sink backpressure is fail-visible
+
+Audit event exists; sink unavailable/full.
+
+Expected: declared failure/degradation path remains reconstructible. Required
+accountability evidence cannot disappear silently while stronger completion is
+claimed.
+
+## V42 — semantic safety limit cannot be relaxed by envelope
+
+Envelope asks for runtime/rule/tuple bound above AETHER semantic contract.
+
+Expected: AETHER semantic bound controls; mechanical envelope cannot widen it.
+
+## V43 — lower operational capacity may narrow safely
+
+FABRIC endpoint has lower queue/transport capacity than AETHER maximum.
+
+Expected: pre-start rejection/backpressure permitted with no partial semantic
+mutation.
+
+## V44 — same-namespace semantic order survives worker changes
+
+Vary global workers/routes while submitting same-namespace operations governed
+by AETHER serialization.
+
+Expected: canonical admitted order follows AETHER semantic contract.
+
+## V45 — no hidden commit after pre-start rejection
+
+Persist `PreStartRejected(E45,M45)`, then observe system long enough to detect
+delayed work.
+
+Expected: no AETHER append/semantic receipt/trace handle bound to M45.
+
+## V46 — started operation survives caller/mechanical timeout
+
+`SemanticExecutionStarted(S46,E46,M46)` then caller disconnect/timeout.
+
+Expected: AETHER records semantic completion/failure; attempt cannot be rewritten
+as pre-start rejection.
+
+## V47 — envelope integrity mismatch fails closed
+
+Envelope bytes or bound scope/payload changes after integrity binding.
+
+Expected: pre-start rejection; no weaker fallback.
+
+## V48 — stale endpoint binding remains stale despite health
+
+Actor-endpoint observation expired; endpoint remains healthy.
+
+Expected: health does not extend the binding or authorization.
+
+## V49 — unknown telemetry class is not silently admitted
+
+FABRIC emits observation class outside AETHER admission schema.
+
+Expected: reject/quarantine submission; governed allocator does not consume it
+by default.
+
+## V50 — revocation and retry interaction
+
+M50a fails; before retry M50b, upstream revokes E50.
+
+Expected: retry prohibited despite remaining retry budget.
+
+## V51 — supersession and child lineage cannot be confused
+
+Envelope E51c is a valid narrow child of E51. A separate E51r supersedes E51.
 
 Expected:
 
-- transport security constraint may be satisfied;
-- semantic operation remains blocked/narrowed by AETHER policy;
-- FABRIC cannot widen visibility.
-
-## V17 — resource capability does not imply institutional eligibility
-
-Endpoint advertises GPU and required software capability but is not within the
-upstream eligible actor/resource class.
-
-Expected: route rejected against envelope. Capability cannot widen eligibility.
-
-## V18 — telemetry requires admission before governed reuse
-
-Trace:
-
-```text
-+ TelemetryEvidenceObserved(endpoint=EP18, observation=latency, value=400ms)
-```
-
-Forbidden direct transition:
-
-```text
-! AllocationDesired(avoid=EP18) solely from unadmitted telemetry
-```
-
-Expected governed path:
-
-```text
-TelemetryEvidenceObserved
- -> SemanticSubmissionProposed
- -> SemanticAdmissionAccepted
- -> later allocator consumes admitted evidence
-```
-
-## V19 — transport failure is not negative claim evidence
-
-A payload containing requested evidence is undelivered.
-
-Forbidden:
-
-```text
-transport_failed !=> evidence_absent
-transport_failed !=> claim_false
-```
-
-Expected: evidence state is unknown/undelivered.
-
-## V20 — mechanically successful replica copy does not promote authority
-
-Initial:
-
-```text
-follower epoch=4
-leader epoch=5
-```
-
-Trace:
-
-```text
-+ ReplicaMovementObserved(source=L, destination=F, bytes=complete)
-+ endpoint_health(F)=healthy
-```
-
-Expected:
-
-- physical state may become byte-equal;
-- follower remains non-authoritative under stale epoch until AETHER authority
-  transition says otherwise.
-
-Forbidden:
-
-```text
-ReplicaMovementObserved !=> LeaderEpochChanged
-ReplicaMovementObserved !=> ReplicaPromoted
-```
-
-## V21 — divergent-prefix copy fails semantic validation
-
-Mechanical transfer completes, but destination prefix digest does not satisfy
-AETHER's expected authority prefix.
-
-Expected:
-
-- mechanical observation remains true;
-- AETHER rejects semantic replica acceptance/fencing transition;
-- FABRIC may not rewrite prefix identity to make validation pass.
-
-## V22 — cache hit is not semantic relevance
-
-Trace:
-
-```text
-+ PhysicalObjectLocationObserved(object_ref=O22, cache_hit=true)
-```
-
-Forbidden:
-
-```text
-cache_hit !=> semantically_relevant
-cache_hit !=> policy_visible
-cache_hit !=> supports_claim
-```
-
-## V23 — vector rank is not admission
-
-A mechanical/vector service returns nearest-neighbor rank 1 for object O23.
-
-Expected: rank/result is an observation/result payload requiring provenance and
-AETHER submission/admission. No semantic acceptance from rank alone.
-
-## V24 — principal fairness starvation attack
-
-Two valid envelopes share a mechanical queue. Scheduler indefinitely delays one
-principal despite both remaining within envelope constraints.
-
-Expected E2 test outcome:
-
-- violation is visible as attributable mechanical policy/fairness failure;
-- no semantic rejection is inferred;
-- the scheduler cannot hide behind an anonymous default;
-- envelope/policy contract determines whether the behavior is nonconformant.
-
-## V25 — head-of-line blocking attack
-
-A mechanically slow request blocks unrelated eligible work beyond declared
-fairness/latency bounds.
-
-Expected: operational conformance failure; semantic state remains
-unknown/not-started for blocked work rather than rejected.
-
-## V26 — retry budget cannot reset by reroute
-
-Authorized retry budget=2.
-
-Two failures consume both attempts. A new endpoint route under same envelope
-attempts a third retry.
-
-Expected: reject. Endpoint change does not reset budget.
-
-## V27 — retry cannot duplicate started semantic attempt
-
-First mechanical attempt crossed `SemanticExecutionStarted`; transport
-observation becomes uncertain. FABRIC attempts retry as if first attempt never
-started.
-
-Expected: reject unless AETHER explicitly supplies an idempotent semantic retry
-contract for the same semantic operation.
-
-## V28 — GHOS endpoint reachability does not confer controller admission
-
-Payload is delivered to endpoint X. X is not GHOS-admitted controller for the
-protected operation.
-
-Forbidden:
-
-```text
-PayloadDelivered(X) !=> ExternalExecutionStarted(X)
-```
-
-Protected execution remains blocked.
-
-## V29 — GHOS execution success still requires AETHER admission
-
-GHOS returns successful artifact/result.
-
-Expected path:
-
-```text
-ExternalExecutionCompleted
- -> SemanticSubmissionProposed
- -> SemanticAdmissionAccepted | Rejected
-```
-
-Forbidden: execution success directly writes semantic truth.
-
-## V30 — anonymous mechanical policy rejected for consequential envelope
-
-A consequential envelope refers to no stable `mechanical_policy_ref` or
-`fairness_policy_ref` while scheduler behavior can affect priority/selection.
-
-Expected: pre-start conformance rejection for deployments whose selected profile
-requires attributable mechanical policy.
-
-## V31 — audit sink backpressure is fail-visible
-
-Audit event is formed but sink queue is full/unavailable.
-
-Expected behavior must follow the declared audit policy and remain visible.
-
-Forbidden:
-
-- silently drop required accountability evidence;
-- report a stronger completed/accountable state than can be reconstructed.
-
-## V32 — semantic safety limit cannot be relaxed by mechanical envelope
-
-Mechanical envelope asks for a runtime/rule/tuple limit larger than AETHER's
-semantic safety contract.
-
-Expected: AETHER limit wins; envelope cannot widen semantic boundedness.
-
-## V33 — operational capacity limit may narrow safely
-
-FABRIC/endpoint imposes a lower queue/body transport capacity than the maximum
-AETHER semantic contract.
-
-Expected: pre-start mechanical rejection/backpressure is permitted if it does
-not partially mutate semantic state or reinterpret rejection as semantic
-failure.
-
-## V34 — same-namespace ordering survives worker-count changes
-
-Vary global worker count and endpoint selection while submitting same-namespace
-semantic operations whose AETHER contract requires serialization.
-
-Expected: canonical admitted operation order obeys AETHER serialization
-contract. Mechanical parallelism may not reorder semantic commits.
-
-## V35 — no hidden commit after pre-start rejection
-
-Force queue timeout before semantic start, persist `PreStartRejected`, then
-continue observing system long enough to detect delayed execution.
-
-Expected: no corresponding AETHER append/semantic receipt/trace handle appears.
-Any such later commit is a critical conformance failure.
-
-## V36 — started operation completes despite caller/mechanical timeout
-
-Allow semantic start, then force caller disconnect/transport timeout.
-
-Expected: AETHER operation follows started-operation completion/failure semantics
-and remains queryable/auditable; it is not treated as a pre-start rejection.
-
-## V37 — envelope integrity mismatch
-
-Payload/envelope bytes change after the integrity binding was produced.
-
-Expected: pre-start rejection under the selected integrity profile. No fallback
-removes constraints.
-
-## V38 — supersession cannot widen via FABRIC
-
-FABRIC attempts to self-issue E38b superseding E38 with broader resources.
-
-Expected: reject because FABRIC is not authorized envelope issuer and because
-scope widens.
-
-## V39 — stale endpoint binding
-
-`ActorEndpointBindingObserved` expired, but endpoint remains healthy.
-
-Expected: health does not extend binding. New route requires current authorized
-binding/envelope evidence.
-
-## V40 — unknown mechanical observation stays non-semantic
-
-FABRIC emits an observation class unknown to AETHER admission schema.
-
-Expected: AETHER may reject/quarantine the submission; allocator cannot consume
-it as admitted evidence by default.
-
-## 3. Required E2 suites
-
-E2 should group the vectors into executable suites:
-
-- `D1_SEMANTIC_EQUIVALENCE`: V01-V05, V34-V36;
-- `D2_INFLUENCE_WITHOUT_AUTHORITY`: V18-V19, V24-V27, V30, V34-V36;
-- `D3_REPLICA_FENCING`: V20-V21;
-- `D4_SIDECAR_LOCALITY`: V22-V23;
-- `D5_RESOURCE_LIFECYCLE`: V04-V05, V24-V27, V32-V36;
-- `IDENTITY_AUTHORITY`: V13-V17, V28, V39;
-- `VERSION_INTEGRITY`: V06-V12, V37-V38, V40.
-
-## 4. Severity
-
-Critical failures include:
+- E51c derivation alone does not invalidate E51;
+- E51r supersession can stop future E51 starts;
+- implementation cannot infer supersession merely from child existence.
+
+## 2. E2 suite mapping
+
+- `D1_SEMANTIC_EQUIVALENCE`: V01-V08, V44-V46;
+- `D2_INFLUENCE_WITHOUT_AUTHORITY`: V27-V30, V35-V37, V40, V44-V46;
+- `D3_REPLICA_FENCING`: V31-V32;
+- `D4_SIDECAR_LOCALITY`: V33-V34;
+- `D5_RESOURCE_LIFECYCLE`: V05-V08, V35-V37, V42-V46;
+- `ENVELOPE_CONTROL_LINEAGE`: V09-V18, V47, V50-V51;
+- `IDENTITY_AUTHORITY`: V22-V26, V38, V48;
+- `VERSION_SCHEMA_INTEGRITY`: V17-V21, V28-V29, V47, V49.
+
+## 3. Critical failures
+
+Any of the following blocks corresponding extraction regardless of performance:
 
 - mechanical event creates/widens authority;
 - pre-start failure later produces hidden semantic commit;
-- started semantic operation is erased by mechanical timeout;
+- retry reuses attempt identity or duplicates started semantic work;
+- revocation/supersession mechanically erases started AETHER work;
+- FABRIC self-issues authority-bearing envelope control;
+- child envelope is not a verified narrowing of exact parent;
 - replica movement changes leader epoch/promotion authority;
 - implicit protocol downgrade begins work;
 - unadmitted telemetry changes governed allocation directly;
 - unadmitted endpoint executes as GHOS controller;
-- required audit evidence disappears silently while stronger completion is
-  claimed.
-
-A critical failure blocks corresponding extraction regardless of performance
-benefit.
+- required audit evidence silently disappears;
+- scope digest is evaluated over unspecified/conceptual rather than exact
+  referenced bytes.
