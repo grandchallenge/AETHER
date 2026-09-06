@@ -17,18 +17,18 @@ permission, constitutional authority, or GHOS controller admission.
 
 ### `mechanical_envelope.schema.json`
 
-Closed mechanical realization envelope.
+Closed `control_bridge` record rooted in an upstream governed scope.
 
-Key properties:
-
-- `authority_effect` is fixed to `none`;
-- `scope_ref` identifies immutable scope bytes;
-- `scope_digest` is SHA-256 of the exact bytes identified by `scope_ref`;
+- `authority_owner = upstream_governed_record`;
+- `authority_effect = mechanical_only`;
+- the envelope authorizes only its bounded physical actions;
+- `scope_ref` identifies immutable bytes and `scope_digest` is SHA-256 of those
+  exact bytes;
 - `derived_from_envelope_id` denotes child narrowing;
 - `supersedes_envelope_id` denotes replacement and is mutually exclusive with
-  child derivation in one envelope record;
-- policy/fairness/retry/resource constraints are explicit;
-- downstream components may narrow but never widen the parent contract.
+  child derivation in one record;
+- `integrity_profile_ref` is required;
+- schema validity alone does not prove the upstream authorization is genuine.
 
 ### `envelope_control.schema.json`
 
@@ -37,10 +37,10 @@ Upstream-owned `MechanicalEnvelopeRevoked` control record.
 - domain is `control_bridge`;
 - authority owner is `upstream_governed_record`;
 - `integrity_profile_ref` is required;
-- FABRIC may consume a separately verified control record but may not self-issue
-  it as authority;
-- revocation prevents new/pre-start work and cannot erase an already-started
-  AETHER semantic attempt.
+- a separately verified revocation stops only new/pre-start use;
+- FABRIC may consume a verified revocation but may not self-issue one as
+  authority;
+- revocation cannot erase an already-started AETHER semantic attempt.
 
 ### `mechanical_event.schema.json`
 
@@ -48,28 +48,27 @@ FABRIC-domain route, queue, transport, replica-movement and object-location
 events.
 
 - every event requires `mechanical_attempt_id`;
-- every event has `authority_effect: none`;
-- `PreStartRejected` is keyed to the exact attempt and includes
-  `envelope_revoked` as an explicit reason;
+- every event has `authority_effect = none`;
+- `PreStartRejected` is keyed to the exact attempt;
 - no record type represents semantic admission or authority.
 
 ### `semantic_lifecycle_event.schema.json`
 
 AETHER-owned semantic start/completion/submission/admission events.
 
-- `authority_owner` is fixed to `AETHER`;
+- `authority_owner = AETHER`;
 - a mechanically realized `SemanticExecutionStarted` binds both
   `mechanical_envelope_id` and `mechanical_attempt_id`;
 - the two mechanical binding fields are either both present or both absent;
-- the absent case is the local/no-FABRIC AETHER path.
+- both absent is the local/no-FABRIC AETHER path.
 
 ### `telemetry_evidence.schema.json`
 
-Operational observation only.
+Operational observations only.
 
-- JSON numeric values include integer queue depth/replication lag and floating
+- JSON numbers include integer queue depth/replication lag and floating
   latency/cost without overlapping `oneOf` branches;
-- observation remains non-authoritative until ordinary AETHER
+- an observation remains non-authoritative until ordinary AETHER
   submission/admission.
 
 ### `identity_binding.schema.json`
@@ -78,37 +77,34 @@ Explicit cross-stratum observation/reference records.
 
 - endpoint, semantic actor, institutional principal and GHOS controller remain
   non-collapsible;
-- authorization scope references use `scope_ref` plus SHA-256 of the exact
-  referenced bytes;
-- a typed reference does not itself prove the upstream authority is valid.
+- authorization scope uses `scope_ref` plus SHA-256 of the exact referenced
+  bytes;
+- a typed reference does not itself prove upstream authority.
 
 ## Fixture map
 
 Valid candidate fixtures:
 
-- `examples/valid/telemetry_queue_depth.json`
-  - integer-valued telemetry;
-- `examples/valid/telemetry_latency.json`
-  - floating-valued telemetry;
-- `examples/valid/semantic_started_mechanical.json`
-  - AETHER semantic start bound to both envelope and mechanical attempt;
-- `examples/valid/envelope_revoked.json`
-  - structurally valid upstream envelope revocation control.
+- `examples/valid/telemetry_queue_depth.json` — integer telemetry;
+- `examples/valid/telemetry_latency.json` — floating telemetry;
+- `examples/valid/semantic_started_mechanical.json` — semantic start bound to
+  exact envelope and mechanical attempt;
+- `examples/valid/envelope_revoked.json` — structurally valid upstream
+  revocation record.
 
 Invalid candidate fixture:
 
-- `examples/invalid/semantic_started_half_bound.json`
-  - carries `mechanical_envelope_id` without `mechanical_attempt_id` and must
-    fail the semantic-start schema.
+- `examples/invalid/semantic_started_half_bound.json` — carries envelope binding
+  without mechanical-attempt binding and must fail the semantic-start schema.
 
-The presence of `valid/` and `invalid/` is declarative until E2 adds an
-executable schema/conformance harness.
+The valid/invalid directory names are declarative until E2 adds an executable
+schema/conformance harness.
 
 ## Non-authority
 
-A valid schema instance does **not** mean:
+A structurally valid instance does **not** mean:
 
-- the envelope was institutionally authorized;
+- the upstream authorization is genuine;
 - the issuer possesses the referenced authority;
 - an endpoint is an authorized semantic actor;
 - a controller is GHOS-admitted;
@@ -119,30 +115,21 @@ A valid schema instance does **not** mean:
 - FABRIC exists as an activated runtime.
 
 A later integrity/security profile must bind the exact record and upstream
-authorization. E1 intentionally does not select the final signature, credential,
-key-management or attestation mechanism.
+authorization. E1 does not select the final signature, credential, key-
+management or attestation mechanism.
 
 ## Version behavior
 
-All schemas in this directory require:
-
-```text
-protocol_family = aether-fabric
-protocol_major  = 1
-protocol_minor  = 0
-```
-
-Unknown protocol major, required record type or unsupported required capability
-is a pre-start failure. No implicit downgrade is permitted.
+All schemas require `aether-fabric/1.0`. Unknown major, required record type or
+unsupported required capability is a pre-start failure. No implicit downgrade
+is permitted.
 
 ## Custody
 
 These schemas are currently AETHER custody artifacts because E1 defines the
-boundary from existing AETHER semantic authority outward.
-
-Their location does not decide permanent protocol custody. A future independent
-FABRIC repository is not justified until E2/E3 evidence demonstrates a stable
-boundary and the Council E4 conditions are met.
+boundary from existing AETHER semantic authority outward. Their repository
+location does not decide permanent protocol custody or authorize an independent
+FABRIC repository/runtime.
 
 ## Normative prose
 
