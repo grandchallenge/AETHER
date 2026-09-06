@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://grandchallenge.dev/aether/schemas/aether_fabric/e1/semantic_lifecycle_event.schema.json",
   "title": "AETHER/FABRIC E1 AETHER-owned semantic lifecycle event",
-  "description": "Non-runtime candidate schema for AETHER-owned semantic lifecycle events. This schema is intentionally separate from FABRIC mechanical events so a mechanical producer cannot validate itself as a semantic authority by reusing the same record type.",
+  "description": "Non-runtime candidate schema for AETHER-owned semantic lifecycle events. Mechanical envelope and attempt bindings are either both present or both absent at semantic start.",
   "oneOf": [
     {"$ref": "#/$defs/started"},
     {"$ref": "#/$defs/completed"},
@@ -46,12 +46,17 @@
         {
           "type": "object",
           "required": ["semantic_attempt_id", "namespace_ref", "aether_execution_ref", "semantic_input_ref"],
+          "dependentRequired": {
+            "mechanical_envelope_id": ["mechanical_attempt_id"],
+            "mechanical_attempt_id": ["mechanical_envelope_id"]
+          },
           "properties": {
             "record_type": {"const": "SemanticExecutionStarted"},
             "namespace_ref": {"type": "string", "minLength": 1, "maxLength": 1024},
             "aether_execution_ref": {"type": "string", "minLength": 1, "maxLength": 1024},
             "semantic_input_ref": {"type": "string", "minLength": 1, "maxLength": 2048},
-            "mechanical_envelope_id": {"type": "string", "minLength": 1, "maxLength": 256}
+            "mechanical_envelope_id": {"type": "string", "minLength": 1, "maxLength": 256},
+            "mechanical_attempt_id": {"type": "string", "minLength": 1, "maxLength": 256}
           }
         }
       ],
