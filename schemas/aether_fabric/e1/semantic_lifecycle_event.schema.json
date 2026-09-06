@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grandchallenge.dev/aether/schemas/aether_fabric/e1/semantic_lifecycle_event.schema.json",
+  "title": "AETHER/FABRIC E1 AETHER-owned semantic lifecycle event",
+  "description": "Non-runtime candidate schema for AETHER-owned semantic lifecycle events. Mechanical envelope and attempt bindings are either both present or both absent at semantic start.",
+  "oneOf": [
+    {"$ref": "#/$defs/started"},
+    {"$ref": "#/$defs/completed"},
+    {"$ref": "#/$defs/submission"},
+    {"$ref": "#/$defs/admitted"},
+    {"$ref": "#/$defs/rejected"}
+  ],
+  "$defs": {
+    "common": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "protocol_family",
+        "protocol_major",
+        "protocol_minor",
+        "domain",
+        "authority_owner",
+        "record_type",
+        "event_id",
+        "correlation_id",
+        "occurred_at"
+      ],
+      "properties": {
+        "schema_version": {"const": "1.0"},
+        "protocol_family": {"const": "aether-fabric"},
+        "protocol_major": {"const": 1},
+        "protocol_minor": {"const": 0},
+        "domain": {"const": "semantic"},
+        "authority_owner": {"const": "AETHER"},
+        "record_type": {"type": "string"},
+        "event_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "correlation_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "causation_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "semantic_attempt_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "occurred_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "started": {
+      "allOf": [
+        {"$ref": "#/$defs/common"},
+        {
+          "type": "object",
+          "required": ["semantic_attempt_id", "namespace_ref", "aether_execution_ref", "semantic_input_ref"],
+          "dependentRequired": {
+            "mechanical_envelope_id": ["mechanical_attempt_id"],
+            "mechanical_attempt_id": ["mechanical_envelope_id"]
+          },
+          "properties": {
+            "record_type": {"const": "SemanticExecutionStarted"},
+            "namespace_ref": {"type": "string", "minLength": 1, "maxLength": 1024},
+            "aether_execution_ref": {"type": "string", "minLength": 1, "maxLength": 1024},
+            "semantic_input_ref": {"type": "string", "minLength": 1, "maxLength": 2048},
+            "mechanical_envelope_id": {"type": "string", "minLength": 1, "maxLength": 256},
+            "mechanical_attempt_id": {"type": "string", "minLength": 1, "maxLength": 256}
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "completed": {
+      "allOf": [
+        {"$ref": "#/$defs/common"},
+        {
+          "type": "object",
+          "required": ["semantic_attempt_id", "namespace_ref", "aether_execution_ref", "completion_status"],
+          "properties": {
+            "record_type": {"const": "SemanticExecutionCompleted"},
+            "namespace_ref": {"type": "string", "minLength": 1, "maxLength": 1024},
+            "aether_execution_ref": {"type": "string", "minLength": 1, "maxLength": 1024},
+            "completion_status": {"enum": ["completed", "semantic_failure"]},
+            "result_ref": {"type": "string", "minLength": 1, "maxLength": 2048},
+            "detail": {"type": "string", "maxLength": 4096}
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "submission": {
+      "allOf": [
+        {"$ref": "#/$defs/common"},
+        {
+          "type": "object",
+          "required": ["submission_ref", "provenance_ref", "payload_ref"],
+          "properties": {
+            "record_type": {"const": "SemanticSubmissionProposed"},
+            "submission_ref": {"type": "string", "minLength": 1, "maxLength": 1024},
+            "provenance_ref": {"type": "string", "minLength": 1, "maxLength": 2048},
+            "payload_ref": {"type": "string", "minLength": 1, "maxLength": 2048}
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "admitted": {
+      "allOf": [
+        {"$ref": "#/$defs/common"},
+        {
+          "type": "object",
+          "required": ["submission_ref", "admission_ref"],
+          "properties": {
+            "record_type": {"const": "SemanticAdmissionAccepted"},
+            "submission_ref": {"type": "string", "minLength": 1, "maxLength": 1024},
+            "admission_ref": {"type": "string", "minLength": 1, "maxLength": 2048},
+            "accepted_cut_ref": {"type": "string", "minLength": 1, "maxLength": 2048}
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "rejected": {
+      "allOf": [
+        {"$ref": "#/$defs/common"},
+        {
+          "type": "object",
+          "required": ["submission_ref", "rejection_ref", "reason"],
+          "properties": {
+            "record_type": {"const": "SemanticAdmissionRejected"},
+            "submission_ref": {"type": "string", "minLength": 1, "maxLength": 1024},
+            "rejection_ref": {"type": "string", "minLength": 1, "maxLength": 2048},
+            "reason": {"type": "string", "minLength": 1, "maxLength": 1024},
+            "detail": {"type": "string", "maxLength": 4096}
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}

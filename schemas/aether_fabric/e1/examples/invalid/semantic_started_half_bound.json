@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "protocol_family": "aether-fabric",
+  "protocol_major": 1,
+  "protocol_minor": 0,
+  "domain": "semantic",
+  "authority_owner": "AETHER",
+  "record_type": "SemanticExecutionStarted",
+  "event_id": "evt-semantic-start-invalid-001",
+  "correlation_id": "corr-semantic-operation-invalid-001",
+  "semantic_attempt_id": "semantic-attempt-invalid-001",
+  "occurred_at": "2026-09-05T22:30:03-07:00",
+  "namespace_ref": "namespace:example",
+  "aether_execution_ref": "aether-execution:example:invalid-001",
+  "semantic_input_ref": "semantic-input:example:invalid-001",
+  "mechanical_envelope_id": "envelope-example-001"
+}
