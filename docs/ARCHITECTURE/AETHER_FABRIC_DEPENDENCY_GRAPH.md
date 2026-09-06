@@ -1,14 +1,12 @@
 # AETHER/FABRIC Dependency Graph
 
-Status: E0 candidate
+Status: E0 candidate, revised after Adversary pass
 Issue: #83
 
 ## Purpose
 
-Record the allowed and forbidden dependency edges implied by the approved
-AETHER/FABRIC separation doctrine before any code is extracted.
-
-This is a semantic/control graph, not a deployment diagram.
+Record allowed, forbidden, and evidence-return dependency edges before any code
+is extracted. This is a semantic/control graph, not a deployment diagram.
 
 ## Canonical planes
 
@@ -17,7 +15,7 @@ INTELLECT
   │ constitutional policy / office obligations / authority schedules
   ▼
 POL / institutional applications
-  │ work objects / claims / desired allocations / decisions
+  │ work objects / claims / desired allocation / decisions
   ▼
 AETHER
   │ authoritative semantic state within admitted domain
@@ -33,211 +31,173 @@ mechanical realization       protected execution/control
        endpoints / stores / GPUs / services
 ```
 
-The graph does not imply that AETHER is an operational parent of FABRIC or
-GHOS. It means only that semantic meaning and authority are not inferred from
-mechanical or execution events.
+This does not make AETHER an operational parent of FABRIC or GHOS. It states
+only that mechanical/execution events cannot manufacture semantic or
+constitutional authority.
 
 ## Allowed edges
 
 ### INTELLECT -> POL/AETHER
 
-Allowed:
-
-- constitutional policy;
-- office obligations;
-- admitted authority schedules;
-- work-package and application contracts;
-- approved semantic boundary rules.
-
-Not implied:
-
-- INTELLECT implementation code must run inside AETHER;
-- a GitHub event is itself semantic truth merely because INTELLECT records it.
+May supply constitutional policy, office obligations, authority schedules,
+work-package/application contracts, and approved semantic boundary rules.
+Repository/process location does not itself create semantic truth.
 
 ### POL -> AETHER
 
-Allowed:
-
-- typed institutional objects projected as semantic facts;
-- work-object identity;
-- claims/evidence/critique/verification/decision records;
-- desired allocation decisions;
-- charter/office/guild semantics.
-
-Required property:
-
-> POL describes institutional meaning; AETHER provides the admitted semantic
-> state and derivation substrate on which those objects can be represented.
+May project typed institutional objects: work, claims, evidence, critiques,
+verifications, decisions, charters, offices/guilds, and desired allocations.
+AETHER admits/derives their semantic representation.
 
 ### AETHER -> FABRIC
 
-Allowed:
+May provide a versioned `MechanicalEnvelopeAuthorized` containing only bounded
+mechanical realization constraints, for example:
 
-- an opaque or mechanically checkable `MechanicalEnvelopeAuthorized` record;
-- endpoint eligibility constraints already determined by upstream authority;
-- payload references;
-- delivery class, redundancy, TTL, locality/trust-zone constraints;
-- correlation identifiers;
-- retry budget and bounded mechanical priority class.
+- eligible endpoint/resource class already authorized upstream;
+- payload reference;
+- correlation ID;
+- trust/locality zone;
+- cost/latency ceiling;
+- retry budget;
+- redundancy;
+- TTL/deadline;
+- bounded mechanical priority.
 
-Forbidden content in this edge:
-
-- permission expansion;
-- semantic-admission decisions;
-- institutional utility functions invented by FABRIC;
-- authority epochs minted by FABRIC;
-- claim acceptance/rejection delegated merely for convenience.
+FABRIC may optimize within the envelope. It may not widen eligibility,
+permission, policy visibility or institutional objective.
 
 ### FABRIC -> AETHER
 
-Allowed only as **evidence return**, never self-authenticating truth:
+May return operational evidence:
 
-- delivery observations;
 - route realization;
-- endpoint/resource liveness;
-- replication lag;
-- queue depth/backpressure;
-- capacity observations;
-- transport failure;
-- locality/cost/latency observations.
+- delivery/failure;
+- endpoint liveness;
+- replica lag;
+- queue depth/wait/backpressure;
+- capacity/locality/cost/latency.
 
 Required path:
 
 ```text
-FABRIC telemetry
+FABRIC observation
   -> provenance-bearing semantic submission
   -> AETHER admission/rejection
-  -> optional POL/AETHER-Learn use in later allocation
+  -> optional later POL/AETHER-Learn use
 ```
 
 Forbidden shortcut:
 
 ```text
-FABRIC telemetry -> direct institutional policy mutation
+FABRIC telemetry -> direct policy/authority mutation
 ```
 
 ### AETHER/POL -> GHOS
 
-Allowed:
-
-- an already governed request for protected execution;
-- artifact/command contract references;
-- exact subject identity;
-- execution preconditions.
-
-GHOS retains its own controller-admission and credential rules.
+May submit an already governed protected-execution request with exact subject,
+artifact/command contract and preconditions. GHOS retains controller admission,
+credential and execution policy.
 
 ### GHOS -> AETHER
 
-Allowed:
-
-- execution evidence;
-- artifact identity/digest;
-- controller/run/attempt identity;
-- bounded execution outcome;
-- failure state.
-
-Required path:
-
-> execution evidence must still be semantically admitted before it becomes an
-> AETHER fact or POL decision input.
+May return run/controller/attempt/artifact/outcome evidence. It becomes AETHER
+state only through normal semantic submission/admission.
 
 ### FABRIC <-> GHOS
 
-Potentially allowed for mechanical movement of execution payloads/results only
-if a future reviewed contract exists.
+A future reviewed bridge may transport payloads/results. Transport never implies
+controller admission or semantic authority.
 
-Neither direction may imply controller admission or semantic authority.
+## Resource scheduling split
 
-## Explicitly forbidden edges
+The current AETHER service resource-control contract is intentionally split
+across the AETHER/FABRIC boundary rather than assigned wholesale to FABRIC.
 
-### FABRIC -> semantic admission
+### Mechanical side — possible FABRIC
 
-Forbidden:
+Under a fixed semantic namespace and authorized mechanical envelope:
 
-```text
-PayloadDelivered => SemanticAdmissionAccepted
-```
+- choose a concrete worker;
+- enforce global worker-pool capacity;
+- observe queue occupancy/wait;
+- apply pre-start queue timeout/backpressure;
+- report capacity/unavailability.
 
-Delivery success establishes only an operational observation.
+These may change latency or whether work starts. They may not change what an
+operation means once it starts.
 
-### FABRIC liveness -> institutional authority
+### Semantic side — remains AETHER
 
-Forbidden:
+AETHER retains:
 
-```text
-endpoint_healthy(x) => actor_authorized(x)
-```
+- semantic namespace resolution;
+- deterministic same-namespace serialization where required;
+- the `cancel_before_start_complete_after_start` lifecycle;
+- the rule that a pre-start timeout cannot later produce a hidden semantic
+  commit;
+- the rule that once semantic execution starts, a mechanical timeout cannot
+  return failure while a mutation may still commit in the background;
+- no-partial-authority/no-semantic-receipt guarantees on resource rejection;
+- semantic runtime/rule/tuple boundedness requirements.
 
-A resource may be available and still unauthorized.
-
-### FABRIC replica -> authority replica
-
-Forbidden:
-
-```text
-bytes_equal(replica_a, replica_b) => authority_equal(replica_a, replica_b)
-```
-
-AETHER leader epoch/cut/fencing semantics remain authoritative.
-
-### FABRIC scheduling -> institutional choice
-
-Forbidden:
-
-- changing guild/agent eligibility;
-- suppressing an evidence class;
-- starving work because of an undeclared institutional preference;
-- using locality/cost policy to override a POL allocation;
-- treating retry exhaustion as evidence that a claim is false.
-
-### AETHER -> GHOS controller admission
-
-Forbidden:
-
-AETHER cannot make itself, FABRIC, or another service an admitted persistent
-controller by emitting a semantic fact.
-
-### GHOS -> AETHER semantic bypass
-
-Forbidden:
-
-A protected controller completing work does not directly mutate AETHER truth
-without normal admission/provenance.
-
-### INTELLECT authority -> implementation inference
-
-Forbidden:
-
-No component may infer constitutional power from repository location, process
-ownership, service identity, or co-location with INTELLECT artifacts.
-
-## Normative event chain
-
-The architecture should preserve the following typed separation:
+Normative realization sequence:
 
 ```text
-1. AllocationDesired
-2. MechanicalEnvelopeAuthorized
-3. RouteRealized
-4. PayloadDispatched
-5. PayloadDelivered
-6. DeliveryReceiptObserved
-7. ExternalExecutionRequested        [only when GHOS path is required]
-8. ExternalExecutionCompleted/Failed [only when GHOS path is required]
-9. SemanticSubmissionProposed
-10. SemanticAdmissionAccepted | SemanticAdmissionRejected
-11. InstitutionalDecisionRecorded
+NamespaceResolved                 [AETHER]
+MechanicalEnvelopeAuthorized      [AETHER/POL contract]
+WorkerRouteRealized               [FABRIC]
+QueueAdmitted | PreStartRejected  [FABRIC]
+SemanticExecutionStarted          [AETHER]
+SemanticExecutionCompleted        [AETHER]
+SemanticReceiptPersisted          [AETHER]
 ```
 
-No later event retroactively proves an earlier authorization unless a normative
-contract explicitly states the derivation and the required evidence is present.
+Once `SemanticExecutionStarted` exists, FABRIC may observe or wait; it cannot
+reinterpret the operation as cancelled. If cooperative in-evaluation
+cancellation is ever added, it requires a separate AETHER semantic checkpoint
+contract and ADR, matching the live `RESOURCE_CONTROL_CONTRACT.md`.
 
-## Current live-main mapping
+## Explicitly forbidden implications
 
-### AETHER semantic core
+```text
+PayloadDelivered => SemanticAdmissionAccepted             [forbidden]
+EndpointHealthy => ActorAuthorized                         [forbidden]
+ReplicaBytesEqual => ReplicaAuthorityEqual                 [forbidden]
+QueueTimedOutAfterSemanticStart => SemanticOperationGone   [forbidden]
+ResourceAvailable => InstitutionallyEligible               [forbidden]
+GHOSExecutionCompleted => AETHERFactAccepted               [forbidden]
+AETHERFactSaysController(x) => GHOSControllerAdmitted(x)   [forbidden]
+```
 
-Current strong inward semantic dependency chain:
+FABRIC also may not use scheduling, starvation, priority, retry asymmetry,
+locality or selective delivery to implement undeclared institutional policy.
+
+## Normative cross-plane event chain
+
+```text
+1.  AllocationDesired
+2.  MechanicalEnvelopeAuthorized
+3.  RouteRealized
+4.  QueueAdmitted | PreStartRejected
+5.  PayloadDispatched
+6.  PayloadDelivered
+7.  DeliveryReceiptObserved
+8.  ExternalExecutionRequested        [GHOS path only]
+9.  ExternalExecutionCompleted/Failed [GHOS path only]
+10. SemanticSubmissionProposed
+11. SemanticAdmissionAccepted | SemanticAdmissionRejected
+12. InstitutionalDecisionRecorded
+```
+
+For a direct AETHER semantic operation, `SemanticExecutionStarted` and
+`SemanticExecutionCompleted` additionally bracket the semantic lifecycle. A
+mechanical timeout can prevent start; it cannot erase a start that already
+occurred.
+
+## Current live-main dependency structure
+
+### Semantic center
 
 ```text
 aether_ast
@@ -249,26 +209,26 @@ aether_ast
   -> aether_service_core
 ```
 
-`aether_storage` supplies authoritative journal persistence beneath resolver and
-service admission. Its local backend mechanics remain an E0 ambiguity rather
-than a FABRIC assignment.
+`aether_storage` supplies authoritative persistence beneath semantic admission.
+Backend I/O remains an E0 ambiguity rather than a presumed FABRIC layer.
 
-### Current mixed outer crates
+### Mixed outer surfaces
 
 ```text
 aether_service_core
-  -> aether_pilot       [application/institutional proof layer]
-  -> aether_partition   [semantic partition/federation + mixed replication mechanics]
-  -> aether_http        [semantic service edge + mixed queue/routing mechanics]
-  -> aether_sidecar     [semantic reference contract + mixed payload locality]
+  -> aether_pilot       institutional/product proof layer
+  -> aether_partition   semantic partition/federation + mixed replica mechanics
+  -> aether_http        semantic service edge + mixed worker/queue mechanics
+  -> aether_sidecar     semantic reference contract + mixed payload locality
 ```
 
-The approved architecture does not authorize moving those crates wholesale.
-E1 must first expose narrower contracts inside the mixed edges.
+ADR 0019 already establishes these as responsibility crates rather than one API
+catch-all. The AETHER/FABRIC split requires a **finer** decomposition; it does
+not reverse ADR 0019 by moving whole outer crates.
 
-## Desired future dependency law
+## Desired future law
 
-Subject to E1/E2 evidence, the intended architecture is:
+Subject to E1/E2 evidence:
 
 ```text
 POL / AETHER-Learn
@@ -278,7 +238,7 @@ AETHER
        │ authorized mechanical envelope
        ▼
 FABRIC
-       │ route / delivery / placement / telemetry
+       │ route / pre-start queue / delivery / placement / telemetry
        ├───────────────┐
        │               │
        ▼               ▼
@@ -295,16 +255,19 @@ AETHER semantic submission + admission
 POL judgment / memory / later allocation
 ```
 
-## AETHER-MEM / sidecar dependency law
+AETHER semantic execution lifecycle constraints continue to apply after FABRIC
+has mechanically realized a route.
+
+## AETHER-MEM / sidecar law
 
 Allowed:
 
 ```text
-AETHER semantic memory identity/provenance/policy
-  -> opaque physical object/shard reference
-  -> FABRIC/storage locality and movement
-  -> retrieved payload/result
-  -> semantic submission/admission
+AETHER memory identity/provenance/policy
+ -> opaque physical object/shard reference
+ -> FABRIC/storage locality and movement
+ -> retrieved result
+ -> AETHER semantic submission/admission
 ```
 
 Forbidden:
@@ -315,60 +278,54 @@ nearest_neighbor_rank => accepted_claim
 object_available => authorized_visibility
 ```
 
-## AETHER-Learn dependency law
+## AETHER-Learn law
 
-No live AETHER-Learn implementation is present on current AETHER `main` under
-E0 search. The future contract should nevertheless preserve:
+No live implementation was found on current AETHER main under E0 search. A
+future contract should be:
 
 ```text
-context + work + capability evidence + outcome ledger
-   -> governed allocator / no-regret learner
-   -> AllocationDesired
-   -> AETHER record/admission
-   -> FABRIC physical realization
+work + capability evidence + outcome ledger + admitted FABRIC telemetry
+ -> governed allocator / no-regret learner
+ -> AllocationDesired
+ -> AETHER record/admission
+ -> FABRIC physical realization
 ```
 
-FABRIC may return cost/latency/liveness evidence but must not directly mutate
-the allocator's institutional objective.
+FABRIC may supply evidence; it cannot silently change the institutional
+objective or eligible actor set.
 
-## Failure containment invariants
+## Failure containment
 
 ### FABRIC unavailable
 
-Required outcome:
-
-- distributed movement/placement may fail or degrade;
-- pending work is marked unknown/undelivered as appropriate;
-- local AETHER append/replay/derivation remains correct;
-- AETHER does not convert transport silence into negative evidence.
+- distributed movement/placement/queue admission may degrade;
+- pending work is unknown/undelivered, not false;
+- local AETHER append/replay/derivation remains semantically correct;
+- started AETHER operations obey AETHER completion/atomicity semantics.
 
 ### AETHER unavailable
 
-Required outcome for a future independent FABRIC:
-
-- FABRIC may continue or fail its bounded mechanical operations according to
-  contract;
-- it cannot invent semantic admission, new authority, or policy relaxation;
-- buffered results remain unadmitted until AETHER returns.
+A future FABRIC may continue only already bounded mechanical work allowed by its
+contract. It may not invent semantic admission, authority or policy relaxation.
+Buffered results remain unadmitted.
 
 ### GHOS unavailable
 
-Required outcome:
+Protected external execution remains blocked/pending. FABRIC or AETHER cannot
+silently substitute themselves as controllers.
 
-- protected external execution cannot be silently substituted with FABRIC or
-  an AETHER process;
-- requests remain blocked/pending according to the execution contract.
-
-## E1 contract targets emerging from this graph
+## E1 targets
 
 1. `MechanicalEnvelopeAuthorized` schema.
-2. Endpoint/resource identity schema distinct from semantic actor identity.
-3. `RouteRealized` / delivery event schema.
-4. Telemetry evidence-return schema.
-5. Replica-movement contract that excludes epoch/fencing authority.
-6. Namespace-resolution versus worker-realization split.
-7. Sidecar physical-location contract.
-8. Cross-plane correlation/trace identity.
-9. Failure vocabulary distinguishing unknown, undelivered, delivered,
-   unadmitted, admitted, and rejected.
-10. Version negotiation and fail-closed incompatibility behavior.
+2. Endpoint/resource identity distinct from semantic actor/office/controller.
+3. Route/pre-start queue/delivery event schemas.
+4. `SemanticExecutionStarted/Completed` handoff contract.
+5. Telemetry evidence-return schema.
+6. Replica movement contract excluding epoch/fencing authority.
+7. Namespace-resolution versus worker-realization contract.
+8. Sidecar physical-location contract.
+9. Cross-plane correlation identity.
+10. Failure vocabulary: unknown, undelivered, pre-start rejected, started,
+    completed, submitted, unadmitted, admitted, rejected.
+11. Fail-closed version negotiation.
+12. D2/D5 hostile scheduling and resource-control conformance tests.
