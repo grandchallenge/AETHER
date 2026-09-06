@@ -1,116 +1,131 @@
 # AETHER/FABRIC E1 Event Algebra
 
-Status: E1 candidate
+Status: E1 candidate, Revision 1 after Formalist review
 Issue: #85
 Protocol: `aether-fabric/1.0`
 
 ## 1. Purpose
 
-Define legal event kinds, ownership, ordering constraints, mutually exclusive
-states, and forbidden implications across POL/AETHER/FABRIC/GHOS.
-
-The event algebra prevents a mechanical implementation from acquiring authority
-by collapsing several qualitatively different transitions into one status flag.
+Define legal event kinds, ownership, attempt identity, ordering constraints,
+mutually exclusive states, revocation semantics and forbidden implications
+across POL/AETHER/FABRIC/GHOS.
 
 ## 2. Event domains
 
 Events belong to exactly one primary domain:
 
-- `INSTITUTIONAL`: POL/governed allocation/decision meaning;
-- `SEMANTIC`: AETHER admission/evaluation/authority meaning;
-- `MECHANICAL`: FABRIC physical realization/observation;
-- `EXECUTION`: GHOS protected external execution meaning.
+- `INSTITUTIONAL` — POL/governed allocation/decision meaning;
+- `SEMANTIC` — AETHER admission/evaluation/authority meaning;
+- `MECHANICAL` — FABRIC physical realization/observation;
+- `EXECUTION` — GHOS protected external execution meaning;
+- `CONTROL_BRIDGE` — upstream-governed control records that constrain FABRIC
+  but are not issued by FABRIC.
 
-An event may reference events from another domain but does not inherit their
-authority.
+Cross-domain references do not transfer authority.
 
-## 3. Event vocabulary
+## 3. Identity vocabulary
 
-| Event | Domain | Producer | Meaning |
+Every cross-plane operation may contain:
+
+```text
+correlation_id          # groups the higher-level operation; not authority
+mechanical_attempt_id   # one FABRIC realization attempt
+semantic_attempt_id     # one AETHER semantic attempt
+event_id                # one event record
+envelope_id             # one closed mechanical authorization envelope
+```
+
+Rules:
+
+1. A retry creates a new `mechanical_attempt_id`.
+2. A retry retains the higher-level `correlation_id`.
+3. All mechanical route/queue/dispatch/delivery records for one attempt carry
+   the same `mechanical_attempt_id`.
+4. If AETHER semantic execution is reached through FABRIC, the
+   `SemanticExecutionStarted` event binds both `mechanical_envelope_id` and
+   `mechanical_attempt_id`.
+5. A local/no-FABRIC AETHER execution carries neither mechanical binding field.
+6. It is invalid for `SemanticExecutionStarted` to carry only one of those two
+   mechanical fields.
+
+## 4. Event vocabulary
+
+| Event | Domain | Owner/producer | Meaning |
 | --- | --- | --- | --- |
-| `AllocationDesired` | INSTITUTIONAL | POL/governed allocator | Declares desired actor/guild/resource class for work. |
-| `MechanicalEnvelopeAuthorized` | SEMANTIC/INSTITUTIONAL bridge | authorized upstream producer, recorded/referenced by AETHER | Closes the permitted mechanical realization space. |
-| `RouteRealized` | MECHANICAL | FABRIC | Concrete route/endpoint chosen within envelope. |
-| `QueueAdmitted` | MECHANICAL | FABRIC | Pre-start mechanical capacity accepted operation. |
-| `PreStartRejected` | MECHANICAL | FABRIC | Operation did not cross AETHER semantic-start boundary. |
+| `AllocationDesired` | INSTITUTIONAL | POL/governed allocator | Desired institutional allocation. |
+| `MechanicalEnvelopeAuthorized` | CONTROL_BRIDGE | upstream governed issuer | Closed mechanical realization envelope. |
+| `MechanicalEnvelopeRevoked` | CONTROL_BRIDGE | upstream governed issuer | Stops future/pre-start use before expiry. |
+| `RouteRealized` | MECHANICAL | FABRIC | Concrete endpoint/route selected within envelope. |
+| `QueueAdmitted` | MECHANICAL | FABRIC | Pre-start capacity accepted attempt. |
+| `PreStartRejected` | MECHANICAL | FABRIC | Exact mechanical attempt did not cross semantic start. |
 | `PayloadDispatched` | MECHANICAL | FABRIC | Payload movement began. |
-| `PayloadDelivered` | MECHANICAL | FABRIC | Payload reached target endpoint. |
-| `DeliveryReceiptObserved` | MECHANICAL | FABRIC | Mechanical delivery evidence observed. |
-| `ExternalExecutionRequested` | EXECUTION | GHOS client/route | Protected execution requested under GHOS contract. |
-| `ExternalExecutionStarted` | EXECUTION | GHOS | Admitted controller started protected work. |
-| `ExternalExecutionCompleted` | EXECUTION | GHOS | Protected execution completed. |
-| `ExternalExecutionFailed` | EXECUTION | GHOS | Protected execution failed under GHOS semantics. |
+| `PayloadDelivered` | MECHANICAL | FABRIC | Payload reached target. |
+| `DeliveryReceiptObserved` | MECHANICAL | FABRIC | Delivery observation; not semantic receipt. |
+| `ReplicaMovementObserved` | MECHANICAL | FABRIC | Physical replica/prefix movement. |
+| `PhysicalObjectLocationObserved` | MECHANICAL | FABRIC/storage | Physical object/vector locality observation. |
+| `TelemetryEvidenceObserved` | MECHANICAL | FABRIC | Operational observation; not yet AETHER evidence. |
 | `SemanticExecutionStarted` | SEMANTIC | AETHER | AETHER crossed semantic start boundary. |
-| `SemanticExecutionCompleted` | SEMANTIC | AETHER | AETHER evaluation/mutation completed under semantic lifecycle. |
-| `SemanticSubmissionProposed` | SEMANTIC | submitter/AETHER edge | Result/evidence proposed for semantic admission. |
-| `SemanticAdmissionAccepted` | SEMANTIC | AETHER | Submission became admitted AETHER state. |
+| `SemanticExecutionCompleted` | SEMANTIC | AETHER | AETHER completed semantic lifecycle for attempt. |
+| `SemanticSubmissionProposed` | SEMANTIC | submitter/AETHER edge | Result/evidence proposed for admission. |
+| `SemanticAdmissionAccepted` | SEMANTIC | AETHER | Submission became admitted state. |
 | `SemanticAdmissionRejected` | SEMANTIC | AETHER | Submission was semantically rejected. |
-| `InstitutionalDecisionRecorded` | INSTITUTIONAL | POL/INTELLECT application | Governed decision recorded using admitted evidence. |
-| `TelemetryEvidenceObserved` | MECHANICAL | FABRIC | Operational observation emitted; not yet AETHER evidence. |
-| `ReplicaMovementObserved` | MECHANICAL | FABRIC | Physical replica/prefix movement observed. |
-| `PhysicalObjectLocationObserved` | MECHANICAL | FABRIC/storage | Object/vector locality observation. |
+| `ExternalExecutionRequested` | EXECUTION | GHOS client/route | Protected execution requested. |
+| `ExternalExecutionStarted` | EXECUTION | GHOS | Admitted controller started work. |
+| `ExternalExecutionCompleted` | EXECUTION | GHOS | Protected execution completed. |
+| `ExternalExecutionFailed` | EXECUTION | GHOS | Protected execution failed. |
+| `InstitutionalDecisionRecorded` | INSTITUTIONAL | POL/INTELLECT application | Governed decision recorded. |
 
-## 4. Minimal partial order
+## 5. Minimal partial order
 
-For a mechanically realized direct AETHER operation, the typical partial order
-is:
+A mechanically realized direct AETHER operation:
 
 ```text
 AllocationDesired?
-      |
-MechanicalEnvelopeAuthorized
-      |
-RouteRealized
-      |
-QueueAdmitted  OR  PreStartRejected
-      |
-      +-- PreStartRejected -> terminal mechanical non-start
-      |
-SemanticExecutionStarted
-      |
-SemanticExecutionCompleted
-      |
-SemanticSubmissionProposed?   [if a result re-enters via admission]
-      |
-SemanticAdmissionAccepted OR SemanticAdmissionRejected
-      |
-InstitutionalDecisionRecorded?
+  -> MechanicalEnvelopeAuthorized(E)
+  -> RouteRealized(E, mechanical_attempt=M)
+  -> QueueAdmitted(M) | PreStartRejected(M)
+  -> SemanticExecutionStarted(S, envelope=E, mechanical_attempt=M)
+  -> SemanticExecutionCompleted(S)
+  -> SemanticSubmissionProposed?      [when separate admission is required]
+  -> SemanticAdmissionAccepted | SemanticAdmissionRejected
+  -> InstitutionalDecisionRecorded?
 ```
 
-`AllocationDesired` is optional for purely mechanical system operations that
-already have a separately authorized semantic source. Its absence does not give
-FABRIC discretion to invent institutional purpose.
+The `PreStartRejected(M)` branch is terminal with respect to semantic start for
+that exact `mechanical_attempt_id`.
 
-For remote payload transport:
+A local/no-FABRIC AETHER path is:
 
 ```text
-MechanicalEnvelopeAuthorized
- -> RouteRealized
- -> QueueAdmitted
- -> PayloadDispatched
- -> PayloadDelivered
- -> DeliveryReceiptObserved
+SemanticExecutionStarted(S, no mechanical binding)
+  -> SemanticExecutionCompleted(S)
 ```
 
-A later semantic path may begin, but delivery alone does not create it.
-
-For GHOS-protected execution:
+Transport-only path:
 
 ```text
-MechanicalEnvelopeAuthorized?     [if FABRIC transports]
- -> PayloadDelivered?
+MechanicalEnvelopeAuthorized(E)
+ -> RouteRealized(E,M)
+ -> QueueAdmitted(M)
+ -> PayloadDispatched(M)
+ -> PayloadDelivered(M)
+ -> DeliveryReceiptObserved(M)
+```
+
+Delivery does not imply a semantic path exists.
+
+GHOS-protected path:
+
+```text
+MechanicalEnvelopeAuthorized? / transport?
  -> ExternalExecutionRequested
- -> ExternalExecutionStarted
+ -> ExternalExecutionStarted        [GHOS admitted controller only]
  -> ExternalExecutionCompleted | ExternalExecutionFailed
  -> SemanticSubmissionProposed
  -> SemanticAdmissionAccepted | SemanticAdmissionRejected
 ```
 
-FABRIC cannot substitute its own endpoint for `ExternalExecutionStarted`.
-
-## 5. State machines
-
-### 5.1 Mechanical attempt state
+## 6. Mechanical attempt state machine
 
 ```text
 M0 = unknown
@@ -133,11 +148,12 @@ M3 -> M4 | MF
 M4 -> M5 | MF
 ```
 
-A pure local worker realization may omit `M4/M5` if no transport occurs; it
-must still preserve `M1/M2/M3` or an equivalent mechanically inspectable start
-path.
+`MX` is terminal for semantic start for that `mechanical_attempt_id`.
 
-### 5.2 AETHER semantic attempt state
+A pure local worker realization may omit dispatch/delivery while still using an
+explicit route/queue attempt identity if FABRIC participates.
+
+## 7. AETHER semantic attempt state machine
 
 ```text
 S0 = not_started
@@ -148,192 +164,191 @@ S4 = admitted
 SX = rejected
 ```
 
-Allowed transitions depend on operation type:
+Typical transitions:
 
 ```text
 S0 -> S1
 S1 -> S2
-S2 -> S3?          [only if a separate admission step is required]
+S2 -> S3?          # when separate semantic admission is required
 S3 -> S4 | SX
 ```
 
-Some AETHER-native mutation operations may make their accepted append itself
-the semantic completion/admission; E1 does not replace existing AETHER journal
-semantics with a second admission layer.
+AETHER-native accepted append may itself be the semantic mutation/admission;
+E1 does not add a redundant second admission layer to existing journal law.
 
-### 5.3 Protected execution state
+## 8. Envelope control state machine
 
-```text
-G0 = not_requested
-G1 = requested
-G2 = started_by_admitted_controller
-G3 = completed
-GX = failed
-```
-
-Only GHOS may produce the authoritative G2 transition for protected execution.
-
-## 6. Cross-machine invariants
-
-### E1 — mutual exclusion of pre-start rejection and semantic start
-
-For a single semantic attempt ID:
+Envelope states:
 
 ```text
-PreStartRejected xor SemanticExecutionStarted
+E0 = authorized
+E1 = expired
+E2 = superseded
+E3 = revoked
 ```
 
-Both may not exist for the same attempt.
+Only an upstream governed control record may produce `revoked` or a new
+replacement envelope. FABRIC may observe the state and reject new attempts; it
+cannot self-issue authority-bearing control transitions.
 
-If evidence of both is observed, the trace is invalid and must be quarantined;
-neither event is silently discarded to make the trace consistent.
-
-### E2 — mechanical failure after semantic start is not semantic cancellation
-
-After `SemanticExecutionStarted`, a transport/worker observation may report
-failure, disconnect or timeout. The AETHER semantic attempt remains `started`
-until AETHER records its own completion/failure according to existing semantic
-law.
-
-### E3 — delivery is orthogonal to semantic acceptance
-
-`PayloadDelivered` can coexist with either:
+### Revocation
 
 ```text
-SemanticAdmissionAccepted
-SemanticAdmissionRejected
-no semantic submission at all
+MechanicalEnvelopeAuthorized(E)
+ -> MechanicalEnvelopeRevoked(E)
 ```
 
-### E4 — semantic completion is orthogonal to institutional judgment
+After revocation:
 
-A correctly completed AETHER evaluation does not imply an institutional
-decision to accept a claim or allocate further work.
+- no new `RouteRealized`/`QueueAdmitted` attempt may begin under E;
+- queued-but-not-semantic-started attempts may end with
+  `PreStartRejected(reason=envelope_revoked)`;
+- an attempt already bound to `SemanticExecutionStarted` continues under
+  AETHER semantic lifecycle;
+- revocation does not create a replacement envelope.
 
-### E5 — GHOS success is orthogonal to AETHER admission
+### Supersession
 
-Protected external work may complete and still yield a result that AETHER
-rejects or never admits.
+A new upstream envelope may set `supersedes_envelope_id=E`.
 
-### E6 — telemetry is observation-only
+Supersession stops new/pre-start attempts under E according to policy but does
+not erase started semantic work.
 
-`TelemetryEvidenceObserved` cannot directly transition any institutional or
-AETHER authority state.
+### Derivation
 
-## 7. Idempotency and duplicate events
+A child envelope may set `derived_from_envelope_id=E`. Derivation is not a
+state transition of E and does not invalidate E. The child must be a verified
+narrowing of E.
+
+## 9. Critical invariants
+
+### A1 — exact-attempt mutual exclusion
+
+For the same `mechanical_attempt_id=M`:
+
+```text
+PreStartRejected(M) xor SemanticExecutionStarted(... mechanical_attempt=M)
+```
+
+Both cannot exist in a valid trace.
+
+If both are observed, quarantine the trace; do not discard one event to make it
+appear consistent.
+
+### A2 — retry identity
+
+A retry uses `M2 != M1`. Reusing M1 for a later attempt is invalid.
+
+### A3 — mechanical failure after semantic start is not semantic cancellation
+
+After `SemanticExecutionStarted(S,...M)`, worker disconnect, caller timeout,
+transport failure or revocation may be observed. AETHER remains responsible for
+completing/failing S under its semantic contract.
+
+### A4 — delivery is orthogonal to semantic acceptance
+
+`PayloadDelivered` may coexist with accepted, rejected, unadmitted or absent
+semantic submission.
+
+### A5 — semantic completion is orthogonal to institutional judgment
+
+A completed AETHER evaluation does not itself select an institutional decision.
+
+### A6 — GHOS success is orthogonal to AETHER admission
+
+Protected external work may complete and still be rejected/unadmitted by
+AETHER.
+
+### A7 — telemetry is observation-only
+
+`TelemetryEvidenceObserved` cannot directly transition institutional authority,
+AETHER policy, actor eligibility or semantic admission.
+
+### A8 — mechanical envelope control is upstream-owned
+
+FABRIC cannot create `MechanicalEnvelopeAuthorized` or
+`MechanicalEnvelopeRevoked` merely from local scheduler/liveness state.
+
+## 10. Duplicate/idempotency law
 
 Mechanical delivery is not assumed exactly-once.
 
-Each record has a stable `event_id`. Re-observing the same `event_id` is
-idempotent at the event-log level.
+Each event has a stable `event_id`; re-observing the same ID is idempotent at
+the event-record level.
 
-If two distinct event IDs claim the same mechanical operation and payload, both
-may be preserved as observations; semantic admission must remain idempotent or
-explicitly deduplicated under AETHER's own identity rules.
+Distinct event IDs may describe duplicate physical delivery. AETHER semantic
+admission must remain idempotent/deduplicated under AETHER identity rules.
+FABRIC does not fabricate semantic deduplication identity.
 
-FABRIC must never fabricate a semantic deduplication identity.
+## 11. Retry law
 
-## 8. Causation and correlation
+A retry record set must identify:
 
-Every event contains:
+- same or narrower valid envelope;
+- stable `correlation_id`;
+- new `mechanical_attempt_id`;
+- predecessor failed/rejected attempt;
+- remaining retry budget.
 
-```text
-correlation_id
-```
+Retry cannot:
 
-and may contain:
+- widen eligibility or scope;
+- reset expiry/revocation/supersession;
+- resurrect an invalid envelope;
+- duplicate a semantic attempt already started unless AETHER explicitly
+  authorizes an idempotent semantic retry.
 
-```text
-causation_id
-```
+## 12. Scope and lineage law
 
-`correlation_id` groups an operation for reconstruction. `causation_id` names a
-specific predecessor event.
+A child envelope identifies the exact parent through
+`derived_from_envelope_id`. Its subset relation is a conformance property, not
+something schema validation alone can prove.
 
-Neither is an authority token.
+`scope_ref` identifies an immutable byte object and `scope_digest` is SHA-256
+of that exact referenced byte sequence. This avoids implementation-dependent
+conceptual canonicalization.
 
-A malicious actor must not gain authority by selecting a correlation ID that
-matches an authorized operation.
-
-## 9. Retry algebra
-
-A retry creates a new mechanical attempt ID, not a new institutional purpose.
-
-A retry must reference:
-
-- the same or a narrower authorized envelope;
-- a stable higher-level correlation ID;
-- the predecessor failed/pre-start-rejected attempt;
-- the remaining retry budget.
-
-A retry may not:
-
-- widen endpoint/resource eligibility;
-- reset an expired semantic authority lease;
-- resurrect a superseded envelope;
-- cause an already-started semantic attempt to be duplicated unless AETHER's
-  semantic idempotency contract explicitly permits it.
-
-## 10. Supersession algebra
-
-If envelope `E2` supersedes `E1`:
-
-- new pre-start mechanical attempts under E1 are rejected;
-- queued-but-not-started E1 attempts may be rejected according to policy;
-- `SemanticExecutionStarted` attempts bound to E1 continue under AETHER's
-  semantic lifecycle;
-- E2 may narrow or otherwise replace E1 only under a fresh upstream authority
-  decision; FABRIC cannot self-issue E2.
-
-## 11. Replica movement algebra
+## 13. Telemetry return algebra
 
 ```text
-ReplicationMovementAuthorized   [AETHER or admitted upstream contract]
- -> ReplicaMovementObserved     [MECHANICAL]
- -> ReplicaStateValidated       [AETHER semantic check]
-```
-
-`ReplicaMovementObserved` has no transition to `LeaderEpochChanged` or
-`ReplicaPromoted`.
-
-## 12. Telemetry return algebra
-
-```text
-TelemetryEvidenceObserved       [MECHANICAL]
- -> SemanticSubmissionProposed  [AETHER edge]
+TelemetryEvidenceObserved          [MECHANICAL]
+ -> SemanticSubmissionProposed     [SEMANTIC edge]
  -> SemanticAdmissionAccepted | Rejected
- -> AllocationDesired?          [later governed decision]
+ -> AllocationDesired?             [later governed decision]
 ```
 
-The direct edge:
+Direct unadmitted telemetry-to-allocation policy mutation is outside E1.
+
+## 14. Replica movement algebra
 
 ```text
-TelemetryEvidenceObserved -> AllocationDesired
+MechanicalEnvelopeAuthorized
+ -> ReplicaMovementObserved(M)
+ -> AETHER validates cut/prefix/epoch/fencing
+ -> AETHER accepts/rejects semantic replica state
 ```
 
-is forbidden for governed allocation unless a separately admitted allocator
-contract consumes the corresponding **admitted** evidence.
+No mechanical event transitions to `LeaderEpochChanged` or semantic promotion.
 
-## 13. Failure consistency classes
+## 15. Invalid trace classes
 
-A trace parser/conformance harness must distinguish:
+A conformance harness must reject or quarantine:
 
-- **valid terminal non-start**: `PreStartRejected`, no semantic start;
-- **valid started completion**: semantic start then semantic completion;
-- **valid delivered/unadmitted**: payload delivered, no semantic acceptance;
-- **valid external failure**: GHOS failure followed by optional semantic failure
-  evidence submission;
-- **invalid dual-start/reject**: pre-start rejection and semantic start for same
-  attempt;
-- **invalid authority leap**: mechanical event followed by authority transition
-  without AETHER/GHOS/INTELLECT owner event;
-- **invalid downgrade**: work begins under unsupported/implicitly downgraded
-  protocol/capability set;
-- **invalid hidden commit**: pre-start timeout/failure reported, later AETHER
-  append/receipt appears for the same supposedly non-started attempt.
+- pre-start rejection and semantic start for same mechanical attempt;
+- retry that reuses mechanical attempt ID;
+- semantic start with only one of envelope/attempt binding fields;
+- new mechanical start after expiry/revocation/supersession;
+- purported child envelope without verified narrowing from named parent;
+- FABRIC-issued revocation/authorization;
+- mechanical event followed by authority transition without owner-domain event;
+- implicit protocol downgrade;
+- hidden commit after pre-start rejection;
+- delivered GHOS payload treated as controller admission;
+- unadmitted telemetry directly changing governed allocation.
 
-## 14. Conformance use
+## 16. E2 use
 
-E2 must turn these event classes into executable traces. E1 completion requires
-that every event has an owner, legal predecessor/successor set, and explicit
+E2 must implement executable traces keyed by exact `mechanical_attempt_id` and
+`semantic_attempt_id`. E1 completion requires every event/control record to have
+an owner, required identity, legal predecessor/successor set and explicit
 forbidden implications.
