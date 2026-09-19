@@ -16,6 +16,7 @@ pub const NORMALIZATION_TOLERANCE: f64 = 1.0e-6;
 pub struct DecisionSchema {
     pub question_id: String,
     pub version: String,
+    pub digest: String,
     pub choices: Vec<String>,
 }
 
@@ -26,6 +27,9 @@ impl DecisionSchema {
         }
         if self.version.trim().is_empty() {
             return Err(ReflexError::EmptySchemaVersion);
+        }
+        if !is_sha256_ref(&self.digest) {
+            return Err(ReflexError::InvalidDigest("decision_schema_digest"));
         }
         if self.choices.len() < 2 {
             return Err(ReflexError::InsufficientChoices);
@@ -63,23 +67,8 @@ impl StateProjectionRef {
         if !is_sha256_ref(&self.policy_digest) {
             return Err(ReflexError::InvalidDigest("policy_digest"));
         }
-        if self.cut.cuts.is_empty() {
-            return Err(ReflexError::EmptyCut);
-        }
+        validate_exact_cut(&self.cut)
 
-        let mut partitions = BTreeSet::new();
-        for cut in &self.cut.cuts {
-            if cut.partition.as_str().trim().is_empty() {
-                return Err(ReflexError::EmptyPartition);
-            }
-            if cut.as_of.is_none() {
-                return Err(ReflexError::NonExactCut(cut.partition.to_string()));
-            }
-            if !partitions.insert(cut.partition.to_string()) {
-                return Err(ReflexError::DuplicatePartition(cut.partition.to_string()));
-            }
-        }
-        Ok(())
     }
 }
 
@@ -214,6 +203,8 @@ impl ReflexPolicy {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AuthorityGrant {
     pub grant_ref: String,
+    pub authority_digest: String,
+    pub authority_cut: FederatedCut,
     pub principal_ref: String,
     pub capability_ref: String,
     pub authorized_choices: Vec<String>,
@@ -224,6 +215,10 @@ impl AuthorityGrant {
         if self.grant_ref.trim().is_empty() {
             return Err(ReflexError::InvalidAuthority("grant_ref"));
         }
+        if !is_sha256_ref(&self.authority_digest) {
+            return Err(ReflexError::InvalidDigest("authority_digest"));
+        }
+        validate_exact_cut(&self.authority_cut)?;
         if self.principal_ref.trim().is_empty() {
             return Err(ReflexError::InvalidAuthority("principal_ref"));
         }
@@ -284,6 +279,18 @@ pub fn gate_decision(
     decision.validate_against(request)?;
     if let Some(authority) = authority {
         authority.validate()?;
+        if authority.authority_cut.clone().normalized()
+            != request.projection.cut.clone().normalized()
+        {
+            return Err(ReflexError::AuthorityCutMismatch);
+        }
+        if authority
+            .authorized_choices
+            .iter()
+            .any(|choice| !request.schema.choices.contains(choice))
+        {
+            return Err(ReflexError::AuthorityChoiceOutsideSchema);
+        }
     }
 
     let (choice, top, runner_up) = top_two(request, decision)?;
@@ -341,6 +348,8 @@ pub enum AuthorityEffect {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AuthorityReceipt {
     pub grant_ref: String,
+    pub authority_digest: String,
+    pub authority_cut: FederatedCut,
     pub principal_ref: String,
     pub capability_ref: String,
 }
@@ -351,6 +360,7 @@ pub struct DecisionReceipt {
     pub decision_id: String,
     pub question_id: String,
     pub question_schema_version: String,
+    pub question_schema_digest: String,
     pub projection: StateProjectionRef,
     pub model: ProviderModelRef,
     pub distribution: Vec<ChoiceProbability>,
@@ -374,6 +384,7 @@ impl DecisionReceipt {
             decision_id: request.decision_id.clone(),
             question_id: request.schema.question_id.clone(),
             question_schema_version: request.schema.version.clone(),
+            question_schema_digest: request.schema.digest.clone(),
             projection: request.projection.clone(),
             model: decision.model.clone(),
             distribution: decision.distribution.clone(),
@@ -381,6 +392,8 @@ impl DecisionReceipt {
             gate,
             authority: authority.map(|grant| AuthorityReceipt {
                 grant_ref: grant.grant_ref.clone(),
+                authority_digest: grant.authority_digest.clone(),
+                authority_cut: grant.authority_cut.clone(),
                 principal_ref: grant.principal_ref.clone(),
                 capability_ref: grant.capability_ref.clone(),
             }),
@@ -421,6 +434,25 @@ fn top_two(
         top,
         runner_up.max(0.0),
     ))
+}
+
+fn validate_exact_cut(cutset: &FederatedCut) -> Result<(), ReflexError> {
+    if cutset.cuts.is_empty() {
+        return Err(ReflexError::EmptyCut);
+    }
+    let mut partitions = BTreeSet::new();
+    for cut in &cutset.cuts {
+        if cut.partition.as_str().trim().is_empty() {
+            return Err(ReflexError::EmptyPartition);
+        }
+        if cut.as_of.is_none() {
+            return Err(ReflexError::NonExactCut(cut.partition.to_string()));
+        }
+        if !partitions.insert(cut.partition.to_string()) {
+            return Err(ReflexError::DuplicatePartition(cut.partition.to_string()));
+        }
+    }
+    Ok(())
 }
 
 fn validate_unit_interval(value: f64, field: &'static str) -> Result<(), ReflexError> {
@@ -484,6 +516,10 @@ pub enum ReflexError {
     InvalidPolicy(&'static str),
     #[error("invalid authority grant field: {0}")]
     InvalidAuthority(&'static str),
+    #[error("authority grant is bound to a different semantic cut")]
+    AuthorityCutMismatch,
+    #[error("authority grant contains a choice outside the decision schema")]
+    AuthorityChoiceOutsideSchema,
     #[error("provider failure: {0}")]
     Provider(String),
 }
@@ -501,6 +537,7 @@ mod tests {
         DecisionSchema {
             question_id: "route.safe".to_string(),
             version: "1".to_string(),
+            digest: digest('c'),
             choices: vec!["yes".to_string(), "no".to_string()],
         }
     }
@@ -552,6 +589,8 @@ mod tests {
     fn authority() -> AuthorityGrant {
         AuthorityGrant {
             grant_ref: "grant/1".to_string(),
+            authority_digest: digest('d'),
+            authority_cut: request().projection.cut,
             principal_ref: "principal/operator".to_string(),
             capability_ref: "capability/route".to_string(),
             authorized_choices: vec!["yes".to_string()],
@@ -602,6 +641,37 @@ mod tests {
         .unwrap();
         assert_eq!(result.outcome, GateOutcome::Act);
         assert_eq!(result.reason, GateReason::AuthorizedConfidence);
+    }
+
+    #[test]
+    fn authority_from_a_different_cut_fails_closed() {
+        let mut grant = authority();
+        grant.authority_cut.cuts[0] =
+            PartitionCut::as_of("local", ElementId::new(41));
+        assert_eq!(
+            gate_decision(
+                &request(),
+                &decision(0.95, 0.05),
+                &policy(),
+                Some(&grant),
+            ),
+            Err(ReflexError::AuthorityCutMismatch)
+        );
+    }
+
+    #[test]
+    fn authority_choice_outside_schema_fails_closed() {
+        let mut grant = authority();
+        grant.authorized_choices.push("maybe".to_string());
+        assert_eq!(
+            gate_decision(
+                &request(),
+                &decision(0.95, 0.05),
+                &policy(),
+                Some(&grant),
+            ),
+            Err(ReflexError::AuthorityChoiceOutsideSchema)
+        );
     }
 
     #[test]

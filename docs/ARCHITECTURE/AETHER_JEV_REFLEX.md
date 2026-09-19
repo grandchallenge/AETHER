@@ -67,7 +67,8 @@ A projection binds:
 - projection identity;
 - one or more exact AETHER partition cuts;
 - content digest;
-- policy digest.
+- policy digest;
+- a content-digested decision schema.
 
 The reflex therefore judges a reproducible projection, not ambient mutable
 state.
@@ -89,15 +90,17 @@ well calibrated.
 
 ### Authority grant
 
-Authority is separate input. It names a grant, principal, capability and the
-choices that grant permits.
+Authority is separate input. It names a grant, its digest and exact AETHER cut,
+principal, capability, and the choices that grant permits. The authority cut
+must equal the projected decision cut.
 
 The gate ordering is intentional:
 
 1. invalid data fails closed;
 2. insufficient confidence/margin deliberates;
-3. sufficient confidence without matching authority escalates;
-4. only sufficient confidence plus matching authority may return `act`.
+3. stale/different-cut or out-of-schema authority fails closed;
+4. sufficient confidence without matching authority escalates;
+5. only sufficient confidence plus matching authority may return `act`.
 
 ### Decision receipt
 

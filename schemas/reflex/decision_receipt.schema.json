@@ -9,6 +9,7 @@
     "decision_id",
     "question_id",
     "question_schema_version",
+    "question_schema_digest",
     "projection",
     "model",
     "distribution",
@@ -20,19 +21,38 @@
     "schema_version": {
       "const": "aether/reflex-decision-receipt/1"
     },
-    "decision_id": { "type": "string", "minLength": 1 },
-    "question_id": { "type": "string", "minLength": 1 },
-    "question_schema_version": { "type": "string", "minLength": 1 },
+    "decision_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "question_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "question_schema_version": {
+      "type": "string",
+      "minLength": 1
+    },
     "projection": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["projection_id", "cut", "content_digest", "policy_digest"],
+      "required": [
+        "projection_id",
+        "cut",
+        "content_digest",
+        "policy_digest"
+      ],
       "properties": {
-        "projection_id": { "type": "string", "minLength": 1 },
+        "projection_id": {
+          "type": "string",
+          "minLength": 1
+        },
         "cut": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["cuts"],
+          "required": [
+            "cuts"
+          ],
           "properties": {
             "cuts": {
               "type": "array",
@@ -40,10 +60,19 @@
               "items": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["partition", "as_of"],
+                "required": [
+                  "partition",
+                  "as_of"
+                ],
                 "properties": {
-                  "partition": { "type": "string", "minLength": 1 },
-                  "as_of": { "type": "integer", "minimum": 0 }
+                  "partition": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "as_of": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
                 }
               }
             }
@@ -62,11 +91,24 @@
     "model": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["provider", "model", "revision"],
+      "required": [
+        "provider",
+        "model",
+        "revision"
+      ],
       "properties": {
-        "provider": { "type": "string", "minLength": 1 },
-        "model": { "type": "string", "minLength": 1 },
-        "revision": { "type": "string", "minLength": 1 }
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "distribution": {
@@ -75,14 +117,27 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["choice", "probability"],
+        "required": [
+          "choice",
+          "probability"
+        ],
         "properties": {
-          "choice": { "type": "string", "minLength": 1 },
-          "probability": { "type": "number", "minimum": 0, "maximum": 1 }
+          "choice": {
+            "type": "string",
+            "minLength": 1
+          },
+          "probability": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
         }
       }
     },
-    "policy_ref": { "type": "string", "minLength": 1 },
+    "policy_ref": {
+      "type": "string",
+      "minLength": 1
+    },
     "gate": {
       "type": "object",
       "additionalProperties": false,
@@ -94,7 +149,13 @@
         "runner_up_probability"
       ],
       "properties": {
-        "outcome": { "enum": ["act", "deliberate", "escalate"] },
+        "outcome": {
+          "enum": [
+            "act",
+            "deliberate",
+            "escalate"
+          ]
+        },
         "reason": {
           "enum": [
             "authorized_confidence",
@@ -104,23 +165,88 @@
             "choice_not_authorized"
           ]
         },
-        "selected_choice": { "type": "string", "minLength": 1 },
-        "selected_probability": { "type": "number", "minimum": 0, "maximum": 1 },
-        "runner_up_probability": { "type": "number", "minimum": 0, "maximum": 1 }
+        "selected_choice": {
+          "type": "string",
+          "minLength": 1
+        },
+        "selected_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "runner_up_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
       }
     },
     "authority": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["grant_ref", "principal_ref", "capability_ref"],
+      "required": [
+        "grant_ref",
+        "authority_digest",
+        "authority_cut",
+        "principal_ref",
+        "capability_ref"
+      ],
       "properties": {
-        "grant_ref": { "type": "string", "minLength": 1 },
-        "principal_ref": { "type": "string", "minLength": 1 },
-        "capability_ref": { "type": "string", "minLength": 1 }
+        "grant_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "principal_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capability_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authority_digest": {
+          "type": "string",
+          "pattern": "^sha256:[A-Fa-f0-9]{64}$"
+        },
+        "authority_cut": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "cuts"
+          ],
+          "properties": {
+            "cuts": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "partition",
+                  "as_of"
+                ],
+                "properties": {
+                  "partition": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "as_of": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "authority_effect": {
       "const": "none"
+    },
+    "question_schema_digest": {
+      "type": "string",
+      "pattern": "^sha256:[A-Fa-f0-9]{64}$"
     }
   }
 }

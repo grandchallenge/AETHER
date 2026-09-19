@@ -41,8 +41,9 @@ The gate may return `act` only when all of the following hold:
 1. the provider distribution is structurally valid and closed-world;
 2. the selected probability meets the policy threshold;
 3. the top-two margin meets the policy threshold;
-4. an explicit, separately supplied authority grant authorizes the selected
-   choice.
+4. an explicit, separately supplied authority record authorizes the selected
+   choice;
+5. that authority record is digest-bound to the same exact semantic cut.
 
 A high-confidence result with no grant, or with a grant for a different choice,
 returns `escalate`.
@@ -51,7 +52,7 @@ returns `escalate`.
 
 A decision request names an exact federated cut. Any partition cut with
 unqualified `Current` is rejected. The projection also binds content and policy
-digests.
+digests, while the versioned decision schema carries its own content digest.
 
 This lets a receipt answer "what state was judged?" without re-running against a
 later world.
@@ -75,7 +76,7 @@ A decision receipt records:
 - complete distribution;
 - deterministic gate policy;
 - selected branch and confidence/margin evidence;
-- optional authority reference;
+- optional authority reference, digest, and exact cut;
 - `authority_effect: none`.
 
 The receipt cannot, by its type, claim that it granted authority.
