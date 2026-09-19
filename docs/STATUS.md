@@ -1,13 +1,13 @@
 # STATUS
 
-## AETHER/Jev bounded reflex boundary (candidate, 2026-09-19)
+## AETHER/Jev bounded reflex boundary (protected WP00, 2026-09-19)
 
-Issue #89 defines `AETHER-REFLEX-WP00`, a non-authoritative Rust-library
-boundary for closed-world probabilistic decisions. The candidate
-`aether_reflex` crate binds every decision to an exact AETHER cut, validates
-the complete probability distribution against a versioned decision schema, and
-applies a digest-bound deterministic gate that keeps confidence separate from
-authority.
+Issue #89 delivered `AETHER-REFLEX-WP00` through PR #90 at protected-main
+commit `6f5f598e761fa410571488debdb64a59273c33d5`. The non-authoritative
+`aether_reflex` Rust crate binds every decision to an exact AETHER cut,
+validates the complete probability distribution against a versioned decision
+schema, and applies a digest-bound deterministic gate that keeps confidence
+separate from authority. ADR 0024 records the accepted boundary.
 
 The decisive invariant is:
 
