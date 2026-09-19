@@ -1,5 +1,29 @@
 # STATUS
 
+## AETHER/Jev bounded reflex boundary (candidate, 2026-09-19)
+
+Issue #89 defines `AETHER-REFLEX-WP00`, a non-authoritative Rust-library
+boundary for closed-world probabilistic decisions. The candidate
+`aether_reflex` crate binds every decision to an exact AETHER cut, validates
+the complete probability distribution against a versioned decision schema, and
+applies a deterministic gate that keeps confidence separate from authority.
+
+The decisive invariant is:
+
+```text
+confidence != authority
+```
+
+A high-confidence result without explicit choice authority yields
+`escalate`, not `act`. A low-confidence or low-margin result yields
+`deliberate`. Decision receipts carry `authority_effect: none` by type.
+
+This tranche is deliberately below the current remediation freeze. It does not
+add a Jev network client, change service execution, append authoritative facts,
+activate AETHER-POL/AETHER-Learn, grant capabilities, or widen the controlled
+single-node alpha claim. Jev is the intended first provider adapter after a
+separate integration tranche is admitted.
+
 ## Operator pilot executable correction
 
 Operator-01 stopped during setup at protected revision `159cf930ae9130060f16d9fbc2608ad8a4069fae`: the pilot generated an inline empty schema rejected by the parser. No answers or timing were collected. Issue #81 tracks the correction; #79 retains the stopped attempt. The correction emits a multiline schema, executes all six frozen cases in a Rust example test included in workspace tests, and rejects checkout bytes that differ from their committed identities. Protection and a separately identified new session remain required before collecting operator evidence.
