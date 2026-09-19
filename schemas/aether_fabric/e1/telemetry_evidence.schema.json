@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grandchallenge.dev/aether/schemas/aether_fabric/e1/telemetry_evidence.schema.json",
+  "title": "AETHER/FABRIC E1 TelemetryEvidenceObserved",
+  "description": "Non-runtime candidate schema for FABRIC operational observations. Structural validation does not admit the observation into AETHER or authorize policy mutation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "protocol_family",
+    "protocol_major",
+    "protocol_minor",
+    "record_type",
+    "domain",
+    "authority_effect",
+    "event_id",
+    "observation_class",
+    "observed_value",
+    "observed_at",
+    "observer_id"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "protocol_family": {"const": "aether-fabric"},
+    "protocol_major": {"const": 1},
+    "protocol_minor": {"const": 0},
+    "record_type": {"const": "TelemetryEvidenceObserved"},
+    "domain": {"const": "mechanical"},
+    "authority_effect": {"const": "none"},
+    "event_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "correlation_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "endpoint_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "observation_class": {
+      "enum": [
+        "endpoint_liveness",
+        "queue_depth",
+        "queue_wait",
+        "replication_lag",
+        "capacity",
+        "locality",
+        "latency",
+        "cost",
+        "transport_failure",
+        "backpressure"
+      ]
+    },
+    "observed_value": {
+      "description": "JSON numbers include integer-valued observations such as queue depth and replication lag; values remain observations until AETHER admission.",
+      "type": ["number", "boolean", "string"],
+      "minLength": 1,
+      "maxLength": 2048
+    },
+    "unit": {"type": "string", "minLength": 1, "maxLength": 128},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "observer_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "source_ref": {"type": "string", "minLength": 1, "maxLength": 2048},
+    "mechanical_policy_ref": {"type": "string", "minLength": 1, "maxLength": 1024}
+  }
+}

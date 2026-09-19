@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "protocol_family": "aether-fabric",
+  "protocol_major": 1,
+  "protocol_minor": 0,
+  "record_type": "TelemetryEvidenceObserved",
+  "domain": "mechanical",
+  "authority_effect": "none",
+  "event_id": "evt-telemetry-queue-depth-001",
+  "correlation_id": "corr-resource-observation-001",
+  "endpoint_id": "endpoint-worker-pool-01",
+  "observation_class": "queue_depth",
+  "observed_value": 7,
+  "unit": "items",
+  "observed_at": "2026-09-05T22:30:00-07:00",
+  "observer_id": "fabric-observer-reference-01",
+  "mechanical_policy_ref": "mechanical-policy-reference-01"
+}
