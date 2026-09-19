@@ -204,6 +204,11 @@ impl ReflexPolicy {
     }
 }
 
+/// Authority evidence supplied by the future AETHER integration layer.
+///
+/// This crate validates shape, exact-cut binding, and choice scope. It does not
+/// attest that the referenced grant exists or is institutionally valid; that
+/// remains an AETHER authority/admission responsibility.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AuthorityGrant {
     pub grant_ref: String,
@@ -249,6 +254,8 @@ impl AuthorityGrant {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum GateOutcome {
+    /// Reflex routing is eligible under the supplied evidence. This variant
+    /// does not itself authorize or execute the selected action.
     Act,
     Deliberate,
     Escalate,

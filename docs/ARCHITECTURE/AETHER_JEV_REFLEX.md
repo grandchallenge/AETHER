@@ -50,7 +50,9 @@ Jev is the first intended provider. The kernel contract is provider-neutral.
               new state/cut
 ```
 
-The provider does not own the last arrow.
+The provider does not own the last arrow. Neither does `GateOutcome::Act`:
+`act` means the reflex path is eligible under supplied evidence, not that the
+crate has granted permission or executed a capability.
 
 ## Objects
 
@@ -94,7 +96,9 @@ claims that a given probability is well calibrated.
 
 Authority is separate input. It names a grant, its digest and exact AETHER cut,
 principal, capability, and the choices that grant permits. The authority cut
-must equal the projected decision cut.
+must equal the projected decision cut. WP00 validates the supplied evidence
+shape and binding but does not attest that the grant exists; the future
+integration layer must resolve it through ordinary AETHER authority/admission.
 
 The gate ordering is intentional:
 

@@ -46,7 +46,8 @@ The gate may return `act` only when all of the following hold:
 5. that authority record is digest-bound to the same exact semantic cut.
 
 A high-confidence result with no grant, or with a grant for a different choice,
-returns `escalate`.
+returns `escalate`. `act` is a routing disposition only; authoritative grant
+existence and capability execution remain outside this crate.
 
 ### Invariant 2: every reflex is replay-bound
 
