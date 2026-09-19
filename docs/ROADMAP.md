@@ -1,5 +1,31 @@
 # ROADMAP
 
+## Bounded reflex track
+
+`AETHER-REFLEX-WP00` (#89) establishes the provider-neutral decision boundary
+needed for Jev/System-One integration without widening runtime authority.
+
+WP00 is limited to:
+
+- exact-cut state-projection identity;
+- versioned closed-world decision schemas;
+- finite normalized probability distributions;
+- deterministic confidence/margin gating;
+- explicit independent action authority;
+- replayable non-authoritative receipts.
+
+Deferred until a separately admitted tranche:
+
+- Jev API/network transport;
+- service/API integration;
+- automatic tuple admission;
+- online calibration feedback;
+- AETHER-POL/AETHER-Learn activation;
+- autonomous capability execution.
+
+The next reflex tranche must not begin until the binding remediation programme
+permits feature broadening on the affected policy/service surfaces.
+
 ## Immediate: restore the bounded operator session surface
 
 Protect the #81 pilot-tool correction after the six-case runtime smoke test and required checks pass. Use an isolated checkout preserving committed line endings; verify exact fixture/schema/protocol/runtime bytes before a separately identified session. Preserve the stopped #79 attempt and collect no replacement timing for it.
