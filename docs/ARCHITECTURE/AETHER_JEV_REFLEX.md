@@ -80,13 +80,15 @@ choice. The vector must be finite, non-negative and normalized.
 
 ### Reflex policy
 
-The deterministic policy currently carries two scalar gates:
+The deterministic policy is content-digested and currently carries two scalar
+gates:
 
 - minimum selected probability;
 - minimum top-two margin.
 
-These are routing parameters. They are not claims that a given probability is
-well calibrated.
+These are routing parameters. The full policy is retained in the receipt so the
+historical gate is inspectable without relying on a mutable name. They are not
+claims that a given probability is well calibrated.
 
 ### Authority grant
 

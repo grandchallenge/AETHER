@@ -6,7 +6,8 @@ Issue #89 defines `AETHER-REFLEX-WP00`, a non-authoritative Rust-library
 boundary for closed-world probabilistic decisions. The candidate
 `aether_reflex` crate binds every decision to an exact AETHER cut, validates
 the complete probability distribution against a versioned decision schema, and
-applies a deterministic gate that keeps confidence separate from authority.
+applies a digest-bound deterministic gate that keeps confidence separate from
+authority.
 
 The decisive invariant is:
 

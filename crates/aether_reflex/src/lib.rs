@@ -186,6 +186,7 @@ pub trait ReflexProvider {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ReflexPolicy {
     pub policy_ref: String,
+    pub policy_digest: String,
     pub min_act_probability: f64,
     pub min_top_two_margin: f64,
 }
@@ -194,6 +195,9 @@ impl ReflexPolicy {
     pub fn validate(&self) -> Result<(), ReflexError> {
         if self.policy_ref.trim().is_empty() {
             return Err(ReflexError::InvalidPolicy("policy_ref"));
+        }
+        if !is_sha256_ref(&self.policy_digest) {
+            return Err(ReflexError::InvalidDigest("reflex_policy_digest"));
         }
         validate_unit_interval(self.min_act_probability, "min_act_probability")?;
         validate_unit_interval(self.min_top_two_margin, "min_top_two_margin")
@@ -364,7 +368,7 @@ pub struct DecisionReceipt {
     pub projection: StateProjectionRef,
     pub model: ProviderModelRef,
     pub distribution: Vec<ChoiceProbability>,
-    pub policy_ref: String,
+    pub policy: ReflexPolicy,
     pub gate: GateResult,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub authority: Option<AuthorityReceipt>,
@@ -388,7 +392,7 @@ impl DecisionReceipt {
             projection: request.projection.clone(),
             model: decision.model.clone(),
             distribution: decision.distribution.clone(),
-            policy_ref: policy.policy_ref.clone(),
+            policy: policy.clone(),
             gate,
             authority: authority.map(|grant| AuthorityReceipt {
                 grant_ref: grant.grant_ref.clone(),
@@ -581,6 +585,7 @@ mod tests {
     fn policy() -> ReflexPolicy {
         ReflexPolicy {
             policy_ref: "policy/reflex/test".to_string(),
+            policy_digest: digest('e'),
             min_act_probability: 0.90,
             min_top_two_margin: 0.50,
         }

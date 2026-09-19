@@ -13,7 +13,7 @@
     "projection",
     "model",
     "distribution",
-    "policy_ref",
+    "policy",
     "gate",
     "authority_effect"
   ],
@@ -134,10 +134,6 @@
         }
       }
     },
-    "policy_ref": {
-      "type": "string",
-      "minLength": 1
-    },
     "gate": {
       "type": "object",
       "additionalProperties": false,
@@ -247,6 +243,62 @@
     "question_schema_digest": {
       "type": "string",
       "pattern": "^sha256:[A-Fa-f0-9]{64}$"
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_ref",
+        "policy_digest",
+        "min_act_probability",
+        "min_top_two_margin"
+      ],
+      "properties": {
+        "policy_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_digest": {
+          "type": "string",
+          "pattern": "^sha256:[A-Fa-f0-9]{64}$"
+        },
+        "min_act_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "min_top_two_margin": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "gate": {
+            "properties": {
+              "outcome": {
+                "const": "act"
+              }
+            },
+            "required": [
+              "outcome"
+            ]
+          }
+        },
+        "required": [
+          "gate"
+        ]
+      },
+      "then": {
+        "required": [
+          "authority"
+        ]
+      }
+    }
+  ]
 }

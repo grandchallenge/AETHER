@@ -51,8 +51,9 @@ returns `escalate`.
 ### Invariant 2: every reflex is replay-bound
 
 A decision request names an exact federated cut. Any partition cut with
-unqualified `Current` is rejected. The projection also binds content and policy
-digests, while the versioned decision schema carries its own content digest.
+unqualified `Current` is rejected. The projection also binds content and projection-policy digests, while the
+versioned decision schema and reflex gate policy each carry their own content
+digests.
 
 This lets a receipt answer "what state was judged?" without re-running against a
 later world.
@@ -74,7 +75,7 @@ A decision receipt records:
 - question/schema identity;
 - provider/model/revision;
 - complete distribution;
-- deterministic gate policy;
+- complete digest-bound deterministic gate policy;
 - selected branch and confidence/margin evidence;
 - optional authority reference, digest, and exact cut;
 - `authority_effect: none`.
