@@ -68,7 +68,6 @@ impl StateProjectionRef {
             return Err(ReflexError::InvalidDigest("policy_digest"));
         }
         validate_exact_cut(&self.cut)
-
     }
 }
 
@@ -153,12 +152,11 @@ impl ProbabilisticDecision {
                 return Err(ReflexError::UnknownChoice(item.choice.clone()));
             }
             if !seen.insert(item.choice.clone()) {
-                return Err(ReflexError::DuplicateDistributionChoice(item.choice.clone()));
+                return Err(ReflexError::DuplicateDistributionChoice(
+                    item.choice.clone(),
+                ));
             }
-            if !item.probability.is_finite()
-                || item.probability < 0.0
-                || item.probability > 1.0
-            {
+            if !item.probability.is_finite() || item.probability < 0.0 || item.probability > 1.0 {
                 return Err(ReflexError::InvalidProbability {
                     choice: item.choice.clone(),
                     value: item.probability,
@@ -247,7 +245,9 @@ impl AuthorityGrant {
     }
 
     pub fn allows(&self, choice: &str) -> bool {
-        self.authorized_choices.iter().any(|allowed| allowed == choice)
+        self.authorized_choices
+            .iter()
+            .any(|allowed| allowed == choice)
     }
 }
 
@@ -658,15 +658,9 @@ mod tests {
     #[test]
     fn authority_from_a_different_cut_fails_closed() {
         let mut grant = authority();
-        grant.authority_cut.cuts[0] =
-            PartitionCut::as_of("local", ElementId::new(41));
+        grant.authority_cut.cuts[0] = PartitionCut::as_of("local", ElementId::new(41));
         assert_eq!(
-            gate_decision(
-                &request(),
-                &decision(0.95, 0.05),
-                &policy(),
-                Some(&grant),
-            ),
+            gate_decision(&request(), &decision(0.95, 0.05), &policy(), Some(&grant),),
             Err(ReflexError::AuthorityCutMismatch)
         );
     }
@@ -676,12 +670,7 @@ mod tests {
         let mut grant = authority();
         grant.authorized_choices.push("maybe".to_string());
         assert_eq!(
-            gate_decision(
-                &request(),
-                &decision(0.95, 0.05),
-                &policy(),
-                Some(&grant),
-            ),
+            gate_decision(&request(), &decision(0.95, 0.05), &policy(), Some(&grant),),
             Err(ReflexError::AuthorityChoiceOutsideSchema)
         );
     }
@@ -690,13 +679,8 @@ mod tests {
     fn high_confidence_cannot_launder_wrong_choice_authority() {
         let mut grant = authority();
         grant.authorized_choices = vec!["no".to_string()];
-        let result = gate_decision(
-            &request(),
-            &decision(0.95, 0.05),
-            &policy(),
-            Some(&grant),
-        )
-        .unwrap();
+        let result =
+            gate_decision(&request(), &decision(0.95, 0.05), &policy(), Some(&grant)).unwrap();
         assert_eq!(result.outcome, GateOutcome::Escalate);
         assert_eq!(result.reason, GateReason::ChoiceNotAuthorized);
     }
