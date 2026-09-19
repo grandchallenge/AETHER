@@ -1,8 +1,9 @@
-# ADR 0022 — Bounded probabilistic reflex boundary
+# ADR 0024 — Bounded probabilistic reflex boundary
 
-Status: Proposed for WP00 review
+Status: Accepted
 Date: 2026-09-19
 Issue: #89
+Admission: PR #90; protected main `6f5f598e761fa410571488debdb64a59273c33d5`
 
 ## Context
 
