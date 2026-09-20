@@ -1,5 +1,23 @@
 # KNOWN_LIMITATIONS
 
+## AETHER/Jev reflex boundary
+
+The WP00 reflex surface is intentionally not a production Jev integration.
+
+- No Jev network/API adapter exists in WP00.
+- A reflex decision is evidence, not an AETHER fact, policy mutation, lease,
+  permission, or capability grant.
+- `authority_effect` is fixed to `none`; callers must use a separately
+  admitted authority record before an `act` gate can be returned.
+- Decisions must bind exact partition cuts. Unqualified `Current` projections
+  are rejected because they are not replay identities.
+- WP00 has no empirical Jev calibration claim. Thresholds are deterministic
+  policy parameters, not asserted measures of semantic correctness.
+- The closed answer vocabulary can itself be incomplete. Ontology expansion
+  remains a deliberative/governed operation rather than a reflex action.
+- There is no automatic admission of decision receipts to the journal and no
+  service execution path in this tranche.
+
 ## Operator pilot setup
 
 The first operator attempt stopped before a timed task because the protected pilot generator emitted invalid inline schema syntax. The stopped attempt contains no operator-performance evidence. Windows line-ending conversion can also change frozen byte identities while appearing content-equivalent to Git. Session preflight rejects that difference; prepare an isolated checkout with `core.autocrlf=false`. A correction passing tests does not itself complete the real-operator pilot or authorize product claims.
