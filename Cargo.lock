@@ -58,10 +58,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "aether_fabric"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror",
+]
+
+[[package]]
 name = "aether_http"
 version = "0.1.0"
 dependencies = [
  "aether_ast",
+ "aether_fabric",
  "aether_partition",
  "aether_pilot",
  "aether_runtime",

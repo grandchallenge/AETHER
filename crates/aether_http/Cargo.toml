@@ -6,6 +6,7 @@ rust-version.workspace = true
 version.workspace = true
 
 [dependencies]
+aether_fabric = { path = "../aether_fabric" }
 aether_ast = { path = "../aether_ast" }
 aether_partition = { path = "../aether_partition" }
 aether_pilot = { path = "../aether_pilot" }

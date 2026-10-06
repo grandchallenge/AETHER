@@ -1,0 +1,28 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://grandchallenge.dev/aether/schemas/aether_fabric/e3/control_state_witness.schema.json",
+  "title":"AETHER/FABRIC E3 ControlStateWitness",
+  "type":"object",
+  "additionalProperties":false,
+  "required":[
+    "schema_version","protocol_family","protocol_major","protocol_minor","record_type",
+    "witness_id","envelope_id","envelope_digest","e1_expires_at","observed_state",
+    "observed_revision","observed_at_unix_ms","source_authority_ref","authority_effect"
+  ],
+  "properties":{
+    "schema_version":{"const":"1.1"},
+    "protocol_family":{"const":"aether-fabric"},
+    "protocol_major":{"const":1},
+    "protocol_minor":{"const":1},
+    "record_type":{"const":"ControlStateWitness"},
+    "witness_id":{"type":"string","minLength":1,"maxLength":256},
+    "envelope_id":{"type":"string","minLength":1,"maxLength":256},
+    "envelope_digest":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "e1_expires_at":{"type":"string","format":"date-time"},
+    "observed_state":{"enum":["active","revoked","superseded","expired"]},
+    "observed_revision":{"type":"string","minLength":1,"maxLength":1024},
+    "observed_at_unix_ms":{"type":"integer","minimum":0},
+    "source_authority_ref":{"type":"string","minLength":1,"maxLength":2048},
+    "authority_effect":{"const":"none"}
+  }
+}
