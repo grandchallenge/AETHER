@@ -28,7 +28,7 @@ Issue #92 / PR #93 delivered the E2 reference conformance harness authorized by
 protected E1 merge `a5198dc1acb9b31508773ff1617127338677e0a5`. The protected
 E2 merge is `fce5095cfd0db8766ae0c7d5e80c091b41284862`.
 
-The candidate adds:
+The protected E2 tranche provides:
 - Draft 2020-12 validation for all six E1 schemas;
 - executable replay of the declared valid/invalid E1 fixtures;
 - a gap-free V01-V51 evidence registry;
