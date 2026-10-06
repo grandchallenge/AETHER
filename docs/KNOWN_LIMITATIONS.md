@@ -1,5 +1,26 @@
 # KNOWN_LIMITATIONS
 
+## AETHER/FABRIC E3/F1 specification boundary
+
+The E3/F1 specification does not prove that a FABRIC selector is equivalent to
+AETHER. It defines the evidence required to make that claim.
+
+Until E3A closes on an exact protected head:
+
+- FABRIC resource selection is not authoritative;
+- shadow output must have no queue, dispatch, lease, start, retry, or semantic
+  side effect;
+- scheduler labels are insufficient for replay without exact artifact digests;
+- resource snapshots require canonicalization, exact digest identity, and an
+  upstream-defined freshness rule;
+- a placement decision cannot survive a later revocation as execution authority;
+- equality of authorized placement sets must be established by differential
+  evidence rather than inferred from shared tests; and
+- no live control-path routing change is authorized.
+
+Even successful E3A completion would leave E3B live cutover as a separately
+governed control-plane decision.
+
 ## AETHER/FABRIC E2 reference-harness boundary
 
 The E2 harness is intentionally an abstract contract checker, not a FABRIC
