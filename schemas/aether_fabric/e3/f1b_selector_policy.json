@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "policy_id": "aether-fabric-f1b-lexicographic-v1",
+  "authority_effect": "none",
+  "eligibility_predicate": "reference_resource_admissible",
+  "ranking": [
+    {"field": "queue_depth", "direction": "ascending"},
+    {"field": "available_capacity.available", "direction": "descending"},
+    {"field": "resource_id", "direction": "ascending"}
+  ],
+  "no_eligible_outcome": "PlacementUnavailable:no_eligible_resource"
+}

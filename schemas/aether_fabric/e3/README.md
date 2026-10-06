@@ -58,3 +58,12 @@ has no scheduling side effect.
 These are candidate contract/evidence records. They do not activate FABRIC,
 route live work, admit queue entries, dispatch payloads, create semantic state,
 or authorize E3B cutover.
+
+
+## F1B policy artifact
+
+`f1b_selector_policy.json` is the exact non-operative F1B ranking artifact. The
+Rust selector binds its SHA-256 digest through `f1b_scheduler_policy_identity()`.
+After F1A admissibility filtering, ranking is lower queue depth, then greater
+available admission capacity, then stable resource ID. No policy fallback or
+implicit substitution is allowed.
