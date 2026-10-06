@@ -136,6 +136,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "aether_reflex"
+version = "0.1.0"
+dependencies = [
+ "aether_ast",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "aether_resolver"
 version = "0.1.0"
 dependencies = [

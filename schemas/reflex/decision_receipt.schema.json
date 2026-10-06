@@ -1,0 +1,304 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grandchallenge.github.io/AETHER/schemas/reflex/decision_receipt.schema.json",
+  "title": "AETHER Reflex Decision Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "decision_id",
+    "question_id",
+    "question_schema_version",
+    "question_schema_digest",
+    "projection",
+    "model",
+    "distribution",
+    "policy",
+    "gate",
+    "authority_effect"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "aether/reflex-decision-receipt/1"
+    },
+    "decision_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "question_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "question_schema_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "projection_id",
+        "cut",
+        "content_digest",
+        "policy_digest"
+      ],
+      "properties": {
+        "projection_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cut": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "cuts"
+          ],
+          "properties": {
+            "cuts": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "partition",
+                  "as_of"
+                ],
+                "properties": {
+                  "partition": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "as_of": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "content_digest": {
+          "type": "string",
+          "pattern": "^sha256:[A-Fa-f0-9]{64}$"
+        },
+        "policy_digest": {
+          "type": "string",
+          "pattern": "^sha256:[A-Fa-f0-9]{64}$"
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "model",
+        "revision"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "distribution": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "choice",
+          "probability"
+        ],
+        "properties": {
+          "choice": {
+            "type": "string",
+            "minLength": 1
+          },
+          "probability": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcome",
+        "reason",
+        "selected_choice",
+        "selected_probability",
+        "runner_up_probability"
+      ],
+      "properties": {
+        "outcome": {
+          "enum": [
+            "act",
+            "deliberate",
+            "escalate"
+          ]
+        },
+        "reason": {
+          "enum": [
+            "authorized_confidence",
+            "probability_below_threshold",
+            "margin_below_threshold",
+            "authority_missing",
+            "choice_not_authorized"
+          ]
+        },
+        "selected_choice": {
+          "type": "string",
+          "minLength": 1
+        },
+        "selected_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "runner_up_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "grant_ref",
+        "authority_digest",
+        "authority_cut",
+        "principal_ref",
+        "capability_ref"
+      ],
+      "properties": {
+        "grant_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "principal_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capability_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authority_digest": {
+          "type": "string",
+          "pattern": "^sha256:[A-Fa-f0-9]{64}$"
+        },
+        "authority_cut": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "cuts"
+          ],
+          "properties": {
+            "cuts": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "partition",
+                  "as_of"
+                ],
+                "properties": {
+                  "partition": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "as_of": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "authority_effect": {
+      "const": "none"
+    },
+    "question_schema_digest": {
+      "type": "string",
+      "pattern": "^sha256:[A-Fa-f0-9]{64}$"
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_ref",
+        "policy_digest",
+        "min_act_probability",
+        "min_top_two_margin"
+      ],
+      "properties": {
+        "policy_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_digest": {
+          "type": "string",
+          "pattern": "^sha256:[A-Fa-f0-9]{64}$"
+        },
+        "min_act_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "min_top_two_margin": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "gate": {
+            "properties": {
+              "outcome": {
+                "const": "act"
+              }
+            },
+            "required": [
+              "outcome"
+            ]
+          }
+        },
+        "required": [
+          "gate"
+        ]
+      },
+      "then": {
+        "required": [
+          "authority"
+        ]
+      }
+    }
+  ]
+}
