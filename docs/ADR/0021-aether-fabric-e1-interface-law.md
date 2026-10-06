@@ -1,9 +1,9 @@
 # ADR 0021 — AETHER/FABRIC E1 Versioned Interface Law
 
-Status: Proposed for E1 review, Revision 1 after Formalist pass
+Status: Accepted — protected E1 completion at `a5198dc1acb9b31508773ff1617127338677e0a5`
 Date: 2026-09-05
 Issue: #85
-Protocol candidate: `aether-fabric/1.0`
+Protocol: `aether-fabric/1.0`
 
 ## Context
 
@@ -320,3 +320,14 @@ E1 requires:
 
 If E1 closes, only E2 conformance-harness work is authorized. Runtime extraction
 remains prohibited until corresponding E2/D1-D5 evidence passes.
+
+
+## Protected completion
+
+E1 completed on 6 October 2026 after exact-head Formalist, Adversary and Referee
+dispositions and protected checks. The protected merge is
+`a5198dc1acb9b31508773ff1617127338677e0a5`.
+
+The accepted protocol remains exactly `aether-fabric/1.0`. Later E3/F1 work
+must use a negotiated extension for new record types rather than silently adding
+fields to the closed E1 schemas.

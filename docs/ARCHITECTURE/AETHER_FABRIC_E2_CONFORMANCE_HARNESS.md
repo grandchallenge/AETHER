@@ -1,6 +1,6 @@
 # AETHER/FABRIC E2 Executable Conformance Harness
 
-Status: E2 candidate
+Status: Protected E2 evidence — merge `fce5095cfd0db8766ae0c7d5e80c091b41284862`
 Issue: #92
 E1 protected basis: `a5198dc1acb9b31508773ff1617127338677e0a5`
 Protocol: `aether-fabric/1.0`

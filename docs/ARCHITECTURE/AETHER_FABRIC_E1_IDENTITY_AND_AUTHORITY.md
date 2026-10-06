@@ -1,6 +1,6 @@
 # AETHER/FABRIC E1 Identity and Authority Strata
 
-Status: E1 candidate
+Status: Accepted — protected E1 merge `a5198dc1acb9b31508773ff1617127338677e0a5`
 Issue: #85
 Protocol: `aether-fabric/1.0`
 
