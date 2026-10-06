@@ -6,7 +6,7 @@ Protected E2 merge `fce5095cfd0db8766ae0c7d5e80c091b41284862` is the evidence ba
 
 The bounded sequence is:
 
-1. F1A — negotiated E3 extension schemas, current blocking-pool reference adapter, canonical decision-input/resource-snapshot contract, and exact selector implementation identity;
+1. F1A — negotiated E3 extension schemas, current blocking-pool reference adapter, canonical decision-input/resource-snapshot contract, and exact selector implementation identity — **implementation candidate in review**;
 2. F1B — pure deterministic resource selector;
 3. F1C — hostile, replay, revocation-race, and idempotency tests;
 4. F1D — non-operative shadow integration beside the AETHER reference selector;

@@ -240,6 +240,8 @@ async fn ensure_structured_http_error(response: Response, request_id: &str) -> R
 struct BoundedBlockingExecutor {
     admitted: Arc<Semaphore>,
     workers: Arc<Semaphore>,
+    worker_limit: usize,
+    queue_limit: usize,
     queue_timeout: std::time::Duration,
 }
 
@@ -296,8 +298,35 @@ impl BoundedBlockingExecutor {
         Self {
             admitted: Arc::new(Semaphore::new(concurrency.saturating_add(queue))),
             workers: Arc::new(Semaphore::new(concurrency)),
+            worker_limit: concurrency,
+            queue_limit: queue,
             queue_timeout: std::time::Duration::from_millis(queue_timeout_ms.max(1)),
         }
+    }
+
+    fn fabric_reference_pool_snapshot(
+        &self,
+        observed_at_unix_ms: u64,
+    ) -> Result<aether_fabric::ResourceSnapshot, aether_fabric::FabricContractError> {
+        let workers_available = self.workers.available_permits();
+        let admitted_available = self.admitted.available_permits();
+        let active_workers = self.worker_limit.saturating_sub(workers_available);
+        let admitted_in_use = self
+            .worker_limit
+            .saturating_add(self.queue_limit)
+            .saturating_sub(admitted_available);
+        let queue_depth = admitted_in_use.saturating_sub(active_workers);
+
+        aether_fabric::ResourceSnapshot::new(
+            format!("aether-local-blocking-pool-{observed_at_unix_ms}-{admitted_available}-{workers_available}-{queue_depth}"),
+            observed_at_unix_ms,
+            "aether_http::BoundedBlockingExecutor",
+            vec![aether_fabric::local_blocking_pool_observation(
+                self.worker_limit.saturating_add(self.queue_limit) as u64,
+                admitted_available as u64,
+                queue_depth as u64,
+            )],
+        )
     }
 
     async fn run<T, F>(&self, operation: F) -> Result<T, HttpError>
@@ -345,6 +374,37 @@ pub struct HttpKernelState {
 impl HttpKernelState {
     pub fn new(service: impl KernelService + Send + 'static) -> Self {
         Self::with_options(service, HttpKernelOptions::default())
+    }
+
+    /// Read-only F1A projection of the current local blocking resource pool.
+    ///
+    /// This inspects semaphore counters only. It does not acquire a permit,
+    /// enqueue work, create a mechanical attempt, or change semantic state.
+    pub fn fabric_reference_pool_snapshot(
+        &self,
+        observed_at_unix_ms: u64,
+    ) -> Result<aether_fabric::ResourceSnapshot, aether_fabric::FabricContractError> {
+        self.blocking
+            .fabric_reference_pool_snapshot(observed_at_unix_ms)
+    }
+
+    /// Read-only F1A reference-admissibility predicate over the exact modeled
+    /// E1/E3 input and current local blocking-pool observation.
+    pub fn fabric_reference_pool_admissible(
+        &self,
+        e1_envelope_bytes: &[u8],
+        constraint: &aether_fabric::PlacementConstraintSet,
+        witness: &aether_fabric::ControlStateWitness,
+        observed_at_unix_ms: u64,
+    ) -> Result<bool, aether_fabric::FabricContractError> {
+        let snapshot = self.fabric_reference_pool_snapshot(observed_at_unix_ms)?;
+        aether_fabric::reference_resource_admissible(
+            e1_envelope_bytes,
+            constraint,
+            &snapshot,
+            witness,
+            aether_fabric::AETHER_LOCAL_BLOCKING_POOL_ID,
+        )
     }
 
     pub fn with_partitioned_options(
@@ -3830,6 +3890,29 @@ mod concurrency_tests {
             detail: None,
             context: AuditContext::default(),
         }
+    }
+
+    #[test]
+    fn fabric_reference_snapshot_is_read_only() {
+        let executor = BoundedBlockingExecutor::new(8, 64, 30_000);
+        let workers_before = executor.workers.available_permits();
+        let admitted_before = executor.admitted.available_permits();
+
+        let first = executor
+            .fabric_reference_pool_snapshot(1_000)
+            .expect("reference snapshot");
+        let second = executor
+            .fabric_reference_pool_snapshot(1_000)
+            .expect("repeat reference snapshot");
+
+        assert_eq!(first, second);
+        assert_eq!(first.resources.len(), 1);
+        assert_eq!(
+            first.resources[0].resource_id,
+            aether_fabric::AETHER_LOCAL_BLOCKING_POOL_ID
+        );
+        assert_eq!(executor.workers.available_permits(), workers_before);
+        assert_eq!(executor.admitted.available_permits(), admitted_before);
     }
 
     #[test]

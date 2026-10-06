@@ -22,6 +22,34 @@ and E3B (separately governed live routing/cutover). E3A does not authorize E3B.
 No FABRIC queue, dispatch, execution, semantic, replica, or policy authority is
 activated by the protected specification.
 
+### F1A implementation candidate
+
+The F1A branch now adds a typed Rust `aether_fabric` contract crate and a
+read-only projection of the current `aether_http::BoundedBlockingExecutor`.
+
+Candidate implementation surfaces:
+
+- negotiated `aether-fabric/1.1` records for `PlacementConstraintSet`,
+  `ControlStateWitness`, `ResourceSnapshot`, `PlacementSelected`, and
+  `PlacementUnavailable`;
+- exact E1-envelope digest binding and narrowing validation;
+- duplicate-key-rejecting deterministic JSON canonicalization
+  (`gcl-cjson-set-v1`);
+- snapshot freshness, exact-decision-time non-authoritative control-state,
+  policy, selector-implementation and length-framed decision-input digest rules;
+- stable live resource-pool identity `aether-local-blocking-pool`;
+- `HttpKernelState::fabric_reference_pool_snapshot`, which observes semaphore
+  counters without acquiring a permit or changing queue/semantic state;
+- `HttpKernelState::fabric_reference_pool_admissible`, a read-only predicate
+  over the exact E1 envelope, E3 constraint, control witness, and current pool
+  snapshot;
+- hostile tests covering authority widening, capability relaxation, stale
+  snapshots, revoked control state, protocol downgrade, and pre-attempt
+  `mechanical_attempt_id` rejection.
+
+This remains F1A/shadow evidence. No FABRIC placement decision is on the live
+routing path.
+
 ## AETHER/FABRIC E2 executable conformance harness (protected, 2026-10-06)
 
 Issue #92 / PR #93 delivered the E2 reference conformance harness authorized by

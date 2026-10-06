@@ -1,6 +1,6 @@
 # ADR 0025 — AETHER/FABRIC E3/F1 Placement-Selection Extraction
 
-Status: Proposed for E3/F1 implementation
+Status: F1A implementation candidate — protected evidence pending
 Date: 2026-10-06
 Issue: #94
 E1 basis: `aether-fabric/1.0`
