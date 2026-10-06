@@ -1,0 +1,293 @@
+{
+  "schema_version": "aether-fabric-e2-vector-registry/1.0",
+  "protocol": "aether-fabric/1.0",
+  "e1_basis": "a5198dc1acb9b31508773ff1617127338677e0a5",
+  "vectors": {
+    "V01": {
+      "families": [
+        "D1_SEMANTIC_EQUIVALENCE"
+      ]
+    },
+    "V02": {
+      "families": [
+        "D1_SEMANTIC_EQUIVALENCE"
+      ]
+    },
+    "V03": {
+      "families": [
+        "D1_SEMANTIC_EQUIVALENCE"
+      ]
+    },
+    "V04": {
+      "families": [
+        "D1_SEMANTIC_EQUIVALENCE"
+      ]
+    },
+    "V05": {
+      "families": [
+        "D1_SEMANTIC_EQUIVALENCE",
+        "D5_RESOURCE_LIFECYCLE"
+      ]
+    },
+    "V06": {
+      "families": [
+        "D1_SEMANTIC_EQUIVALENCE",
+        "D5_RESOURCE_LIFECYCLE"
+      ]
+    },
+    "V07": {
+      "families": [
+        "D1_SEMANTIC_EQUIVALENCE",
+        "D5_RESOURCE_LIFECYCLE"
+      ]
+    },
+    "V08": {
+      "families": [
+        "D1_SEMANTIC_EQUIVALENCE",
+        "D5_RESOURCE_LIFECYCLE"
+      ]
+    },
+    "V09": {
+      "families": [
+        "ENVELOPE_CONTROL_LINEAGE"
+      ]
+    },
+    "V10": {
+      "families": [
+        "ENVELOPE_CONTROL_LINEAGE"
+      ]
+    },
+    "V11": {
+      "families": [
+        "ENVELOPE_CONTROL_LINEAGE"
+      ]
+    },
+    "V12": {
+      "families": [
+        "ENVELOPE_CONTROL_LINEAGE"
+      ]
+    },
+    "V13": {
+      "families": [
+        "ENVELOPE_CONTROL_LINEAGE"
+      ]
+    },
+    "V14": {
+      "families": [
+        "ENVELOPE_CONTROL_LINEAGE"
+      ]
+    },
+    "V15": {
+      "families": [
+        "ENVELOPE_CONTROL_LINEAGE"
+      ]
+    },
+    "V16": {
+      "families": [
+        "ENVELOPE_CONTROL_LINEAGE"
+      ]
+    },
+    "V17": {
+      "families": [
+        "ENVELOPE_CONTROL_LINEAGE",
+        "VERSION_SCHEMA_INTEGRITY"
+      ]
+    },
+    "V18": {
+      "families": [
+        "ENVELOPE_CONTROL_LINEAGE",
+        "VERSION_SCHEMA_INTEGRITY"
+      ]
+    },
+    "V19": {
+      "families": [
+        "VERSION_SCHEMA_INTEGRITY"
+      ]
+    },
+    "V20": {
+      "families": [
+        "VERSION_SCHEMA_INTEGRITY"
+      ]
+    },
+    "V21": {
+      "families": [
+        "VERSION_SCHEMA_INTEGRITY"
+      ]
+    },
+    "V22": {
+      "families": [
+        "IDENTITY_AUTHORITY"
+      ]
+    },
+    "V23": {
+      "families": [
+        "IDENTITY_AUTHORITY"
+      ]
+    },
+    "V24": {
+      "families": [
+        "IDENTITY_AUTHORITY"
+      ]
+    },
+    "V25": {
+      "families": [
+        "IDENTITY_AUTHORITY"
+      ]
+    },
+    "V26": {
+      "families": [
+        "IDENTITY_AUTHORITY"
+      ]
+    },
+    "V27": {
+      "families": [
+        "D2_INFLUENCE_WITHOUT_AUTHORITY"
+      ]
+    },
+    "V28": {
+      "families": [
+        "D2_INFLUENCE_WITHOUT_AUTHORITY",
+        "VERSION_SCHEMA_INTEGRITY"
+      ]
+    },
+    "V29": {
+      "families": [
+        "D2_INFLUENCE_WITHOUT_AUTHORITY",
+        "VERSION_SCHEMA_INTEGRITY"
+      ]
+    },
+    "V30": {
+      "families": [
+        "D2_INFLUENCE_WITHOUT_AUTHORITY"
+      ]
+    },
+    "V31": {
+      "families": [
+        "D3_REPLICA_FENCING"
+      ]
+    },
+    "V32": {
+      "families": [
+        "D3_REPLICA_FENCING"
+      ]
+    },
+    "V33": {
+      "families": [
+        "D4_SIDECAR_LOCALITY"
+      ]
+    },
+    "V34": {
+      "families": [
+        "D4_SIDECAR_LOCALITY"
+      ]
+    },
+    "V35": {
+      "families": [
+        "D2_INFLUENCE_WITHOUT_AUTHORITY",
+        "D5_RESOURCE_LIFECYCLE"
+      ]
+    },
+    "V36": {
+      "families": [
+        "D2_INFLUENCE_WITHOUT_AUTHORITY",
+        "D5_RESOURCE_LIFECYCLE"
+      ]
+    },
+    "V37": {
+      "families": [
+        "D2_INFLUENCE_WITHOUT_AUTHORITY",
+        "D5_RESOURCE_LIFECYCLE"
+      ]
+    },
+    "V38": {
+      "families": [
+        "D2_INFLUENCE_WITHOUT_AUTHORITY",
+        "IDENTITY_AUTHORITY"
+      ]
+    },
+    "V39": {
+      "families": [
+        "D2_INFLUENCE_WITHOUT_AUTHORITY",
+        "IDENTITY_AUTHORITY"
+      ]
+    },
+    "V40": {
+      "families": [
+        "D2_INFLUENCE_WITHOUT_AUTHORITY"
+      ]
+    },
+    "V41": {
+      "families": [
+        "D2_INFLUENCE_WITHOUT_AUTHORITY"
+      ]
+    },
+    "V42": {
+      "families": [
+        "D5_RESOURCE_LIFECYCLE"
+      ]
+    },
+    "V43": {
+      "families": [
+        "D5_RESOURCE_LIFECYCLE"
+      ]
+    },
+    "V44": {
+      "families": [
+        "D1_SEMANTIC_EQUIVALENCE",
+        "D2_INFLUENCE_WITHOUT_AUTHORITY",
+        "D5_RESOURCE_LIFECYCLE"
+      ]
+    },
+    "V45": {
+      "families": [
+        "D1_SEMANTIC_EQUIVALENCE",
+        "D2_INFLUENCE_WITHOUT_AUTHORITY",
+        "D5_RESOURCE_LIFECYCLE"
+      ]
+    },
+    "V46": {
+      "families": [
+        "D1_SEMANTIC_EQUIVALENCE",
+        "D2_INFLUENCE_WITHOUT_AUTHORITY",
+        "D5_RESOURCE_LIFECYCLE"
+      ]
+    },
+    "V47": {
+      "families": [
+        "ENVELOPE_CONTROL_LINEAGE",
+        "VERSION_SCHEMA_INTEGRITY"
+      ]
+    },
+    "V48": {
+      "families": [
+        "IDENTITY_AUTHORITY"
+      ]
+    },
+    "V49": {
+      "families": [
+        "VERSION_SCHEMA_INTEGRITY"
+      ]
+    },
+    "V50": {
+      "families": [
+        "ENVELOPE_CONTROL_LINEAGE"
+      ]
+    },
+    "V51": {
+      "families": [
+        "ENVELOPE_CONTROL_LINEAGE"
+      ]
+    }
+  },
+  "required_evidence_families": [
+    "D1_SEMANTIC_EQUIVALENCE",
+    "D2_INFLUENCE_WITHOUT_AUTHORITY",
+    "D3_REPLICA_FENCING",
+    "D4_SIDECAR_LOCALITY",
+    "D5_RESOURCE_LIFECYCLE",
+    "ENVELOPE_CONTROL_LINEAGE",
+    "IDENTITY_AUTHORITY",
+    "VERSION_SCHEMA_INTEGRITY",
+    "CROSS_PLANE_CONTRACT"
+  ]
+}
