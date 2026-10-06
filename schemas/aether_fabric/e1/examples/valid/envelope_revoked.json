@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "protocol_family": "aether-fabric",
+  "protocol_major": 1,
+  "protocol_minor": 0,
+  "record_type": "MechanicalEnvelopeRevoked",
+  "domain": "control_bridge",
+  "authority_owner": "upstream_governed_record",
+  "control_id": "envelope-control-001",
+  "envelope_id": "envelope-example-001",
+  "authorization_ref": "authorization:example:001",
+  "issuer_ref": "institutional-principal:example:001",
+  "correlation_id": "corr-semantic-operation-001",
+  "revoked_at": "2026-09-05T22:30:04-07:00",
+  "reason": "operator_hold",
+  "integrity_profile_ref": "integrity-profile:e1-reference-001"
+}
