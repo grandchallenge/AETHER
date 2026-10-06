@@ -1,28 +1,32 @@
 # STATUS
 
-## AETHER/FABRIC E3/F1 resource-selection extraction (specified, 2026-10-06)
+## AETHER/FABRIC E3/F1 resource-selection extraction (protected specification; implementation pending, 2026-10-06)
 
 Issue #94 binds the first proposed real FABRIC extraction to protected E2 merge
 `fce5095cfd0db8766ae0c7d5e80c091b41284862`.
 
-The candidate specification is
-`docs/ARCHITECTURE/AETHER_FABRIC_E3_F1_RESOURCE_SELECTION.md`.
-It incorporates the specification review corrections: placement is explicitly
-non-operative; exact replay binds decision time and digest-identified inputs;
-resource requirements and canonical resource snapshots are explicit; freshness
-remains upstream-governed; revocation races are linearized; decisions are
-idempotent; and differential proof must run in shadow mode before any live
-routing proposal.
+The protected specification is
+`docs/ARCHITECTURE/AETHER_FABRIC_E3_F1_RESOURCE_SELECTION.md`. Its protected
+specification milestone is `1ccce8756f7e79fe16753f2c8b3da182addc94c5`.
 
-The tranche is split into E3A (implementation-equivalence evidence) and E3B
-(separately governed live routing/cutover). E3A does not authorize E3B.
+Completeness review identified and repaired four material ambiguities before
+F1A implementation: the closed E1 `1.0` envelope cannot silently acquire E3
+fields; placement precedes and therefore cannot mint `mechanical_attempt_id`;
+the live reference path is the existing anonymous local blocking-worker pool,
+not an identityful multi-resource scheduler; and replay must bind the exact
+selector implementation as well as its policy artifact. ADR 0025 records the
+corrected boundary.
+
+The tranche remains split into E3A (shadow implementation-equivalence evidence)
+and E3B (separately governed live routing/cutover). E3A does not authorize E3B.
 No FABRIC queue, dispatch, execution, semantic, replica, or policy authority is
-activated by this specification.
+activated by the protected specification.
 
-## AETHER/FABRIC E2 executable conformance harness (candidate, 2026-10-06)
+## AETHER/FABRIC E2 executable conformance harness (protected, 2026-10-06)
 
-Issue #92 / PR #93 implement the E2 reference conformance harness authorized by
-protected E1 merge `a5198dc1acb9b31508773ff1617127338677e0a5`.
+Issue #92 / PR #93 delivered the E2 reference conformance harness authorized by
+protected E1 merge `a5198dc1acb9b31508773ff1617127338677e0a5`. The protected
+E2 merge is `fce5095cfd0db8766ae0c7d5e80c091b41284862`.
 
 The candidate adds:
 - Draft 2020-12 validation for all six E1 schemas;
