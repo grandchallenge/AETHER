@@ -1,6 +1,6 @@
 # ADR 0025 — AETHER/FABRIC E3/F1 Placement-Selection Extraction
 
-Status: F1A implementation candidate — protected evidence pending
+Status: F1A protected — implementation merge `24589252ca5584c1ac4385f8fd57b9c680eebbf3`; F1B pending
 Date: 2026-10-06
 Issue: #94
 E1 basis: `aether-fabric/1.0`
@@ -119,3 +119,19 @@ Costs:
 This ADR does not authorize E3B live routing, queue/dispatch authority, general
 FABRIC activation, semantic extraction, replica authority, autonomous policy
 adaptation, distributed FABRIC, or generalized GCL migration.
+
+
+## F1A protected completion
+
+F1A was reviewed on exact source head
+`92fdb90d93bb7eadb0ff7036422d9320f8c155f9` and protected by squash merge
+`24589252ca5584c1ac4385f8fd57b9c680eebbf3` on 6 October 2026.
+
+The protected F1A implementation provides the negotiated E3 contract records,
+canonicalization/digest machinery, exact-decision-time non-authoritative
+control witness, and read-only local blocking-pool reference
+snapshot/admissibility surfaces. It does not perform placement selection,
+queueing, dispatch, route realization, or live FABRIC routing.
+
+The next bounded successor is F1B: a pure deterministic selector over the F1A
+contract. E3B live routing/cutover remains separately governed.

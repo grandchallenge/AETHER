@@ -1,6 +1,6 @@
 # STATUS
 
-## AETHER/FABRIC E3/F1 resource-selection extraction (protected specification; implementation pending, 2026-10-06)
+## AETHER/FABRIC E3/F1 resource-selection extraction (F1A protected; F1B pending, 2026-10-06)
 
 Issue #94 binds the first proposed real FABRIC extraction to protected E2 merge
 `fce5095cfd0db8766ae0c7d5e80c091b41284862`.
@@ -22,12 +22,12 @@ and E3B (separately governed live routing/cutover). E3A does not authorize E3B.
 No FABRIC queue, dispatch, execution, semantic, replica, or policy authority is
 activated by the protected specification.
 
-### F1A implementation candidate
+### F1A protected implementation
 
-The F1A branch now adds a typed Rust `aether_fabric` contract crate and a
+Protected merge `24589252ca5584c1ac4385f8fd57b9c680eebbf3` adds a typed Rust `aether_fabric` contract crate and a
 read-only projection of the current `aether_http::BoundedBlockingExecutor`.
 
-Candidate implementation surfaces:
+Protected F1A surfaces:
 
 - negotiated `aether-fabric/1.1` records for `PlacementConstraintSet`,
   `ControlStateWitness`, `ResourceSnapshot`, `PlacementSelected`, and
@@ -47,8 +47,8 @@ Candidate implementation surfaces:
   snapshots, revoked control state, protocol downgrade, and pre-attempt
   `mechanical_attempt_id` rejection.
 
-This remains F1A/shadow evidence. No FABRIC placement decision is on the live
-routing path.
+F1A is protected contract/reference evidence only. No FABRIC placement decision is on the live
+routing path. The next bounded successor is F1B, a pure deterministic selector; E3B live cutover remains unauthorized.
 
 ## AETHER/FABRIC E2 executable conformance harness (protected, 2026-10-06)
 
