@@ -5,7 +5,7 @@ Issue: `AETHER-FABRIC-ENCAP-E1-001` / #85
 AETHER basis: protected `main` `411411dfcc29757bbf68589b817b8bffeceb7bcb`
 Council basis: INTELLECT `18df1c3ef89712fe00af37a484cc03ce270e99bd`
 E0 basis: AETHER ADR 0020 and E0 packet merged at `411411df...`
-Protocol candidate: `aether-fabric/1.0`
+Protocol: `aether-fabric/1.0`
 
 ## 1. Purpose
 
