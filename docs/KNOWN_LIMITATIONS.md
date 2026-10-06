@@ -1,5 +1,25 @@
 # KNOWN_LIMITATIONS
 
+## AETHER/FABRIC E2 reference-harness boundary
+
+The E2 harness is intentionally an abstract contract checker, not a FABRIC
+implementation.
+
+- Passing traces do not prove that a future scheduler, transport, storage
+  adapter, replica mover, or runtime obeys the same contract under concurrency.
+- The harness does not establish distributed liveness, performance, fairness
+  under production load, crash consistency, or exactly-once delivery.
+- The final cryptographic signature/credential/attestation profile remains
+  outside E2; exact-byte digest checks are not a substitute for issuer
+  authentication.
+- Replica-promotion tests require explicit AETHER validation evidence but do not
+  implement or replace AETHER's real cut/prefix/epoch/fencing logic.
+- Telemetry tests prove the reference admission path is causally bound; they do
+  not activate an allocator or policy-feedback loop.
+- V01-V51 registration and D1-D5 execution are evidence about the E1 candidate
+  contract only. They confer no extraction, deployment, constitutional, POL,
+  Learn, GHOS-controller, or claim-promotion authority.
+
 ## AETHER/Jev reflex boundary
 
 The WP00 reflex surface is intentionally not a production Jev integration.
