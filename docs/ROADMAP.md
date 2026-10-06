@@ -1,5 +1,22 @@
 # ROADMAP
 
+## AETHER/FABRIC E2 conformance lane
+
+E2 is the only AETHER/FABRIC successor currently authorized by protected E1.
+Its job is to convert the candidate interface law into executable reference
+evidence before any extraction proposal is considered.
+
+The E2 closure target is:
+- all six E1 schemas meta-valid and fixture-replayed;
+- V01-V51 registry complete;
+- D1-D5 positive/hostile evidence executable and deterministic;
+- exact-head Formalist, Adversary, and Referee review;
+- protected checks green.
+
+Even if E2 closes, runtime extraction remains a separate future governance
+decision. A later tranche must name the exact protected E2 evidence and prove
+implementation equivalence for the specific responsibility it proposes to move.
+
 ## Bounded reflex track
 
 `AETHER-REFLEX-WP00` (#89) establishes the provider-neutral decision boundary
