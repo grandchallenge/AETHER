@@ -13,7 +13,9 @@ Records:
   E1 envelope. It supplies resource requirements, decision time, snapshot
   freshness and the exact control-state witness binding.
 - `ControlStateWitness` — upstream evidence of the exact envelope control state
-  used for the decision.
+  used for the decision. The witness is non-authoritative and must be observed at
+  the exact `decision_time_unix_ms`, preventing a stale pre-revocation witness
+  from being replayed as current state.
 - `ResourceSnapshot` — canonicalized mechanical resource observation.
 - `PlacementSelected | PlacementUnavailable` — non-operative shadow evidence;
   neither record creates a mechanical attempt or execution authority.

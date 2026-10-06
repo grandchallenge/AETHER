@@ -35,8 +35,8 @@ Candidate implementation surfaces:
 - exact E1-envelope digest binding and narrowing validation;
 - duplicate-key-rejecting deterministic JSON canonicalization
   (`gcl-cjson-set-v1`);
-- snapshot freshness, control-state, policy, selector-implementation and
-  length-framed decision-input digest rules;
+- snapshot freshness, exact-decision-time non-authoritative control-state,
+  policy, selector-implementation and length-framed decision-input digest rules;
 - stable live resource-pool identity `aether-local-blocking-pool`;
 - `HttpKernelState::fabric_reference_pool_snapshot`, which observes semaphore
   counters without acquiring a permit or changing queue/semantic state;

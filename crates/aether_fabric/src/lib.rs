@@ -628,15 +628,25 @@ pub fn validate_control_state_witness(
             "witness expiry projection differs from E1".into(),
         ));
     }
+    if witness.authority_effect != "none" {
+        return Err(FabricContractError::ControlState(
+            "control witness must have authority_effect=none".into(),
+        ));
+    }
+    if witness.source_authority_ref.is_empty() || witness.observed_revision.is_empty() {
+        return Err(FabricContractError::ControlState(
+            "control witness source/revision must be explicit".into(),
+        ));
+    }
     if witness.observed_state != ControlState::Active {
         return Err(FabricContractError::ControlState(format!(
             "envelope is not active: {:?}",
             witness.observed_state
         )));
     }
-    if witness.observed_at_unix_ms > constraint.decision_time_unix_ms {
+    if witness.observed_at_unix_ms != constraint.decision_time_unix_ms {
         return Err(FabricContractError::ControlState(
-            "control witness is from the future relative to decision time".into(),
+            "control witness must be observed at the exact decision time".into(),
         ));
     }
     Ok(())
@@ -1004,7 +1014,7 @@ mod tests {
             e1_expires_at: "2026-10-07T00:00:00Z".into(),
             observed_state: ControlState::Active,
             observed_revision: "rev-1".into(),
-            observed_at_unix_ms: 1_000,
+            observed_at_unix_ms: 1_050,
             source_authority_ref: "AUTH".into(),
             authority_effect: "none".into(),
         }
@@ -1150,6 +1160,23 @@ mod tests {
     }
 
     #[test]
+    fn stale_or_authoritative_control_witness_fails_closed() {
+        let e1 = e1_envelope_bytes();
+
+        let mut stale = witness(&e1);
+        let stale_constraint = constraint(&e1, &stale);
+        stale.observed_at_unix_ms = stale_constraint.decision_time_unix_ms - 1;
+        assert!(validate_control_state_witness(&e1, &stale_constraint, &stale).is_err());
+
+        let mut authoritative = witness(&e1);
+        authoritative.authority_effect = "mechanical_only".into();
+        let authoritative_constraint = constraint(&e1, &authoritative);
+        assert!(
+            validate_control_state_witness(&e1, &authoritative_constraint, &authoritative).is_err()
+        );
+    }
+
+    #[test]
     fn selector_implementation_identity_changes_decision_input() {
         let e1 = e1_envelope_bytes();
         let witness = witness(&e1);
@@ -1190,10 +1217,10 @@ mod tests {
         constraint.locality_constraints = Some(vec!["local-process".into()]);
 
         let available = ResourceSnapshot::new(
-            "S-available",
+            "S-workers-busy-queue-open",
             1_000,
             "test",
-            vec![local_blocking_pool_observation(72, 72, 0)],
+            vec![local_blocking_pool_observation(72, 64, 0)],
         )
         .unwrap();
         assert!(reference_resource_admissible(
