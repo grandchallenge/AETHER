@@ -62,9 +62,9 @@ def test_d1_hostile_hidden_commit_and_half_binding_fail_closed() -> None:
 
 def test_d2_positive_telemetry_requires_submission_and_admission() -> None:
     trace = [
-        {"record_type": "TelemetryEvidenceObserved", "authority_effect": "none"},
-        {"record_type": "SemanticSubmissionProposed"},
-        {"record_type": "SemanticAdmissionAccepted"},
+        {"record_type": "TelemetryEvidenceObserved", "event_id": "T1", "authority_effect": "none"},
+        {"record_type": "SemanticSubmissionProposed", "source_event_id": "T1", "submission_ref": "SUB1"},
+        {"record_type": "SemanticAdmissionAccepted", "submission_ref": "SUB1"},
         {"record_type": "AllocationDesired"},
     ]
     assert validate_trace(trace) == []
@@ -74,23 +74,31 @@ def test_d2_hostile_authority_laundering_and_telemetry_bypass_fail() -> None:
     laundering = [{"record_type": "PayloadDelivered", "authority_effect": "semantic"}]
     assert validate_trace(laundering) == ["0:mechanical_authority_laundering"]
     bypass = [
-        {"record_type": "TelemetryEvidenceObserved", "authority_effect": "none"},
+        {"record_type": "TelemetryEvidenceObserved", "event_id": "T2", "authority_effect": "none"},
+        {"record_type": "SemanticSubmissionProposed", "source_event_id": "OTHER", "submission_ref": "SUB2"},
+        {"record_type": "SemanticAdmissionAccepted", "submission_ref": "SUB2"},
         {"record_type": "AllocationDesired"},
     ]
-    assert validate_trace(bypass) == ["1:unadmitted_telemetry_policy_bypass"]
+    assert validate_trace(bypass) == ["3:unadmitted_telemetry_policy_bypass"]
 
 
 def test_d3_replica_copy_cannot_promote_authority() -> None:
     positive = [
-        {"record_type": "ReplicaMovementObserved", "authority_effect": "none"},
-        {"record_type": "ReplicaPromoted", "authority_owner": "AETHER"},
+        {"record_type": "ReplicaMovementObserved", "event_id": "R1", "authority_effect": "none"},
+        {"record_type": "ReplicaPromoted", "authority_owner": "AETHER",
+         "validated_movement_event_id": "R1", "aether_validation_ref": "cut:epoch:prefix:ok"},
     ]
     assert validate_trace(positive) == []
     hostile = [
-        {"record_type": "ReplicaMovementObserved", "authority_effect": "none"},
+        {"record_type": "ReplicaMovementObserved", "event_id": "R2", "authority_effect": "none"},
         {"record_type": "LeaderEpochChanged", "authority_owner": "FABRIC"},
     ]
     assert validate_trace(hostile) == ["1:replica_movement_authority_promotion"]
+    unvalidated = [
+        {"record_type": "ReplicaMovementObserved", "event_id": "R3", "authority_effect": "none"},
+        {"record_type": "ReplicaPromoted", "authority_owner": "AETHER"},
+    ]
+    assert validate_trace(unvalidated) == ["1:replica_promotion_without_aether_validation"]
 
 
 def test_d4_physical_locality_is_observation_only() -> None:
@@ -122,6 +130,52 @@ def test_d5_revocation_blocks_retry_and_new_start() -> None:
         {"record_type": "QueueAdmitted", "envelope_id": "E5", "mechanical_attempt_id": "M5b"},
     ]
     assert validate_trace(trace) == ["1:retry_after_revocation", "2:new_mechanical_work_after_revocation"]
+
+
+def test_lineage_scope_and_capability_checks_are_executable() -> None:
+    import hashlib
+
+    scope = '{"allowed":["dispatch_payload"]}'
+    digest = hashlib.sha256(scope.encode("utf-8")).hexdigest()
+    assert validate_trace([
+        {"record_type": "ScopeBindingChecked", "scope_bytes_utf8": scope, "scope_digest": digest}
+    ]) == []
+    assert validate_trace([
+        {"record_type": "ScopeBindingChecked", "scope_bytes_utf8": scope, "scope_digest": "0" * 64}
+    ]) == ["0:scope_digest_mismatch"]
+
+    parent = {
+        "permitted_actions": ["dispatch_payload"],
+        "eligible_resource_classes": ["cpu", "gpu"],
+        "trust_zones": ["managed"],
+        "max_attempts": 2,
+        "max_parallel_copies": 2,
+        "priority_class": "normal",
+    }
+    child = {
+        "permitted_actions": ["dispatch_payload"],
+        "eligible_resource_classes": ["gpu"],
+        "trust_zones": ["managed"],
+        "max_attempts": 1,
+        "max_parallel_copies": 1,
+        "priority_class": "low",
+    }
+    assert validate_trace([
+        {"record_type": "EnvelopeDerivationChecked", "parent": parent, "child": child}
+    ]) == []
+    widened = dict(child, max_attempts=3)
+    assert validate_trace([
+        {"record_type": "EnvelopeDerivationChecked", "parent": parent, "child": widened}
+    ]) == ["0:envelope_widening"]
+
+    assert validate_trace([
+        {"record_type": "ProtocolNegotiated", "protocol_family": "aether-fabric", "protocol_major": 1,
+         "required_capabilities": ["copy"], "supported_capabilities": ["copy", "queue"]}
+    ]) == []
+    assert validate_trace([
+        {"record_type": "ProtocolNegotiated", "protocol_family": "aether-fabric", "protocol_major": 1,
+         "required_capabilities": ["copy"], "supported_capabilities": ["queue"]}
+    ]) == ["0:required_capability_missing"]
 
 
 def test_protocol_downgrade_identity_collapse_and_ghos_reachability_fail() -> None:
