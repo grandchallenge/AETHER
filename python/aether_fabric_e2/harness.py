@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Iterable
@@ -93,10 +94,9 @@ def validate_trace(events: Iterable[dict[str, Any]]) -> list[str]:
     started_attempts: set[str] = set()
     rejected_attempts: set[str] = set()
     revoked_envelopes: set[str] = set()
-    telemetry_unadmitted = False
-    semantic_submission_seen = False
-    semantic_admission_seen = False
-    replica_observed = False
+    pending_telemetry_event: str | None = None
+    telemetry_submission_ref: str | None = None
+    last_replica_event: str | None = None
 
     for index, event in enumerate(events):
         record = event.get("record_type")
@@ -141,28 +141,77 @@ def validate_trace(events: Iterable[dict[str, Any]]) -> list[str]:
         if record == "ProtocolNegotiated":
             if event.get("protocol_family") != "aether-fabric" or event.get("protocol_major") != 1:
                 violations.append(f"{index}:implicit_or_incompatible_protocol_downgrade")
+            required = set(event.get("required_capabilities", []))
+            supported = set(event.get("supported_capabilities", []))
+            if not required.issubset(supported):
+                violations.append(f"{index}:required_capability_missing")
+
+        if record == "ScopeBindingChecked":
+            raw = event.get("scope_bytes_utf8")
+            digest = event.get("scope_digest")
+            if not isinstance(raw, str) or not isinstance(digest, str):
+                violations.append(f"{index}:scope_binding_missing_exact_bytes")
+            elif hashlib.sha256(raw.encode("utf-8")).hexdigest() != digest:
+                violations.append(f"{index}:scope_digest_mismatch")
+
+        if record == "EnvelopeDerivationChecked":
+            parent = event.get("parent", {})
+            child = event.get("child", {})
+            subset_fields = ("permitted_actions", "eligible_resource_classes", "trust_zones")
+            widened = any(
+                not set(child.get(field, [])).issubset(set(parent.get(field, [])))
+                for field in subset_fields
+            )
+            if child.get("max_attempts", 0) > parent.get("max_attempts", 0):
+                widened = True
+            if child.get("max_parallel_copies", 0) > parent.get("max_parallel_copies", 0):
+                widened = True
+            priority = {"low": 0, "normal": 1, "high": 2, "critical": 3}
+            if priority.get(child.get("priority_class"), 99) > priority.get(parent.get("priority_class"), -1):
+                widened = True
+            if widened:
+                violations.append(f"{index}:envelope_widening")
 
         if record == "TelemetryEvidenceObserved":
-            telemetry_unadmitted = True
-            semantic_submission_seen = False
-            semantic_admission_seen = False
+            pending_telemetry_event = str(event.get("event_id") or "")
+            telemetry_submission_ref = None
+            if not pending_telemetry_event:
+                violations.append(f"{index}:telemetry_missing_event_identity")
 
-        if record == "SemanticSubmissionProposed" and telemetry_unadmitted:
-            semantic_submission_seen = True
+        if (
+            record == "SemanticSubmissionProposed"
+            and pending_telemetry_event
+            and event.get("source_event_id") == pending_telemetry_event
+        ):
+            telemetry_submission_ref = str(event.get("submission_ref") or "")
+            if not telemetry_submission_ref:
+                violations.append(f"{index}:telemetry_submission_missing_identity")
 
-        if record == "SemanticAdmissionAccepted" and telemetry_unadmitted and semantic_submission_seen:
-            semantic_admission_seen = True
-            telemetry_unadmitted = False
+        if (
+            record == "SemanticAdmissionAccepted"
+            and pending_telemetry_event
+            and telemetry_submission_ref
+            and event.get("submission_ref") == telemetry_submission_ref
+        ):
+            pending_telemetry_event = None
+            telemetry_submission_ref = None
 
-        if record == "AllocationDesired" and telemetry_unadmitted and not semantic_admission_seen:
+        if record == "AllocationDesired" and pending_telemetry_event:
             violations.append(f"{index}:unadmitted_telemetry_policy_bypass")
 
         if record == "ReplicaMovementObserved":
-            replica_observed = True
+            last_replica_event = str(event.get("event_id") or "")
+            if not last_replica_event:
+                violations.append(f"{index}:replica_movement_missing_event_identity")
 
-        if record in {"LeaderEpochChanged", "ReplicaPromoted"} and replica_observed:
+        if record in {"LeaderEpochChanged", "ReplicaPromoted"} and last_replica_event:
             if event.get("authority_owner") != "AETHER":
                 violations.append(f"{index}:replica_movement_authority_promotion")
+            elif (
+                event.get("validated_movement_event_id") != last_replica_event
+                or not event.get("aether_validation_ref")
+            ):
+                violations.append(f"{index}:replica_promotion_without_aether_validation")
 
         if record == "PhysicalObjectLocationObserved":
             if any(event.get(key) for key in ("semantic_relevant", "policy_visible", "admitted")):
