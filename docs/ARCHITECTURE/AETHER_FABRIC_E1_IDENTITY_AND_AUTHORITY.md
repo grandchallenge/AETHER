@@ -338,7 +338,7 @@ If an upstream authority supersedes/revokes a mechanical envelope:
 
 ## 14. Correlation is not identity
 
-`correlation_id`, `event_id`, `attempt_id`, `envelope_id`, and `payload_ref`
+`correlation_id`, `event_id`, `mechanical_attempt_id`, `semantic_attempt_id`, `envelope_id`, and `payload_ref`
 are operational/trace identities. None are actor, office, endpoint or controller
 authority identities.
 
