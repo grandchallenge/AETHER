@@ -3,16 +3,21 @@
 ## AETHER/FABRIC E3/F1 specification boundary
 
 The E3/F1 specification does not prove that a FABRIC selector is equivalent to
-AETHER. It defines the evidence required to make that claim.
+AETHER. It defines the evidence required to make that claim. The current live
+AETHER resource surface is a bounded local blocking pool with anonymous worker
+permits, not an identityful multi-resource scheduler.
 
 Until E3A closes on an exact protected head:
 
 - FABRIC resource selection is not authoritative;
 - shadow output must have no queue, dispatch, lease, start, retry, or semantic
   side effect;
-- scheduler labels are insufficient for replay without exact artifact digests;
+- scheduler labels are insufficient for replay without exact policy and selector-implementation artifact identities;
+- E1 `aether-fabric/1.0` envelopes remain closed and cannot silently acquire E3 placement fields;
 - resource snapshots require canonicalization, exact digest identity, and an
   upstream-defined freshness rule;
+- the first live equivalence claim is limited to the current local blocking resource pool; synthetic multi-resource tests do not widen that claim;
+- shadow placement occurs before `RouteRealized` and therefore must not mint a `mechanical_attempt_id`;
 - a placement decision cannot survive a later revocation as execution authority;
 - equality of authorized placement sets must be established by differential
   evidence rather than inferred from shared tests; and
