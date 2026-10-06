@@ -20,6 +20,7 @@ def test_e1_schemas_and_declared_fixtures_execute() -> None:
     }
     assert result["invalid_fixture"] == "semantic_started_half_bound.json"
     assert result["invalid_error_count"] >= 1
+    assert result["invalid_reason"] == "semantic_start_half_bound"
 
 
 def test_v01_v51_registry_is_gap_free_and_d1_d5_present() -> None:
@@ -99,6 +100,17 @@ def test_d4_physical_locality_is_observation_only() -> None:
     assert validate_trace([
         {"record_type": "PhysicalObjectLocationObserved", "authority_effect": "none", "semantic_relevant": True}
     ]) == ["0:physical_locality_semantic_collapse"]
+
+
+def test_d5_positive_started_attempt_remains_semantic_after_revocation() -> None:
+    trace = [
+        {"record_type": "SemanticExecutionStarted", "semantic_attempt_id": "S5",
+         "mechanical_envelope_id": "E5", "mechanical_attempt_id": "M5"},
+        {"record_type": "MechanicalEnvelopeRevoked", "envelope_id": "E5",
+         "authority_owner": "upstream_governed_record"},
+        {"record_type": "SemanticExecutionCompleted", "semantic_attempt_id": "S5"},
+    ]
+    assert validate_trace(trace) == []
 
 
 def test_d5_revocation_blocks_retry_and_new_start() -> None:
