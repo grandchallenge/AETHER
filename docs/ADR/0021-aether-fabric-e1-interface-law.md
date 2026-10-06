@@ -3,7 +3,7 @@
 Status: Accepted — protected E1 completion at `a5198dc1acb9b31508773ff1617127338677e0a5`
 Date: 2026-09-05
 Issue: #85
-Protocol candidate: `aether-fabric/1.0`
+Protocol: `aether-fabric/1.0`
 
 ## Context
 
