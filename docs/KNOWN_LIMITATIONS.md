@@ -23,7 +23,7 @@ Until E3A closes on an exact protected head:
   evidence rather than inferred from shared tests; and
 - no live control-path routing change is authorized.
 
-The F1A candidate currently models only the existing local blocking resource
+Protected F1A currently models only the existing local blocking resource
 pool and the `blocking_admission_slot` capacity unit. It does not yet provide F1B ranking
 semantics, multi-resource live routing, transport, dispatch, queue ownership, or
 placement-to-`RouteRealized` linkage.
