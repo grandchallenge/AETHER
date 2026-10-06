@@ -62,11 +62,22 @@ def validate_e1_schemas(root: Path) -> dict[str, Any]:
     if not errors:
         raise AssertionError("semantic_started_half_bound.json unexpectedly validated")
 
+    def error_messages(error: Any) -> list[str]:
+        messages = [error.message]
+        for child in error.context:
+            messages.extend(error_messages(child))
+        return messages
+
+    messages = [message for error in errors for message in error_messages(error)]
+    if not any("mechanical_attempt_id" in message for message in messages):
+        raise AssertionError("half-bound fixture failed for an unexpected reason")
+
     return {
         "schema_count": len(schemas),
         "valid_fixtures": valid_results,
         "invalid_fixture": invalid_path.name,
         "invalid_error_count": len(errors),
+        "invalid_reason": "semantic_start_half_bound",
     }
 
 
