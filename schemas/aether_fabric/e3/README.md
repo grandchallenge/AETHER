@@ -46,7 +46,10 @@ assigned fabricated worker identities.
 The `aether_http::HttpKernelState::fabric_reference_pool_snapshot` adapter is
 read-only: it observes configured limits and available permits and does not
 acquire a permit, enqueue work, create a `mechanical_attempt_id`, or mutate
-semantic state.
+semantic state. `fabric_reference_pool_admissible` composes that observation
+with the pure F1A narrowing/freshness/control-state predicate to answer whether
+the modeled current pool is admissible for the exact governed input. It also
+has no scheduling side effect.
 
 ## Non-authority
 

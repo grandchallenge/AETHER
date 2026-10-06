@@ -388,6 +388,25 @@ impl HttpKernelState {
             .fabric_reference_pool_snapshot(observed_at_unix_ms)
     }
 
+    /// Read-only F1A reference-admissibility predicate over the exact modeled
+    /// E1/E3 input and current local blocking-pool observation.
+    pub fn fabric_reference_pool_admissible(
+        &self,
+        e1_envelope_bytes: &[u8],
+        constraint: &aether_fabric::PlacementConstraintSet,
+        witness: &aether_fabric::ControlStateWitness,
+        observed_at_unix_ms: u64,
+    ) -> Result<bool, aether_fabric::FabricContractError> {
+        let snapshot = self.fabric_reference_pool_snapshot(observed_at_unix_ms)?;
+        aether_fabric::reference_resource_admissible(
+            e1_envelope_bytes,
+            constraint,
+            &snapshot,
+            witness,
+            aether_fabric::AETHER_LOCAL_BLOCKING_POOL_ID,
+        )
+    }
+
     pub fn with_partitioned_options(
         service: impl KernelService + Send + 'static,
         partitioned: ReplicatedAuthorityPartitionService,

@@ -40,6 +40,9 @@ Candidate implementation surfaces:
 - stable live resource-pool identity `aether-local-blocking-pool`;
 - `HttpKernelState::fabric_reference_pool_snapshot`, which observes semaphore
   counters without acquiring a permit or changing queue/semantic state;
+- `HttpKernelState::fabric_reference_pool_admissible`, a read-only predicate
+  over the exact E1 envelope, E3 constraint, control witness, and current pool
+  snapshot;
 - hostile tests covering authority widening, capability relaxation, stale
   snapshots, revoked control state, protocol downgrade, and pre-attempt
   `mechanical_attempt_id` rejection.

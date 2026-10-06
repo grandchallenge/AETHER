@@ -750,6 +750,72 @@ pub fn validate_snapshot_freshness(
     Ok(())
 }
 
+pub fn reference_resource_admissible(
+    e1_envelope_bytes: &[u8],
+    constraint: &PlacementConstraintSet,
+    snapshot: &ResourceSnapshot,
+    witness: &ControlStateWitness,
+    resource_id: &str,
+) -> Result<bool, FabricContractError> {
+    validate_placement_constraint_narrowing(e1_envelope_bytes, constraint)?;
+    validate_control_state_witness(e1_envelope_bytes, constraint, witness)?;
+    validate_snapshot_freshness(snapshot, constraint)?;
+
+    let envelope = parse_json_no_duplicates(e1_envelope_bytes)?;
+    let resource = match snapshot
+        .resources
+        .iter()
+        .find(|resource| resource.resource_id == resource_id)
+    {
+        Some(resource) => resource,
+        None => return Ok(false),
+    };
+
+    if resource.health != ResourceHealth::Eligible {
+        return Ok(false);
+    }
+
+    let e1_resource_classes = string_set(&envelope, "eligible_resource_classes")?;
+    let effective_resource_classes =
+        optional_set(&constraint.eligible_resource_classes).unwrap_or(e1_resource_classes);
+    if !effective_resource_classes.contains(&resource.resource_class) {
+        return Ok(false);
+    }
+
+    let e1_trust_zones = string_set(&envelope, "trust_zones")?;
+    let effective_trust_zones = optional_set(&constraint.trust_zones).unwrap_or(e1_trust_zones);
+    if !effective_trust_zones.contains(&resource.trust_zone) {
+        return Ok(false);
+    }
+
+    let mut required_capabilities = string_set(&envelope, "required_capabilities")?;
+    if let Some(extra) = optional_set(&constraint.required_capabilities) {
+        required_capabilities.extend(extra);
+    }
+    let resource_capabilities: BTreeSet<_> = resource.capabilities.iter().cloned().collect();
+    if !required_capabilities.is_subset(&resource_capabilities) {
+        return Ok(false);
+    }
+
+    let mut required_locality = string_set(&envelope, "locality_constraints")?;
+    if let Some(extra) = optional_set(&constraint.locality_constraints) {
+        required_locality.extend(extra);
+    }
+    let resource_locality: BTreeSet<_> = resource.locality.iter().cloned().collect();
+    if !required_locality.is_subset(&resource_locality) {
+        return Ok(false);
+    }
+
+    if resource.available_capacity.unit != constraint.resource_requirements.capacity_unit
+        || resource.available_capacity.available
+            < constraint.resource_requirements.minimum_capacity_units
+    {
+        return Ok(false);
+    }
+
+    Ok(true)
+}
+
 impl SchedulerPolicyIdentity {
     pub fn validate(&self) -> Result<(), FabricContractError> {
         if self.policy_id.is_empty() {
@@ -1114,6 +1180,46 @@ mod tests {
         let b = decision_input_digests(&e1, &constraint, &snapshot, &policy, &selector_b, &witness)
             .unwrap();
         assert_ne!(a.decision_input_digest, b.decision_input_digest);
+    }
+
+    #[test]
+    fn reference_admissibility_matches_local_blocking_pool_contract() {
+        let e1 = e1_envelope_bytes();
+        let witness = witness(&e1);
+        let mut constraint = constraint(&e1, &witness);
+        constraint.locality_constraints = Some(vec!["local-process".into()]);
+
+        let available = ResourceSnapshot::new(
+            "S-available",
+            1_000,
+            "test",
+            vec![local_blocking_pool_observation(72, 72, 0)],
+        )
+        .unwrap();
+        assert!(reference_resource_admissible(
+            &e1,
+            &constraint,
+            &available,
+            &witness,
+            AETHER_LOCAL_BLOCKING_POOL_ID,
+        )
+        .unwrap());
+
+        let saturated = ResourceSnapshot::new(
+            "S-saturated",
+            1_000,
+            "test",
+            vec![local_blocking_pool_observation(72, 0, 64)],
+        )
+        .unwrap();
+        assert!(!reference_resource_admissible(
+            &e1,
+            &constraint,
+            &saturated,
+            &witness,
+            AETHER_LOCAL_BLOCKING_POOL_ID,
+        )
+        .unwrap());
     }
 
     #[test]
