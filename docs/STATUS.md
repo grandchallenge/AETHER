@@ -1,5 +1,25 @@
 # STATUS
 
+## AETHER/FABRIC E2 executable conformance harness (candidate, 2026-10-06)
+
+Issue #92 / PR #93 implement the E2 reference conformance harness authorized by
+protected E1 merge `a5198dc1acb9b31508773ff1617127338677e0a5`.
+
+The candidate adds:
+- Draft 2020-12 validation for all six E1 schemas;
+- executable replay of the declared valid/invalid E1 fixtures;
+- a gap-free V01-V51 evidence registry;
+- positive and hostile D1-D5 reference traces;
+- fail-closed checks for exact-attempt hidden commit, half-binding, revocation,
+  retry identity, envelope widening, exact-byte scope digests, version/capability
+  incompatibility, telemetry admission causality, replica promotion validation,
+  physical-locality collapse, GHOS admission, and identity-strata collapse.
+
+This is harness evidence only. It does not activate FABRIC, extract runtime
+responsibility, amend Article IX, change AETHER semantic authority, activate
+POL/AETHER-Learn, change GHOS controller admission, deploy production state, or
+promote claims.
+
 ## AETHER/Jev bounded reflex boundary (protected WP00, 2026-09-19)
 
 Issue #89 delivered `AETHER-REFLEX-WP00` through PR #90 at protected-main
