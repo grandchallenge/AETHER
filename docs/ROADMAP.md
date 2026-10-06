@@ -1,5 +1,25 @@
 # ROADMAP
 
+## AETHER/FABRIC E3/F1 extraction lane
+
+Protected E2 is now the evidence basis for issue #94.
+
+The bounded sequence is:
+
+1. F1A — canonical decision-input and resource-snapshot contract;
+2. F1B — pure deterministic resource selector;
+3. F1C — hostile, replay, revocation-race, and idempotency tests;
+4. F1D — non-operative shadow integration beside the AETHER reference selector;
+5. F1E — differential-equivalence evidence proving no authorized-set widening;
+6. E3A — exact-head review, protected checks, merge, readback, and receipt;
+7. E3B — a separate control-path decision for any live routing cutover.
+
+The shadow path must remain non-authoritative throughout E3A. Rollback must
+restore the AETHER reference selector without semantic-state migration. No
+queueing, dispatch, transport, retry execution, replica movement, learned
+scheduling, multi-region operation, or generalized FABRIC activation is in
+scope.
+
 ## AETHER/FABRIC E2 conformance lane
 
 E2 is the only AETHER/FABRIC successor currently authorized by protected E1.
