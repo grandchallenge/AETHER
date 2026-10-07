@@ -1,9 +1,11 @@
 # AETHER/FABRIC F1E — Differential Equivalence Evidence
 
-Status: candidate
+Status: protected implementation — documentary readback candidate
 Issue: #94
 Protected basis: `7f871359c3513231af111e8949f5d5c55ee4781f`
 Protected F1D implementation merge: `ebe535885ae73b7950a2f540a137f2836bdb2941`
+Protected F1E source head: `0ded819f4a46e50333e5c54c313c204f8006493a`
+Protected F1E merge: `47bec0af7823c0295f55a6b5f6ae3dac832bfeae`
 
 ## Objective
 
@@ -87,3 +89,36 @@ evidence.
 
 E3B live FABRIC routing/cutover remains a separate governed decision and is not
 authorized by F1E or E3A.
+
+
+## Protected completion
+
+F1E was reviewed on exact source head
+`0ded819f4a46e50333e5c54c313c204f8006493a` and protected by squash merge
+`47bec0af7823c0295f55a6b5f6ae3dac832bfeae` on 7 October 2026.
+
+Exact-head audit passes:
+
+- Formalist PASS — review `5439837567`;
+- Adversary PASS — review `5439837952`;
+- Referee COMPLETE — review `5439838267`.
+
+Exact-head protected checks:
+
+- Required CI gate `112709457489` — success;
+- Required Supply Chain gate `112708830868` — success;
+- policy / policy `112708740627` — success;
+- security / action-policy `112708740206` — success;
+- routing-enforcement `112708738952` — success.
+
+No inline review threads remained at merge. Protected `main` read back to the
+F1E merge immediately after protection.
+
+## Current boundary
+
+The bounded F1A–F1E implementation/evidence sequence is complete. The next
+governed action is E3A exact-head adjudication/readback of the complete
+extraction evidence against the acceptance criteria in
+`AETHER_FABRIC_E3_F1_RESOURCE_SELECTION.md`.
+
+This F1E completion does not authorize E3B live routing/cutover.

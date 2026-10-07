@@ -1,6 +1,6 @@
 # ADR 0025 — AETHER/FABRIC E3/F1 Placement-Selection Extraction
 
-Status: F1E candidate — protected F1D basis `7f871359c3513231af111e8949f5d5c55ee4781f`; E3A adjudication pending
+Status: F1E protected — implementation merge `47bec0af7823c0295f55a6b5f6ae3dac832bfeae`; E3A adjudication pending
 Date: 2026-10-06
 Issue: #94
 E1 basis: `aether-fabric/1.0`
@@ -228,6 +228,10 @@ F1E changes no scheduler, semaphore, queue, route, retry, dispatch, attempt,
 semantic, policy, provenance, or institutional-state behavior. The current
 AETHER reference path remains authoritative.
 
-Successful F1E completes the bounded F1A-F1E implementation/evidence sequence.
+F1E is protected on exact reviewed source head
+`0ded819f4a46e50333e5c54c313c204f8006493a` by squash merge
+`47bec0af7823c0295f55a6b5f6ae3dac832bfeae`.
+
+The bounded F1A-F1E implementation/evidence sequence is therefore complete.
 E3A exact-head adjudication/readback is the next governed step. E3B live
 routing/cutover remains separately governed and unauthorized.
