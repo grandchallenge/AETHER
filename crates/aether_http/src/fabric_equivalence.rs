@@ -1,7 +1,5 @@
 use crate::FabricShadowPlacementComparison;
-use aether_fabric::{
-    FabricContractError, PlacementDecision, AETHER_LOCAL_BLOCKING_POOL_ID,
-};
+use aether_fabric::{FabricContractError, PlacementDecision, AETHER_LOCAL_BLOCKING_POOL_ID};
 use thiserror::Error;
 
 /// F1E differential-equivalence evidence over the admitted live extraction
@@ -98,9 +96,7 @@ pub fn adjudicate_f1e_live_equivalence(
     if decision_selected_resource(&comparison.fabric_decision)
         != comparison.fabric_selected_resource_id.as_deref()
     {
-        return Err(
-            FabricDifferentialEquivalenceError::SelectedResourceProjectionMismatch,
-        );
+        return Err(FabricDifferentialEquivalenceError::SelectedResourceProjectionMismatch);
     }
 
     let fabric_permitted_resource_ids = comparison
@@ -109,9 +105,11 @@ pub fn adjudicate_f1e_live_equivalence(
         .cloned()
         .collect::<Vec<_>>();
 
-    let no_authorization_widening = fabric_permitted_resource_ids
-        .iter()
-        .all(|resource_id| comparison.reference_permitted_resource_ids.contains(resource_id));
+    let no_authorization_widening = fabric_permitted_resource_ids.iter().all(|resource_id| {
+        comparison
+            .reference_permitted_resource_ids
+            .contains(resource_id)
+    });
     if !no_authorization_widening {
         return Err(FabricDifferentialEquivalenceError::AuthorizationSetWidening);
     }
