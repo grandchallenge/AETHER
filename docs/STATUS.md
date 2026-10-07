@@ -565,6 +565,35 @@ Still open:
 - mature Go/Python client ecosystems beyond the current first real boundary clients
 - persistent benchmark dashboards and long-lived trend storage beyond the current run bundles, matrix summaries, trend index, perturbation artifacts, and uploaded workflow artifacts
 
+## AETHER/FABRIC E3B live-control readiness candidate
+
+Issue #110 now governs the separate E3B live-control boundary from protected
+basis `8ca561ea18bc96aba942aeae5e1392f4862b7e1a`.
+
+The current readiness candidate adds:
+
+- a pure `PlacementSelected -> RouteRealized` bridge that mints
+  `mechanical_attempt_id` only at realization;
+- a mandatory fresh realization-time control-state/resource recheck, so
+  revocation, supersession, expiry, stale snapshots, unavailable selected
+  resources, and forged placement bindings fail before realization;
+- deterministic realization-request idempotency and distinct retry identities;
+- `FabricRoutingMode::ReferenceOnly` as the default;
+- an explicit `CandidateReadiness` mode that produces realization evidence
+  without acquiring a blocking permit, queueing work, or changing semantic
+  state;
+- no live-FABRIC routing mode.
+
+The protected HTTP execution path still does not carry runtime
+`MechanicalEnvelopeAuthorized`, `PlacementConstraintSet`,
+`ControlStateWitness`, or `PlacementSelected` records. A safe live cutover
+therefore cannot be activated by FABRIC itself: a governed upstream producer of
+those control records is an explicit activation dependency.
+
+E3B readiness is not production activation. Article IX/AETHER semantic authority
+remains unchanged; a future activation candidate that changes effective
+authority would additionally require effective Article XI completion.
+
 ## Immediate focus
 
 The pytest dependency and gate-diagnostic repair passed on protected candidate

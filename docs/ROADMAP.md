@@ -266,6 +266,26 @@ Focus:
 - keep the governed incident blackboard as the broader governed-workspace reference pattern
 - make adjacent-next agentic stories concrete without widening beyond current proof
 
+### AETHER/FABRIC E3B control-path readiness
+
+The E3/F1 implementation-equivalence lane is protected complete. Issue #110 now
+governs the separately authorized live-control path.
+
+Near-term E3B order:
+
+1. protect the fresh placement-to-`RouteRealized` realization bridge;
+2. protect the default-OFF `reference_only` / `candidate_readiness` routing
+   guard and hostile race/replay evidence;
+3. preserve AETHER semantic authority and the current live reference path;
+4. make the upstream governed E1/E3 control-record producer explicit before any
+   ordinary HTTP operation can be routed through FABRIC;
+5. compile an exact activation packet with rollback/canary evidence;
+6. stop before live production activation unless the reserved control-plane
+   disposition is authentically present on that exact packet.
+
+No roadmap item may synthesize upstream authorization inside FABRIC merely to
+make the cutover mechanically convenient.
+
 ## What Is Deliberately Not The Immediate Roadmap
 
 Not every desirable capability should be pulled forward.

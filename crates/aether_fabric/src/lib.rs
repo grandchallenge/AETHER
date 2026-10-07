@@ -6,7 +6,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use thiserror::Error;
 
+mod realization;
 mod selector;
+pub use realization::*;
 pub use selector::*;
 
 pub const E1_PROTOCOL_FAMILY: &str = "aether-fabric";
