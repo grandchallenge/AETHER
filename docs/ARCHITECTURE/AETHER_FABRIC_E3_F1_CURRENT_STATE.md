@@ -1,6 +1,6 @@
 # AETHER/FABRIC E3/F1 — Current Protected State
 
-Status: F1E protected; E3A adjudication pending
+Status: E3A candidate — substantive PASS; exact-head governance pending
 Issue: #94
 As of: 2026-10-07
 
@@ -21,9 +21,7 @@ F1E exact reviewed source head: `0ded819f4a46e50333e5c54c313c204f8006493a`.
 
 ## Current frontier
 
-F1A-F1E are complete and protected. E3A is next: exact-head adjudication/readback
-of the complete resource-selection extraction evidence against the protected E3/F1
-acceptance criteria.
+F1A-F1E are complete and protected. E3A substantive adjudication is recorded in `AETHER_FABRIC_E3A_ADJUDICATION.md` with candidate disposition PASS. E3A remains incomplete until its own exact-head reviews, protected checks, protected merge/readback, and completion receipt close.
 
 F1E proved exact permitted-set equality and no authorization widening over the
 admitted one-resource live extraction domain. Synthetic multi-resource fixtures
@@ -33,8 +31,7 @@ remain contract/hostile evidence only and are not live-equivalence evidence.
 
 Neither F1D nor F1E transfers routing authority. The AETHER reference path remains authoritative. F1D comparison evidence and F1E differential-equivalence evidence have `authority_effect = none` and do not acquire permits, mutate queues, reserve or dispatch work, create attempts, create `RouteRealized`, start or complete semantic attempts, or admit results.
 
-E3B live routing/cutover remains separately governed and is not authorized by
-F1A-F1E or by completion of E3A.
+E3B live routing/cutover remains separately governed and is not authorized by F1A-F1E, the E3A candidate, or completion of E3A.
 
 ## Documentary supersession
 
