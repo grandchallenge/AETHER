@@ -1,6 +1,6 @@
 # AETHER/FABRIC E3B-C0 — Authority-Issuance Contract
 
-Status: C0 synthesis candidate
+Status: protected C0 contract — C1 off-path implementation authorized; E3B-A not authorized
 Issue: #113
 Parent: #110
 Protected predecessor: `0a1552adf719dbe57667a9b8705b986f0f381483`
@@ -26,7 +26,8 @@ control_integrity_revocation_replay: COMPLETE
 hostile_threat_analysis: COMPLETE
 constitutional_disposition: NO_ARTICLE_IX_AUTHORITY_CHANGE
 C0 substantive disposition: PASS
-C1 implementation: AUTHORIZED ONLY AFTER C0 PROTECTED MERGE/READBACK
+C0 protected disposition: COMPLETE
+C1 implementation: AUTHORIZED OFF-PATH ONLY
 E3B-A activation: NOT AUTHORIZED
 live_fabric_routing: NOT ACTIVE
 ```
@@ -331,21 +332,48 @@ Before live activation:
 | hostile authority laundering closed | PASS |
 | constitutional disposition explicit | PASS — NO_ARTICLE_IX_AUTHORITY_CHANGE |
 | migration/rollback no semantic rewrite | PASS |
-| exact-head Formalist/Adversary/Referee | PENDING C0 governance gate |
-| protected checks/thread closure | PENDING C0 governance gate |
-| protected merge/readback | PENDING C0 governance gate |
-| completion receipt | PENDING C0 governance gate |
+| exact-head Formalist/Adversary/Referee | PASS — reviews 5442309710 / 5442310641 / 5442311146 |
+| protected checks/thread closure | PASS — CI 112793424262; Supply Chain 112793420944; policy 112793354406; security 112793353961; routing 112793355338; no review threads |
+| protected merge/readback | PASS — source head `3a7558311e92616c1200fbcc501e188ed495d192`; protected merge `4eb776748b3c70829bd8dca0c1bc48cb6210776f` |
+| completion receipt | issued after protected documentary readback on issue #113 |
 
 ## 16. Current boundary
 
 ```text
 C0 substantive work A-F: COMPLETE
-C0 protected completion: PENDING EXACT-HEAD GOVERNANCE
-C1 implementation: NOT YET AUTHORIZED
+C0 protected completion: COMPLETE
+C1 implementation: AUTHORIZED OFF-PATH ONLY
 E3B-A: BLOCKED
 reserved_activation_disposition: UNSET
 live_fabric_routing: NOT ACTIVE
 ```
 
-No C1 implementation may begin until this exact synthesized C0 contract is
-protected and read back from `main`.
+`main` read back the protected C0 merge exactly at `4eb776748b3c70829bd8dca0c1bc48cb6210776f`.
+C1 may now implement only the off-path AETHER control-bridge crate defined here.
+Ordinary HTTP hookup remains deferred to C2 shadow integration.
+
+
+## 17. Protected C0 governance evidence
+
+Exact reviewed C0 source head:
+`3a7558311e92616c1200fbcc501e188ed495d192`.
+
+Protected C0 squash merge:
+`4eb776748b3c70829bd8dca0c1bc48cb6210776f`.
+
+Exact-head reviews:
+- Formalist PASS — `5442309710`;
+- Adversary PASS — `5442310641`;
+- Referee COMPLETE — `5442311146`.
+
+Exact-head protected gates:
+- Required CI — `112793424262` success;
+- Required Supply Chain — `112793420944` success;
+- policy — `112793354406` success;
+- security — `112793353961` success;
+- routing-enforcement — `112793355338` success;
+- unresolved review threads — none.
+
+The protected merge changes specification/governance only. It does not add the
+C1 crate, connect ordinary HTTP traffic to the issuer, create a live FABRIC
+route, or populate the reserved E3B-A activation disposition.
