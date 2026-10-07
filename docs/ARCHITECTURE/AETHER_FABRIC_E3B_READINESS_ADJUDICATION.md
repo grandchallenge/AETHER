@@ -1,6 +1,6 @@
 # AETHER/FABRIC E3B-R — Runtime Cutover Readiness Adjudication
 
-Status: candidate — readiness PASS; activation BLOCKED
+Status: protected readiness complete — activation BLOCKED
 Issue: #110
 Protected basis: `8ca561ea18bc96aba942aeae5e1392f4862b7e1a`
 Protected E3A merge: `23353cf01e5c8cefef18eedc8b878c2290fb50f0`
@@ -164,3 +164,31 @@ packet, execution SHALL stop at the **E3B-A RESERVED LIVE ACTIVATION BOUNDARY**
 until the named activation prerequisites exist.
 
 No readiness success may be converted into activation authority.
+
+
+## Protected E3B-R completion
+
+E3B-R was reviewed on exact source head
+`209ec0cbfa49af8bb3827650f2c1f2b7640253d1` and protected by squash merge
+`04659f96b0010e7d88e13fb6c8c26c6e8654f0ac`.
+
+Exact-head reviews:
+
+- Formalist PASS — review `PRR_kwDORqA9d88AAAABRFGqIQ`;
+- Adversary PASS — review `PRR_kwDORqA9d88AAAABRFGtoA`;
+- Referee COMPLETE — review `PRR_kwDORqA9d88AAAABRFGweA`.
+
+Exact-head protected gates:
+
+- Required CI gate `112754487840` — success;
+- Required Supply Chain gate `112753765429` — success;
+- policy / policy `112753690518` — success;
+- security / action-policy `112753690733` — success;
+- routing-enforcement `112753679790` — success;
+- unresolved review threads — none.
+
+Protected `main` read back exactly at
+`04659f96b0010e7d88e13fb6c8c26c6e8654f0ac`.
+
+The E3B-R readiness transaction is therefore complete. E3B-A remains blocked
+and unauthorized for the reasons already recorded above.
