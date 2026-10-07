@@ -113,3 +113,23 @@ ADR 0027 was accepted through the C0 exact-head transaction on source
 This acceptance authorizes C1 off-path implementation of the AETHER-owned
 control bridge only. C2 ordinary-request shadow integration, C3/C4 readiness,
 and E3B-A live activation remain later gates.
+
+
+## C1 implementation candidate
+
+Issue #117 implements this ADR off-path in `crates/aether_control_bridge`.
+
+Exact implementation code commit:
+`8df42c6cd3afa09df8f99c2b0a55a97d11aa5423`.
+
+The implementation preserves the ADR boundary:
+- AETHER owns the issuer and lifecycle registry;
+- FABRIC receives only validated non-authoritative placement/realization inputs;
+- issuer capability is private and non-serializable;
+- cross-process authority transport fails closed;
+- first-lane mutation exclusions remain closed;
+- no ordinary HTTP path is connected;
+- no live routing/control-plane activation occurs.
+
+C1 protection, not this candidate implementation alone, is the gate for a
+future C2 real-request shadow-integration tranche.

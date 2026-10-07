@@ -35,7 +35,7 @@ remain contract/hostile evidence only and are not live-equivalence evidence.
 
 Neither F1D nor F1E transfers routing authority. The AETHER reference path remains authoritative. F1D comparison evidence and F1E differential-equivalence evidence have `authority_effect = none` and do not acquire permits, mutate queues, reserve or dispatch work, create attempts, create `RouteRealized`, start or complete semantic attempts, or admit results.
 
-E3B-R readiness is protected at `04659f96b0010e7d88e13fb6c8c26c6e8654f0ac`. C0-A through C0-F are protected at `4eb776748b3c70829bd8dca0c1bc48cb6210776f` from exact reviewed source head `3a7558311e92616c1200fbcc501e188ed495d192`. C1 off-path implementation is now authorized by the protected C0 contract, but has not begun. Live routing/cutover remains separately governed and is not authorized by F1A-F1E, E3A, E3B-R, C0, or future C1 alone. The activation preflight is `AETHER_FABRIC_E3B_A0_ACTIVATION_PREFLIGHT.md`.
+E3B-R readiness is protected at `04659f96b0010e7d88e13fb6c8c26c6e8654f0ac`. C0-A through C0-F are protected at `4eb776748b3c70829bd8dca0c1bc48cb6210776f` from exact reviewed source head `3a7558311e92616c1200fbcc501e188ed495d192`. C1 is now implemented off-path in `aether_control_bridge` on exact code commit `8df42c6cd3afa09df8f99c2b0a55a97d11aa5423`; its final governance candidate remains pending exact-head protection. C1 has no ordinary HTTP integration or live-routing authority. Live routing/cutover remains separately governed and is not authorized by F1A-F1E, E3A, E3B-R, C0, or C1. The activation preflight is `AETHER_FABRIC_E3B_A0_ACTIVATION_PREFLIGHT.md`.
 
 ## Documentary supersession
 
