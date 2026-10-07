@@ -20,7 +20,7 @@ pub struct FabricDifferentialEquivalenceEvidence {
     pub authority_effect: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Error)]
+#[derive(Debug, Error)]
 pub enum FabricDifferentialEquivalenceError {
     #[error("F1E evidence is outside the admitted one-resource live extraction domain")]
     LiveDomainViolation,
@@ -280,10 +280,10 @@ mod tests {
         let mut comparison = comparison(1);
         comparison.reference_permitted_resource_ids.clear();
         comparison.permitted_set_equal = false;
-        assert_eq!(
+        assert!(matches!(
             adjudicate_f1e_live_equivalence(&comparison).unwrap_err(),
             FabricDifferentialEquivalenceError::AuthorizationSetWidening
-        );
+        ));
     }
 
     #[test]
@@ -293,10 +293,10 @@ mod tests {
             .reference_permitted_resource_ids
             .push(AETHER_LOCAL_BLOCKING_POOL_ID.to_owned());
         comparison.permitted_set_equal = false;
-        assert_eq!(
+        assert!(matches!(
             adjudicate_f1e_live_equivalence(&comparison).unwrap_err(),
             FabricDifferentialEquivalenceError::PermittedSetMismatch
-        );
+        ));
     }
 
     #[test]
@@ -311,30 +311,30 @@ mod tests {
             vec![comparison.resource_snapshot.resources[0].clone(), second],
         )
         .unwrap();
-        assert_eq!(
+        assert!(matches!(
             adjudicate_f1e_live_equivalence(&comparison).unwrap_err(),
             FabricDifferentialEquivalenceError::LiveDomainViolation
-        );
+        ));
     }
 
     #[test]
     fn authority_effect_laundering_is_rejected() {
         let mut comparison = comparison(1);
         comparison.authority_effect = "mechanical_only".into();
-        assert_eq!(
+        assert!(matches!(
             adjudicate_f1e_live_equivalence(&comparison).unwrap_err(),
             FabricDifferentialEquivalenceError::AuthorityEffect
-        );
+        ));
     }
 
     #[test]
     fn selected_resource_projection_tamper_is_rejected() {
         let mut comparison = comparison(1);
         comparison.fabric_selected_resource_id = None;
-        assert_eq!(
+        assert!(matches!(
             adjudicate_f1e_live_equivalence(&comparison).unwrap_err(),
             FabricDifferentialEquivalenceError::SelectedResourceProjectionMismatch
-        );
+        ));
     }
 
     #[test]
@@ -346,10 +346,10 @@ mod tests {
             }
             PlacementDecision::Unavailable(_) => panic!("expected selected decision"),
         }
-        assert_eq!(
+        assert!(matches!(
             adjudicate_f1e_live_equivalence(&comparison).unwrap_err(),
             FabricDifferentialEquivalenceError::SnapshotBindingMismatch
-        );
+        ));
     }
 
     #[test]
