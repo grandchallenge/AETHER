@@ -626,3 +626,26 @@ release claims stays frozen until the relevant repaired contract is green:
 - let the new perturbation sweep accumulate repeated host evidence so scaling projections become a trend rather than a single run
 - use the new capacity tracker to watch for meaningful headroom drift and keep single-node guidance current as the benchmark matrix evolves
 - continue building compelling working applications on top of the pilot, starting with ML-relevant support operations and then widening only where the live proof remains honest
+
+
+## AETHER/FABRIC E3B-C0 authority-issuance candidate
+
+Issue #113 now has a complete C0-A through C0-F specification candidate.
+
+The candidate:
+- inventories all 30 production HTTP operations crossing the bounded blocking
+  executor;
+- admits 23 read/evaluate/explain operation classes to the first shadow lane;
+- excludes seven authoritative mutation classes;
+- introduces an AETHER-owned operation-admission/mechanical-authorization
+  boundary;
+- keeps FABRIC unable to issue/revoke upstream authority;
+- defines the envelope-control registry, fresh-witness, replay and TOCTOU laws;
+- selects the in-process-only `aether-control-bridge-inproc/1` integrity
+  profile for C1/C2;
+- records `NO_ARTICLE_IX_AUTHORITY_CHANGE` for the exact C0 design;
+- specifies an off-path `aether_control_bridge` C1 implementation handoff.
+
+C0 is not complete until this exact synthesis head passes Formalist,
+Adversary and Referee review, protected checks, merge/readback and #113 receipt.
+C1 remains unimplemented, and live FABRIC routing remains inactive.
