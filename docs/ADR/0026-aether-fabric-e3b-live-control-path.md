@@ -1,6 +1,6 @@
 # ADR 0026 — E3B live control-path cutover boundary
 
-Status: runtime-readiness candidate; activation reserved
+Status: runtime-readiness protected; activation reserved and blocked
 Date: 2026-10-07
 Issue: #110
 Protected basis: `8ca561ea18bc96aba942aeae5e1392f4862b7e1a`
@@ -113,3 +113,14 @@ Costs:
 ## Non-authority
 
 This ADR authorizes no production cutover. E3B-A remains separately governed.
+
+
+## Protected readiness completion
+
+The E3B-R readiness implementation was reviewed on exact source head
+`209ec0cbfa49af8bb3827650f2c1f2b7640253d1` and protected as
+`04659f96b0010e7d88e13fb6c8c26c6e8654f0ac`.
+
+This ADR still does not authorize E3B-A. The missing upstream-governed runtime
+control-record producer and exact live-routing/rollback delta are governance
+dependencies, not FABRIC implementation details that the scheduler may infer.
