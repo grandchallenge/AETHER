@@ -1,6 +1,6 @@
 # AETHER/FABRIC E3B — Live Control-Path Governance
 
-Status: runtime-readiness candidate; activation not authorized
+Status: runtime-readiness protected; activation blocked and not authorized
 Issue: #110
 Protected basis: `8ca561ea18bc96aba942aeae5e1392f4862b7e1a`
 Protected E3A merge: `23353cf01e5c8cefef18eedc8b878c2290fb50f0`
@@ -205,3 +205,17 @@ reserved activation disposition.
 E3B-R does not authorize E3B-A, general FABRIC activation, semantic extraction,
 queue ownership, autonomous retries, transport extraction, replica authority,
 distributed FABRIC, or generalized GCL migration.
+
+
+## Protected readiness basis
+
+E3B-R is protected on source head
+`209ec0cbfa49af8bb3827650f2c1f2b7640253d1` by merge
+`04659f96b0010e7d88e13fb6c8c26c6e8654f0ac`.
+
+This does not activate FABRIC routing. The ordinary HTTP execution path remains
+the reference path.
+
+The next governance artifact is
+`AETHER_FABRIC_E3B_A0_ACTIVATION_PREFLIGHT.md`, which records the exact
+activation prerequisites and leaves the reserved activation disposition unset.

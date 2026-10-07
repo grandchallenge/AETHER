@@ -273,13 +273,14 @@ governs the separately authorized live-control path.
 
 Near-term E3B order:
 
-1. protect the fresh placement-to-`RouteRealized` realization bridge;
-2. protect the default-OFF `reference_only` / `candidate_readiness` routing
-   guard and hostile race/replay evidence;
-3. preserve AETHER semantic authority and the current live reference path;
-4. make the upstream governed E1/E3 control-record producer explicit before any
-   ordinary HTTP operation can be routed through FABRIC;
-5. compile an exact activation packet with rollback/canary evidence;
+1. placement-to-`RouteRealized` realization bridge — **protected complete**;
+2. default-OFF `reference_only` / `candidate_readiness` guard plus hostile
+   race/replay evidence — **protected complete**;
+3. preserve AETHER semantic authority and the current live reference path —
+   **still mandatory**;
+4. define and protect the upstream governed E1/E3 control-record producer before
+   any ordinary HTTP operation can be routed through FABRIC — **current blocker**;
+5. complete the exact activation delta with rollback/canary evidence;
 6. stop before live production activation unless the reserved control-plane
    disposition is authentically present on that exact packet.
 

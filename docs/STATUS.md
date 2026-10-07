@@ -565,12 +565,13 @@ Still open:
 - mature Go/Python client ecosystems beyond the current first real boundary clients
 - persistent benchmark dashboards and long-lived trend storage beyond the current run bundles, matrix summaries, trend index, perturbation artifacts, and uploaded workflow artifacts
 
-## AETHER/FABRIC E3B live-control readiness candidate
+## AETHER/FABRIC E3B live-control readiness protected
 
-Issue #110 now governs the separate E3B live-control boundary from protected
-basis `8ca561ea18bc96aba942aeae5e1392f4862b7e1a`.
+Issue #110 governs the separate E3B live-control boundary. E3B-R was reviewed
+on exact source head `209ec0cbfa49af8bb3827650f2c1f2b7640253d1` and protected
+as `04659f96b0010e7d88e13fb6c8c26c6e8654f0ac`.
 
-The current readiness candidate adds:
+The protected readiness implementation adds:
 
 - a pure `PlacementSelected -> RouteRealized` bridge that mints
   `mechanical_attempt_id` only at realization;
