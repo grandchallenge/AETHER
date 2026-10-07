@@ -628,11 +628,11 @@ release claims stays frozen until the relevant repaired contract is green:
 - continue building compelling working applications on top of the pilot, starting with ML-relevant support operations and then widening only where the live proof remains honest
 
 
-## AETHER/FABRIC E3B-C0 authority-issuance candidate
+## AETHER/FABRIC E3B-C0 authority issuance protected
 
-Issue #113 now has a complete C0-A through C0-F specification candidate.
+Issue #113 C0-A through C0-F is protected at `4eb776748b3c70829bd8dca0c1bc48cb6210776f`.
 
-The candidate:
+The protected contract:
 - inventories all 30 production HTTP operations crossing the bounded blocking
   executor;
 - admits 23 read/evaluate/explain operation classes to the first shadow lane;
@@ -646,6 +646,6 @@ The candidate:
 - records `NO_ARTICLE_IX_AUTHORITY_CHANGE` for the exact C0 design;
 - specifies an off-path `aether_control_bridge` C1 implementation handoff.
 
-C0 is not complete until this exact synthesis head passes Formalist,
-Adversary and Referee review, protected checks, merge/readback and #113 receipt.
-C1 remains unimplemented, and live FABRIC routing remains inactive.
+C0 exact-head review/check/merge/readback is complete. C1 off-path implementation
+is now authorized but remains unimplemented. Ordinary HTTP shadow integration is
+a later C2 tranche, and live FABRIC routing remains inactive.
