@@ -346,3 +346,23 @@ Even after C0 protection:
   activation disposition.
 
 These are fail-closed boundaries rather than implicit future permissions.
+
+### E3B-C1 residual limits
+
+C1 implements the AETHER-owned issuer/control registry but deliberately leaves
+it disconnected from ordinary HTTP execution.
+
+Current limits are:
+- no public production constructor for `AetherMechanicalAuthorityIssuer`;
+- no HTTP caller of `aether_control_bridge`;
+- authority integrity is same-process only under
+  `aether-control-bridge-inproc/1`;
+- no production signing/key lifecycle or network trust profile;
+- seven authoritative mutation endpoints remain excluded;
+- no production queue/dispatch effect;
+- no `live_fabric` routing mode;
+- C2 shadow integration requires separate protected completion of C1;
+- E3B-A remains separately reserved and blocked.
+
+The local test executable hash in the C1 evidence record is diagnostic build
+evidence only; it is not a deployable production-authority artifact.

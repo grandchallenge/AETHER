@@ -649,3 +649,31 @@ The protected contract:
 C0 exact-head review/check/merge/readback is complete. C1 off-path implementation
 is now authorized but remains unimplemented. Ordinary HTTP shadow integration is
 a later C2 tranche, and live FABRIC routing remains inactive.
+
+## AETHER/FABRIC E3B-C1 off-path control bridge candidate
+
+Issue #117 implements the protected C0 authority-issuance contract in the new
+AETHER-owned `aether_control_bridge` crate.
+
+Exact implementation code commit:
+`8df42c6cd3afa09df8f99c2b0a55a97d11aa5423`.
+
+The crate contains the closed 23-operation first-lane registry, exact
+operation-admission and mechanical-authorization records, canonical
+operation/mechanical profile identities, bounded in-memory envelope-control
+registry, current-state witness projection, revocation/supersession/expiry
+controls, and same-process non-serializable issuer capability.
+
+C1 remains off-path. There is no ordinary HTTP integration, no public production
+issuer constructor, no live FABRIC routing switch, no cross-process authority
+transport, and no expansion to the seven excluded mutation endpoints.
+
+Local exact-code validation:
+- C1 tests: 29/29 plus compile-fail authority doctest;
+- E2/F1A Python replay: 16/16;
+- full Rust workspace: PASS;
+- full workspace clippy with warnings denied: PASS.
+
+C1 is an implementation candidate until its exact final head completes
+Formalist/Adversary/Referee review, protected checks, merge/readback and #117
+receipt. C2 real-HTTP shadow integration is not yet authorized.
