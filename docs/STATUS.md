@@ -1,6 +1,6 @@
 # STATUS
 
-## AETHER/FABRIC E3/F1 resource-selection extraction (F1A protected; F1B candidate, 2026-10-06)
+## AETHER/FABRIC E3/F1 resource-selection extraction (F1B protected; F1C pending, 2026-10-06)
 
 Issue #94 binds the first proposed real FABRIC extraction to protected E2 merge
 `fce5095cfd0db8766ae0c7d5e80c091b41284862`.
@@ -50,9 +50,9 @@ Protected F1A surfaces:
 F1A is protected contract/reference evidence only. No FABRIC placement decision is on the live
 routing path. The next bounded successor is F1B, a pure deterministic selector; E3B live cutover remains unauthorized.
 
-### F1B deterministic selector candidate
+### F1B protected deterministic selector
 
-F1B adds a pure selector in `crates/aether_fabric/src/selector.rs` and an exact
+Protected F1B merge `04393c83eebe00ef7b24b5efcd767ffbdbc3b3d3` adds a pure selector in `crates/aether_fabric/src/selector.rs` and an exact
 policy artifact at `schemas/aether_fabric/e3/f1b_selector_policy.json`. It filters
 resources only through F1A `reference_resource_admissible`, then ranks eligible
 resources by lower queue depth, greater available admission capacity, and stable
@@ -60,7 +60,7 @@ resource ID. Identical exact inputs replay to the same logical placement decisio
 
 F1B remains completely non-operative: it is not wired into `aether_http`, does
 not acquire permits or queue work, does not create `RouteRealized` attempts, and
-does not authorize live FABRIC routing.
+does not authorize live FABRIC routing. The next bounded successor is F1C hostile/replay evidence; F1D shadow hookup and E3B cutover remain unauthorized.
 
 ## AETHER/FABRIC E2 executable conformance harness (protected, 2026-10-06)
 

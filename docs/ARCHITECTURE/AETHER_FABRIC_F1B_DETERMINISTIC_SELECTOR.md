@@ -1,7 +1,9 @@
 # AETHER/FABRIC F1B — Pure Deterministic Resource Selector
 
-Status: implementation candidate
+Status: protected — merge `04393c83eebe00ef7b24b5efcd767ffbdbc3b3d3`
 Issue: #94
+Protected source head: `a010ad94672f32aac582f91bf73fc7bdec93340d`
+Protected F1B merge: `04393c83eebe00ef7b24b5efcd767ffbdbc3b3d3`
 Protected F1A basis: `24589252ca5584c1ac4385f8fd57b9c680eebbf3`
 Protected documentary basis: `397a1c8be6a6cf69fc1e01271ed40f575e58e6b0`
 

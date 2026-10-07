@@ -23,9 +23,9 @@ Until E3A closes on an exact protected head:
   evidence rather than inferred from shared tests; and
 - no live control-path routing change is authorized.
 
-Protected F1A and the F1B candidate currently model only the existing local blocking
-resource pool and the `blocking_admission_slot` capacity unit for live evidence.
-F1B adds deterministic ranking semantics, but synthetic multi-resource ranking tests
+Protected F1A/F1B currently model only the existing local blocking resource pool
+and the `blocking_admission_slot` capacity unit for live evidence. Protected F1B
+adds deterministic ranking semantics, but synthetic multi-resource ranking tests
 do not establish live multi-resource equivalence. F1B still provides no transport,
 dispatch, queue ownership, placement-to-`RouteRealized` linkage, or live routing.
 

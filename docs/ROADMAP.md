@@ -2,13 +2,13 @@
 
 ## AETHER/FABRIC E3/F1 extraction lane
 
-Protected E2 merge `fce5095cfd0db8766ae0c7d5e80c091b41284862` is the evidence basis for issue #94. The E3/F1 specification milestone is protected at `1ccce8756f7e79fe16753f2c8b3da182addc94c5`; F1A is protected at `24589252ca5584c1ac4385f8fd57b9c680eebbf3`; F1B is the active candidate.
+Protected E2 merge `fce5095cfd0db8766ae0c7d5e80c091b41284862` is the evidence basis for issue #94. The E3/F1 specification milestone is protected at `1ccce8756f7e79fe16753f2c8b3da182addc94c5`; F1A is protected at `24589252ca5584c1ac4385f8fd57b9c680eebbf3`; F1B is protected at `04393c83eebe00ef7b24b5efcd767ffbdbc3b3d3`; F1C is next.
 
 The bounded sequence is:
 
 1. F1A — negotiated E3 extension schemas, current blocking-pool reference adapter, canonical decision-input/resource-snapshot contract, and exact selector implementation identity — **protected complete**;
-2. F1B — pure deterministic resource selector — **implementation candidate in review**;
-3. F1C — hostile, replay, revocation-race, and idempotency tests;
+2. F1B — pure deterministic resource selector — **protected complete**;
+3. F1C — hostile, replay, revocation-race, and idempotency tests — **next bounded successor**;
 4. F1D — non-operative shadow integration beside the AETHER reference selector;
 5. F1E — differential-equivalence evidence proving no authorized-set widening;
 6. E3A — exact-head review, protected checks, merge, readback, and receipt;
