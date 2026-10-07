@@ -16,6 +16,7 @@ This file is the bounded exact-state reconciliation for the E3/F1 extraction lan
 - F1D non-operative shadow integration: `ebe535885ae73b7950a2f540a137f2836bdb2941`
 - F1E differential-equivalence evidence: `47bec0af7823c0295f55a6b5f6ae3dac832bfeae`
 - E3A exact-head adjudication: `23353cf01e5c8cefef18eedc8b878c2290fb50f0`
+- E3B-R live-control readiness: `04659f96b0010e7d88e13fb6c8c26c6e8654f0ac`
 
 F1D exact reviewed source head: `b19d3a736696dcfdd3737848d7b1654136410cca`.
 F1E exact reviewed source head: `0ded819f4a46e50333e5c54c313c204f8006493a`.
@@ -34,7 +35,7 @@ remain contract/hostile evidence only and are not live-equivalence evidence.
 
 Neither F1D nor F1E transfers routing authority. The AETHER reference path remains authoritative. F1D comparison evidence and F1E differential-equivalence evidence have `authority_effect = none` and do not acquire permits, mutate queues, reserve or dispatch work, create attempts, create `RouteRealized`, start or complete semantic attempts, or admit results.
 
-E3B live routing/cutover remains separately governed and is not authorized by F1A-F1E or E3A completion.
+E3B-R readiness is now protected at `04659f96b0010e7d88e13fb6c8c26c6e8654f0ac`, but live routing/cutover remains separately governed and is not authorized by F1A-F1E, E3A, or E3B-R completion. The activation preflight is `AETHER_FABRIC_E3B_A0_ACTIVATION_PREFLIGHT.md`.
 
 ## Documentary supersession
 

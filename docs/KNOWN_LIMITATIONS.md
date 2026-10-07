@@ -285,9 +285,10 @@ ordinary feature backlog:
 
 ## AETHER/FABRIC E3B readiness boundary
 
-The E3B readiness candidate now has a pure, freshly revalidated
+Protected E3B-R now has a pure, freshly revalidated
 `PlacementSelected -> RouteRealized` bridge and a default-OFF
-`CandidateReadiness` evidence surface. This is not live routing.
+`CandidateReadiness` evidence surface at merge
+`04659f96b0010e7d88e13fb6c8c26c6e8654f0ac`. This is not live routing.
 
 The actual protected HTTP execution path still lacks runtime upstream-governed
 `MechanicalEnvelopeAuthorized`, `PlacementConstraintSet`, current
@@ -296,7 +297,7 @@ The actual protected HTTP execution path still lacks runtime upstream-governed
 - FABRIC cannot safely activate itself on ordinary HTTP work;
 - HTTP authentication, namespace admission, semaphore availability, and local
   liveness are insufficient substitutes for those records;
-- no live-FABRIC routing mode exists in the readiness candidate;
+- no live-FABRIC routing mode exists in protected E3B-R;
 - the exact upstream control-record producer and its integrity/authority binding
   remain an activation dependency;
 - production activation additionally remains reserved to the exact
