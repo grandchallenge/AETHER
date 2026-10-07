@@ -1,6 +1,9 @@
 # AETHER/FABRIC E3A — Exact-Head Adjudication
 
-Status: candidate — substantive PASS; governance gates pending
+Status: protected complete
+Exact E3A source head: `23200374e34053f686b9da0af848a7a56a3fde5a`
+Protected E3A merge: `23353cf01e5c8cefef18eedc8b878c2290fb50f0`
+Completion receipt: issue #94 comment `6035347356`
 Issue: #94
 Protected basis: `41f4bfc6873e522fa1320bd456c04d3d7f754959`
 Protected E2 basis: `fce5095cfd0db8766ae0c7d5e80c091b41284862`
@@ -61,26 +64,41 @@ authoritative.
 8. Shadow path mints no mechanical attempt and has no queue/permit/dispatch side effect — **PASS**.
 9. Live-domain no-authorization-widening differential evidence — **PASS**.
 10. Synthetic multi-resource evidence not reported as live equivalence — **PASS**.
-11. Applicable E2 invariants remain green — **PASS subject to this E3A head replay**.
-12. Hostile F1 vectors pass — **PASS subject to this E3A head replay**.
+11. Applicable E2 invariants remain green — **PASS**.
+12. Hostile F1 vectors pass — **PASS**.
 13. Rollback requires no semantic-state migration — **PASS**.
-14. E3A Formalist/Adversary/Referee exact-head passes — **PENDING-GATE**.
-15. E3A protected checks green and no unresolved threads — **PENDING-GATE**.
-16. E3A protected-main readback after merge — **PENDING-GATE**.
-17. E3A completion receipt records exact source head and protected merge — **PENDING-GATE**.
+14. E3A Formalist/Adversary/Referee exact-head passes — **PASS/COMPLETE**.
+15. E3A protected checks green and no unresolved threads — **PASS**.
+16. E3A protected-main readback after merge — **PASS**.
+17. E3A completion receipt records exact source head and protected merge — **PASS**.
 
-## Candidate disposition
+## Protected disposition
 
-All substantive implementation/evidence criteria available before E3A's own
-governance transaction are satisfied.
+All E3A acceptance criteria are satisfied.
 
-**SUBSTANTIVE PASS / GOVERNANCE PENDING.**
+**E3A: PROTECTED COMPLETE.**
 
-Any candidate-head change invalidates later exact-head review/check authority.
+The protected transition is bound to exact source head
+`23200374e34053f686b9da0af848a7a56a3fde5a` and protected merge
+`23353cf01e5c8cefef18eedc8b878c2290fb50f0`.
 
-Before review, the final E3A head must replay the applicable E2/F1A harness,
-`aether_fabric` hostile/replay tests, `aether_http` F1D/F1E tests, full Rust
-workspace, clippy with warnings denied, formatting and diff integrity.
+Exact-head replay completed successfully for the E2/F1A harness,
+`aether_fabric` hostile/replay tests, serial `aether_http` F1D/F1E tests,
+full Rust workspace, clippy with warnings denied, formatting and diff
+integrity.
+
+Exact-head governance:
+- Formalist PASS — review `5440482736`;
+- Adversary PASS — review `5440488151`;
+- Referee COMPLETE — review `5440490296`;
+- Required CI gate `112729912744` — success;
+- Required Supply Chain gate `112729952402` — success;
+- policy / policy `112729869404` — success;
+- security / action-policy `112729869154` — success;
+- routing-enforcement `112729868087` — success;
+- unresolved review threads — none;
+- protected-main readback — exact at `23353cf01e5c8cefef18eedc8b878c2290fb50f0`;
+- completion receipt — issue #94 comment `6035347356`.
 
 ## Non-authority
 
