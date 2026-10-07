@@ -333,8 +333,7 @@ fallbacks.
 
 ### E3B-C0 residual limits
 
-The C0 issuer contract is specification-only until protected and then
-implemented in C1.
+The C0 issuer contract is protected at `4eb776748b3c70829bd8dca0c1bc48cb6210776f` but remains specification-only until implemented in C1.
 
 Even after C0 protection:
 - C1/C2 integrity is restricted to the same protected AETHER process;
