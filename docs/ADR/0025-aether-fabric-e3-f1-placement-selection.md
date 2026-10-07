@@ -1,6 +1,6 @@
 # ADR 0025 — AETHER/FABRIC E3/F1 Placement-Selection Extraction
 
-Status: F1B protected — implementation merge `04393c83eebe00ef7b24b5efcd767ffbdbc3b3d3`; F1C pending
+Status: F1D protected — implementation merge `ebe535885ae73b7950a2f540a137f2836bdb2941`; F1E pending
 Date: 2026-10-06
 Issue: #94
 E1 basis: `aether-fabric/1.0`
@@ -172,9 +172,7 @@ capacity, and stable resource ID. The exact policy artifact is digest-bound.
 Placement evidence remains pre-`RouteRealized`, non-operative, and
 `authority_effect = none`.
 
-F1C hostile/replay evidence is protected at `c21aebe269a83fe729c226189f6643de7f6fc1da`. The next bounded successor is
-F1D non-operative shadow hookup. F1E differential equivalence, E3A full extraction
-closure, and E3B live routing remain outside F1C authority.
+F1C hostile/replay evidence is protected at `c21aebe269a83fe729c226189f6643de7f6fc1da`. F1D non-operative shadow hookup is protected at `ebe535885ae73b7950a2f540a137f2836bdb2941`. F1E differential equivalence is the next bounded successor; E3B live routing remains separately governed.
 
 
 ## F1C protected completion
@@ -186,5 +184,16 @@ revoked/superseded exact-time witness rejection, and decision-identity separatio
 for changed governed inputs.
 
 F1C does not perform the later placement-to-`RouteRealized` revocation recheck and
-does not authorize shadow or live routing. F1D remains the first non-operative
+does not authorize shadow or live routing. F1D is the first non-operative
 shadow-integration tranche.
+
+
+## F1D protected completion
+
+F1D was reviewed on exact source head `b19d3a736696dcfdd3737848d7b1654136410cca` and protected by squash merge `ebe535885ae73b7950a2f540a137f2836bdb2941` on 6 October 2026.
+
+The protected hookup captures the current local blocking-pool `ResourceSnapshot` exactly once and supplies that same exact modeled input to the AETHER reference-admissibility predicate and the F1B selector. The AETHER reference path remains authoritative. FABRIC emits comparison evidence only with `authority_effect = none`.
+
+The hookup acquires no permit, mutates no queue, reserves or dispatches no work, creates no attempt or `RouteRealized` event, and changes no semantic state. Its one-resource permitted-set comparison is valid only for the protected initial live extraction domain and is not a generalized multi-resource equivalence claim.
+
+F1E differential-equivalence evidence is the next bounded successor. E3B live routing/cutover remains separately governed and unauthorized by F1D.
