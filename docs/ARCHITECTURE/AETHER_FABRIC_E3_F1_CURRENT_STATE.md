@@ -1,6 +1,6 @@
 # AETHER/FABRIC E3/F1 — Current Protected State
 
-Status: E3A candidate — substantive PASS; exact-head governance pending
+Status: E3A protected complete; E3B separately governed
 Issue: #94
 As of: 2026-10-07
 
@@ -15,13 +15,16 @@ This file is the bounded exact-state reconciliation for the E3/F1 extraction lan
 - F1C hostile/replay evidence: `c21aebe269a83fe729c226189f6643de7f6fc1da`
 - F1D non-operative shadow integration: `ebe535885ae73b7950a2f540a137f2836bdb2941`
 - F1E differential-equivalence evidence: `47bec0af7823c0295f55a6b5f6ae3dac832bfeae`
+- E3A exact-head adjudication: `23353cf01e5c8cefef18eedc8b878c2290fb50f0`
 
 F1D exact reviewed source head: `b19d3a736696dcfdd3737848d7b1654136410cca`.
 F1E exact reviewed source head: `0ded819f4a46e50333e5c54c313c204f8006493a`.
+E3A exact reviewed source head: `23200374e34053f686b9da0af848a7a56a3fde5a`.
+E3A completion receipt: issue #94 comment `6035347356`.
 
 ## Current frontier
 
-F1A-F1E are complete and protected. E3A substantive adjudication is recorded in `AETHER_FABRIC_E3A_ADJUDICATION.md` with candidate disposition PASS. E3A remains incomplete until its own exact-head reviews, protected checks, protected merge/readback, and completion receipt close.
+F1A-F1E and E3A are complete and protected. `AETHER_FABRIC_E3A_ADJUDICATION.md` is the authoritative completion record. The bounded E3/F1 implementation-equivalence lane is closed.
 
 F1E proved exact permitted-set equality and no authorization widening over the
 admitted one-resource live extraction domain. Synthetic multi-resource fixtures
@@ -31,8 +34,8 @@ remain contract/hostile evidence only and are not live-equivalence evidence.
 
 Neither F1D nor F1E transfers routing authority. The AETHER reference path remains authoritative. F1D comparison evidence and F1E differential-equivalence evidence have `authority_effect = none` and do not acquire permits, mutate queues, reserve or dispatch work, create attempts, create `RouteRealized`, start or complete semantic attempts, or admit results.
 
-E3B live routing/cutover remains separately governed and is not authorized by F1A-F1E, the E3A candidate, or completion of E3A.
+E3B live routing/cutover remains separately governed and is not authorized by F1A-F1E or E3A completion.
 
 ## Documentary supersession
 
-Any older line describing F1C as active, F1D as pending, or F1E as pending is superseded by this ledger together with ADR 0025, `AETHER_FABRIC_F1D_SHADOW_INTEGRATION.md`, and `AETHER_FABRIC_F1E_DIFFERENTIAL_EQUIVALENCE.md`. A later routine whole-document refresh may remove those stale phrases without changing programme state.
+Any older line describing F1C as active, F1D/F1E as pending, or E3A as pending is superseded by this ledger together with `AETHER_FABRIC_E3A_ADJUDICATION.md`. This includes stale phase/status lines in `docs/STATUS.md`, `docs/ROADMAP.md`, ADR 0025, and the original E3/F1 specification header; their normative design clauses remain unchanged. A later routine whole-document refresh may remove those stale phrases without changing programme state.
