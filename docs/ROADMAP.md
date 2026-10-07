@@ -2,7 +2,7 @@
 
 ## AETHER/FABRIC E3/F1 extraction lane
 
-Protected E2 merge `fce5095cfd0db8766ae0c7d5e80c091b41284862` is the evidence basis for issue #94. The E3/F1 specification milestone is protected at `1ccce8756f7e79fe16753f2c8b3da182addc94c5`; F1A is protected at `24589252ca5584c1ac4385f8fd57b9c680eebbf3`; F1B is protected at `04393c83eebe00ef7b24b5efcd767ffbdbc3b3d3`; F1C is the active candidate.
+Protected E2 merge `fce5095cfd0db8766ae0c7d5e80c091b41284862` is the evidence basis for issue #94. The E3/F1 specification milestone is protected at `1ccce8756f7e79fe16753f2c8b3da182addc94c5`; F1A is protected at `24589252ca5584c1ac4385f8fd57b9c680eebbf3`; F1B is protected at `04393c83eebe00ef7b24b5efcd767ffbdbc3b3d3`; F1C is protected at `c21aebe269a83fe729c226189f6643de7f6fc1da`; F1D is next.
 
 The bounded sequence is:
 

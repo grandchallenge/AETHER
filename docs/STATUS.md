@@ -1,6 +1,6 @@
 # STATUS
 
-## AETHER/FABRIC E3/F1 resource-selection extraction (F1B protected; F1C candidate, 2026-10-06)
+## AETHER/FABRIC E3/F1 resource-selection extraction (F1C protected; F1D pending, 2026-10-06)
 
 Issue #94 binds the first proposed real FABRIC extraction to protected E2 merge
 `fce5095cfd0db8766ae0c7d5e80c091b41284862`.
@@ -62,14 +62,16 @@ F1B remains completely non-operative: it is not wired into `aether_http`, does
 not acquire permits or queue work, does not create `RouteRealized` attempts, and
 does not authorize live FABRIC routing.
 
-### F1C hostile/replay evidence candidate
+### F1C hostile/replay evidence protected
 
 F1C adds tests only. It attacks exact replay/idempotency, canonical-equivalent
 snapshot ordering, stale or digest-tampered snapshots, revoked/superseded exact-time
 control witnesses, and replay-identity changes under snapshot, control-revision, or
 selector-implementation changes. No selector behavior or live path is changed.
 
-F1D shadow hookup and E3B cutover remain unauthorized.
+Exact F1C source head `2ac11f579e9862c0d1da74674b05decd7b658bb4` was protected by merge `c21aebe269a83fe729c226189f6643de7f6fc1da`. The next bounded
+successor is F1D non-operative shadow integration beside the AETHER reference selector.
+F1E differential equivalence and E3B live routing/cutover remain unauthorized.
 
 ## AETHER/FABRIC E2 executable conformance harness (protected, 2026-10-06)
 
