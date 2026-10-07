@@ -333,7 +333,7 @@ fallbacks.
 
 ### E3B-C0 residual limits
 
-The C0 issuer contract is protected at `4eb776748b3c70829bd8dca0c1bc48cb6210776f` but remains specification-only until implemented in C1.
+The C0 issuer contract is protected at `4eb776748b3c70829bd8dca0c1bc48cb6210776f`, and its C1 off-path implementation is protected at `2e959418f8a27dfb72beb8502e2b3ecdf82c6f65`.
 
 Even after C0 protection:
 - C1/C2 integrity is restricted to the same protected AETHER process;
@@ -349,8 +349,8 @@ These are fail-closed boundaries rather than implicit future permissions.
 
 ### E3B-C1 residual limits
 
-C1 implements the AETHER-owned issuer/control registry but deliberately leaves
-it disconnected from ordinary HTTP execution.
+C1 is protected complete at `2e959418f8a27dfb72beb8502e2b3ecdf82c6f65` and deliberately leaves
+the AETHER-owned issuer/control registry disconnected from ordinary HTTP execution.
 
 Current limits are:
 - no public production constructor for `AetherMechanicalAuthorityIssuer`;
@@ -361,7 +361,7 @@ Current limits are:
 - seven authoritative mutation endpoints remain excluded;
 - no production queue/dispatch effect;
 - no `live_fabric` routing mode;
-- C2 shadow integration requires separate protected completion of C1;
+- C2 shadow integration is now the next eligible tranche but is not yet implemented or protected;
 - E3B-A remains separately reserved and blocked.
 
 The local test executable hash in the C1 evidence record is diagnostic build
