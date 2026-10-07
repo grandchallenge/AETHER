@@ -12,6 +12,7 @@ pub mod sidecar {
 }
 
 pub mod deployment;
+mod fabric_shadow;
 pub mod http;
 pub mod status;
 
@@ -21,6 +22,7 @@ pub use deployment::{
     PilotTokenConfig, ResolvedPilotHttpTransport, ResolvedPilotServiceConfig, ResolvedPilotStorage,
     ResolvedPilotTokenSummary,
 };
+pub use fabric_shadow::FabricShadowPlacementComparison;
 pub use http::{
     http_router, http_router_with_options, http_router_with_partitioned_options,
     http_router_with_postgres_namespaces, http_router_with_postgres_namespaces_and_tls,
