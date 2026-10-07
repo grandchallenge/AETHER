@@ -1,6 +1,6 @@
 # ADR 0025 — AETHER/FABRIC E3/F1 Placement-Selection Extraction
 
-Status: F1A protected — implementation merge `24589252ca5584c1ac4385f8fd57b9c680eebbf3`; F1B pending
+Status: F1A protected — implementation merge `24589252ca5584c1ac4385f8fd57b9c680eebbf3`; F1B implementation candidate
 Date: 2026-10-06
 Issue: #94
 E1 basis: `aether-fabric/1.0`
@@ -135,3 +135,27 @@ queueing, dispatch, route realization, or live FABRIC routing.
 
 The next bounded successor is F1B: a pure deterministic selector over the F1A
 contract. E3B live routing/cutover remains separately governed.
+
+
+## F1B deterministic-selector decision
+
+F1B adds exactly one pure selection policy over the protected F1A contract.
+Eligibility is delegated exclusively to F1A `reference_resource_admissible`; F1B
+must not introduce an independent permission predicate.
+
+The exact policy artifact is
+`schemas/aether_fabric/e3/f1b_selector_policy.json`, policy ID
+`aether-fabric-f1b-lexicographic-v1`. Among eligible resources it ranks by:
+
+1. lower queue depth;
+2. greater available `blocking_admission_slot` capacity;
+3. stable lexicographic resource ID.
+
+The final tie-break removes resource-array-order dependence. Policy substitution
+fails closed because the selector accepts only the exact artifact digest.
+
+F1B emits only non-operative `PlacementSelected` or `PlacementUnavailable`
+evidence. It remains pre-`RouteRealized`, carries no `mechanical_attempt_id`, and
+has `authority_effect = none`. It is not connected to `aether_http` or any live
+routing path. F1D remains the first shadow-integration tranche; E3B live cutover
+remains separately governed.
