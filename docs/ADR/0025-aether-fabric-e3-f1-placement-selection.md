@@ -172,6 +172,19 @@ capacity, and stable resource ID. The exact policy artifact is digest-bound.
 Placement evidence remains pre-`RouteRealized`, non-operative, and
 `authority_effect = none`.
 
-The next bounded successor is F1C hostile/replay evidence. F1D shadow hookup,
-F1E differential equivalence, E3A full extraction closure, and E3B live routing
-remain outside F1B authority.
+F1C hostile/replay evidence is protected at `c21aebe269a83fe729c226189f6643de7f6fc1da`. The next bounded successor is
+F1D non-operative shadow hookup. F1E differential equivalence, E3A full extraction
+closure, and E3B live routing remain outside F1C authority.
+
+
+## F1C protected completion
+
+F1C was reviewed on exact source head `2ac11f579e9862c0d1da74674b05decd7b658bb4` and protected by squash merge
+`c21aebe269a83fe729c226189f6643de7f6fc1da` on 6 October 2026. The tranche adds hostile/replay evidence only: exact
+idempotency, canonical-equivalent ordering, stale/tampered snapshot rejection,
+revoked/superseded exact-time witness rejection, and decision-identity separation
+for changed governed inputs.
+
+F1C does not perform the later placement-to-`RouteRealized` revocation recheck and
+does not authorize shadow or live routing. F1D remains the first non-operative
+shadow-integration tranche.
