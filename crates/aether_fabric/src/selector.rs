@@ -451,4 +451,251 @@ mod tests {
             Some("none")
         );
     }
+
+    #[test]
+    fn canonical_equivalent_snapshot_order_is_logically_idempotent() {
+        let e1 = e1_envelope_bytes();
+        let witness = witness(&e1);
+        let constraint = constraint(&e1, &witness);
+        let left = ResourceSnapshot::new(
+            "S1",
+            1_000,
+            "test",
+            vec![resource("z", 1, 5), resource("a", 1, 5)],
+        )
+        .unwrap();
+        let right = ResourceSnapshot::new(
+            "S1",
+            1_000,
+            "test",
+            vec![resource("a", 1, 5), resource("z", 1, 5)],
+        )
+        .unwrap();
+        assert_eq!(left.snapshot_digest, right.snapshot_digest);
+
+        let policy = f1b_scheduler_policy_identity();
+        let selector = selector_identity();
+        let left_decision =
+            f1b_select_resource(&e1, &constraint, &left, &witness, &policy, &selector).unwrap();
+        let right_decision =
+            f1b_select_resource(&e1, &constraint, &right, &witness, &policy, &selector).unwrap();
+        assert_eq!(left_decision, right_decision);
+    }
+
+    #[test]
+    fn repeated_unavailable_decision_is_idempotent() {
+        let e1 = e1_envelope_bytes();
+        let witness = witness(&e1);
+        let constraint = constraint(&e1, &witness);
+        let snapshot =
+            ResourceSnapshot::new("S1", 1_000, "test", vec![resource("full", 9, 0)]).unwrap();
+        let policy = f1b_scheduler_policy_identity();
+        let selector = selector_identity();
+
+        let first =
+            f1b_select_resource(&e1, &constraint, &snapshot, &witness, &policy, &selector).unwrap();
+        let second =
+            f1b_select_resource(&e1, &constraint, &snapshot, &witness, &policy, &selector).unwrap();
+        assert_eq!(first, second);
+    }
+
+    #[test]
+    fn revoked_witness_blocks_new_placement_even_when_constraint_binds_it_exactly() {
+        let e1 = e1_envelope_bytes();
+        let mut revoked = witness(&e1);
+        revoked.observed_state = ControlState::Revoked;
+        revoked.observed_revision = "rev-2".into();
+        let mut constraint = constraint(&e1, &revoked);
+        constraint.control_state_digest = revoked.digest().unwrap();
+        let snapshot =
+            ResourceSnapshot::new("S1", 1_000, "test", vec![resource("r1", 0, 1)]).unwrap();
+
+        let err = f1b_select_resource(
+            &e1,
+            &constraint,
+            &snapshot,
+            &revoked,
+            &f1b_scheduler_policy_identity(),
+            &selector_identity(),
+        )
+        .unwrap_err();
+        assert!(matches!(err, FabricContractError::ControlState(_)));
+    }
+
+    #[test]
+    fn superseded_witness_blocks_new_placement_even_when_constraint_binds_it_exactly() {
+        let e1 = e1_envelope_bytes();
+        let mut superseded = witness(&e1);
+        superseded.observed_state = ControlState::Superseded;
+        superseded.observed_revision = "rev-2".into();
+        let mut constraint = constraint(&e1, &superseded);
+        constraint.control_state_digest = superseded.digest().unwrap();
+        let snapshot =
+            ResourceSnapshot::new("S1", 1_000, "test", vec![resource("r1", 0, 1)]).unwrap();
+
+        let err = f1b_select_resource(
+            &e1,
+            &constraint,
+            &snapshot,
+            &superseded,
+            &f1b_scheduler_policy_identity(),
+            &selector_identity(),
+        )
+        .unwrap_err();
+        assert!(matches!(err, FabricContractError::ControlState(_)));
+    }
+
+    #[test]
+    fn stale_snapshot_replay_fails_closed() {
+        let e1 = e1_envelope_bytes();
+        let witness = witness(&e1);
+        let mut constraint = constraint(&e1, &witness);
+        constraint.max_snapshot_age_ms = 10;
+        let snapshot =
+            ResourceSnapshot::new("S-old", 1_000, "test", vec![resource("r1", 0, 1)]).unwrap();
+
+        let err = f1b_select_resource(
+            &e1,
+            &constraint,
+            &snapshot,
+            &witness,
+            &f1b_scheduler_policy_identity(),
+            &selector_identity(),
+        )
+        .unwrap_err();
+        assert!(matches!(err, FabricContractError::Snapshot(_)));
+    }
+
+    #[test]
+    fn snapshot_mutation_without_digest_refresh_is_rejected() {
+        let e1 = e1_envelope_bytes();
+        let witness = witness(&e1);
+        let constraint = constraint(&e1, &witness);
+        let mut snapshot =
+            ResourceSnapshot::new("S1", 1_000, "test", vec![resource("r1", 0, 1)]).unwrap();
+        snapshot.resources[0].queue_depth = 99;
+
+        let err = f1b_select_resource(
+            &e1,
+            &constraint,
+            &snapshot,
+            &witness,
+            &f1b_scheduler_policy_identity(),
+            &selector_identity(),
+        )
+        .unwrap_err();
+        assert!(matches!(
+            err,
+            FabricContractError::DigestMismatch("resource snapshot")
+        ));
+    }
+
+    #[test]
+    fn changed_snapshot_gets_new_decision_identity() {
+        let e1 = e1_envelope_bytes();
+        let witness = witness(&e1);
+        let constraint = constraint(&e1, &witness);
+        let first_snapshot =
+            ResourceSnapshot::new("S1", 1_000, "test", vec![resource("r1", 0, 1)]).unwrap();
+        let second_snapshot =
+            ResourceSnapshot::new("S2", 1_000, "test", vec![resource("r1", 1, 1)]).unwrap();
+        let policy = f1b_scheduler_policy_identity();
+        let selector = selector_identity();
+
+        let first = f1b_select_resource(
+            &e1,
+            &constraint,
+            &first_snapshot,
+            &witness,
+            &policy,
+            &selector,
+        )
+        .unwrap();
+        let second = f1b_select_resource(
+            &e1,
+            &constraint,
+            &second_snapshot,
+            &witness,
+            &policy,
+            &selector,
+        )
+        .unwrap();
+        assert_ne!(decision_id(&first), decision_id(&second));
+    }
+
+    #[test]
+    fn changed_active_control_revision_gets_new_decision_identity() {
+        let e1 = e1_envelope_bytes();
+        let witness_one = witness(&e1);
+        let constraint_one = constraint(&e1, &witness_one);
+
+        let mut witness_two = witness_one.clone();
+        witness_two.witness_id = "W2".into();
+        witness_two.observed_revision = "rev-2".into();
+        let constraint_two = constraint(&e1, &witness_two);
+        let snapshot =
+            ResourceSnapshot::new("S1", 1_000, "test", vec![resource("r1", 0, 1)]).unwrap();
+        let policy = f1b_scheduler_policy_identity();
+        let selector = selector_identity();
+
+        let first = f1b_select_resource(
+            &e1,
+            &constraint_one,
+            &snapshot,
+            &witness_one,
+            &policy,
+            &selector,
+        )
+        .unwrap();
+        let second = f1b_select_resource(
+            &e1,
+            &constraint_two,
+            &snapshot,
+            &witness_two,
+            &policy,
+            &selector,
+        )
+        .unwrap();
+        assert_ne!(decision_id(&first), decision_id(&second));
+    }
+
+    #[test]
+    fn changed_selector_identity_gets_new_decision_identity() {
+        let e1 = e1_envelope_bytes();
+        let witness = witness(&e1);
+        let constraint = constraint(&e1, &witness);
+        let snapshot =
+            ResourceSnapshot::new("S1", 1_000, "test", vec![resource("r1", 0, 1)]).unwrap();
+        let policy = f1b_scheduler_policy_identity();
+        let first_selector = selector_identity();
+        let mut second_selector = first_selector.clone();
+        second_selector.artifact_sha256 = "2".repeat(64);
+
+        let first = f1b_select_resource(
+            &e1,
+            &constraint,
+            &snapshot,
+            &witness,
+            &policy,
+            &first_selector,
+        )
+        .unwrap();
+        let second = f1b_select_resource(
+            &e1,
+            &constraint,
+            &snapshot,
+            &witness,
+            &policy,
+            &second_selector,
+        )
+        .unwrap();
+        assert_ne!(decision_id(&first), decision_id(&second));
+    }
+
+    fn decision_id(decision: &PlacementDecision) -> &str {
+        match decision {
+            PlacementDecision::Selected(selected) => &selected.placement_decision_id,
+            PlacementDecision::Unavailable(unavailable) => &unavailable.placement_decision_id,
+        }
+    }
 }
