@@ -1,6 +1,6 @@
 # ADR 0025 — AETHER/FABRIC E3/F1 Placement-Selection Extraction
 
-Status: F1D protected — implementation merge `ebe535885ae73b7950a2f540a137f2836bdb2941`; F1E pending
+Status: F1E candidate — protected F1D basis `7f871359c3513231af111e8949f5d5c55ee4781f`; E3A adjudication pending
 Date: 2026-10-06
 Issue: #94
 E1 basis: `aether-fabric/1.0`
@@ -197,3 +197,37 @@ The protected hookup captures the current local blocking-pool `ResourceSnapshot`
 The hookup acquires no permit, mutates no queue, reserves or dispatches no work, creates no attempt or `RouteRealized` event, and changes no semantic state. Its one-resource permitted-set comparison is valid only for the protected initial live extraction domain and is not a generalized multi-resource equivalence claim.
 
 F1E differential-equivalence evidence is the next bounded successor. E3B live routing/cutover remains separately governed and unauthorized by F1D.
+
+
+## F1E differential-equivalence candidate
+
+F1E adds only an evidence adjudicator over the protected F1D comparison record.
+It is explicitly limited to the admitted live domain containing exactly one
+resource pool, `aether-local-blocking-pool`.
+
+For that domain, F1E requires both:
+
+```text
+FABRIC permitted set == AETHER reference permitted set
+FABRIC permitted set subset-of AETHER reference permitted set
+```
+
+The second predicate is recorded separately as the no-authorization-widening
+property even though exact equality implies it. Any mismatch fails closed as an
+evidence error and is not returned as a placement result.
+
+The adjudicator additionally rejects:
+
+- synthetic multi-resource evidence presented as live equivalence;
+- authority-effect laundering;
+- FABRIC decisions not bound to the exact compared snapshot digest; and
+- selected-resource projections inconsistent with the underlying placement
+  decision.
+
+F1E changes no scheduler, semaphore, queue, route, retry, dispatch, attempt,
+semantic, policy, provenance, or institutional-state behavior. The current
+AETHER reference path remains authoritative.
+
+Successful F1E completes the bounded F1A-F1E implementation/evidence sequence.
+E3A exact-head adjudication/readback is the next governed step. E3B live
+routing/cutover remains separately governed and unauthorized.
