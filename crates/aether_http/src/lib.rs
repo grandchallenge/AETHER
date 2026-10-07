@@ -12,6 +12,7 @@ pub mod sidecar {
 }
 
 pub mod deployment;
+mod fabric_equivalence;
 mod fabric_shadow;
 pub mod http;
 pub mod status;
@@ -21,6 +22,10 @@ pub use deployment::{
     PilotConcurrencyConfig, PilotHttpTransportConfig, PilotServiceConfig, PilotStorageConfig,
     PilotTokenConfig, ResolvedPilotHttpTransport, ResolvedPilotServiceConfig, ResolvedPilotStorage,
     ResolvedPilotTokenSummary,
+};
+pub use fabric_equivalence::{
+    adjudicate_f1e_live_equivalence, FabricDifferentialEquivalenceError,
+    FabricDifferentialEquivalenceEvidence,
 };
 pub use fabric_shadow::FabricShadowPlacementComparison;
 pub use http::{
