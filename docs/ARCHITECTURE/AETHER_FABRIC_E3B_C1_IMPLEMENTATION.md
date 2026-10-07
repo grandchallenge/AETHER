@@ -1,6 +1,6 @@
 # AETHER/FABRIC E3B-C1 â€” Off-Path Control-Bridge Implementation
 
-Status: implementation candidate; exact-head governance pending
+Status: protected complete — C2 shadow integration eligible; E3B-A not authorized
 Issue: #117
 Parent: #110
 Protected C0 basis: `5493da50aaeff9c944cee8c01891bad498e631ac`
@@ -297,19 +297,28 @@ HTTP integration: ABSENT BY DESIGN
 live FABRIC routing: ABSENT
 ```
 
-Governance completion remains pending on the final C1 candidate head:
+Protected governance completion:
 
-- exact-head Formalist;
-- exact-head Adversary;
-- exact-head Referee;
-- protected CI/Supply Chain/policy/security/routing checks;
-- thread closure;
-- protected merge/readback;
-- issue #117 completion receipt.
+- exact reviewed head: `97c0878d067fcd7cdde978c2d3967c08ead5d006`;
+- protected merge: `2e959418f8a27dfb72beb8502e2b3ecdf82c6f65`;
+- Formalist PASS: review `5449558320`;
+- Adversary PASS: review `5449559745`;
+- Referee COMPLETE: review `5449561091`;
+- Required CI: `113065721575` success;
+- Required Supply Chain: `113065207060` success;
+- Rust PR fast: `113065172719` success;
+- policy: `113065135368` success;
+- security: `113065135595` success;
+- routing-enforcement: `113065133898` success;
+- GCL conformance run `37701309738`: success;
+- unresolved review threads: none;
+- protected-main readback: `2e959418f8a27dfb72beb8502e2b3ecdf82c6f65`.
+
+Issue #117 completion receipt is emitted after the final documentary readback.
 
 ## 14. Successor boundary
 
-If C1 protects successfully, the only newly eligible successor is C2:
+With C1 protected, the only newly eligible successor is C2:
 real-HTTP **shadow** integration.
 
 C2 may add an AETHER-owned issuer factory and run the C1 issuance path beside
@@ -318,7 +327,7 @@ with respect to production routing.
 
 C1 does not authorize:
 
-- C2 before C1 protection;
+- C2 effects beyond shadow-only integration;
 - `live_fabric`;
 - production FABRIC dispatch;
 - E3B-A;
@@ -330,8 +339,8 @@ Current boundary:
 ```text
 E3B-R: PROTECTED COMPLETE
 C0-A-F: PROTECTED COMPLETE
-C1: IMPLEMENTED / GOVERNANCE PENDING
-C2: NOT YET AUTHORIZED
+C1: PROTECTED COMPLETE
+C2: AUTHORIZED SHADOW-ONLY / NOT STARTED
 E3B-A: BLOCKED
 reserved_activation_disposition: UNSET
 live_fabric_routing: NOT ACTIVE

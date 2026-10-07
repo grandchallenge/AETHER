@@ -647,10 +647,11 @@ The protected contract:
 - specifies an off-path `aether_control_bridge` C1 implementation handoff.
 
 C0 exact-head review/check/merge/readback is complete. C1 off-path implementation
-is now authorized but remains unimplemented. Ordinary HTTP shadow integration is
-a later C2 tranche, and live FABRIC routing remains inactive.
+is protected at `2e959418f8a27dfb72beb8502e2b3ecdf82c6f65`. Ordinary HTTP
+shadow integration is now the next eligible C2 tranche but has not started, and
+live FABRIC routing remains inactive.
 
-## AETHER/FABRIC E3B-C1 off-path control bridge candidate
+## AETHER/FABRIC E3B-C1 off-path control bridge protected
 
 Issue #117 implements the protected C0 authority-issuance contract in the new
 AETHER-owned `aether_control_bridge` crate.
@@ -674,6 +675,4 @@ Local exact-code validation:
 - full Rust workspace: PASS;
 - full workspace clippy with warnings denied: PASS.
 
-C1 is an implementation candidate until its exact final head completes
-Formalist/Adversary/Referee review, protected checks, merge/readback and #117
-receipt. C2 real-HTTP shadow integration is not yet authorized.
+C1 exact-head review/check/merge/readback is complete on source head `97c0878d067fcd7cdde978c2d3967c08ead5d006`, protected merge `2e959418f8a27dfb72beb8502e2b3ecdf82c6f65`. C2 real-HTTP shadow integration is now authorized as the next separately governed tranche; it has not started and remains non-operative by definition.

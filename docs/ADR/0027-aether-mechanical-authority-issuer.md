@@ -115,7 +115,7 @@ control bridge only. C2 ordinary-request shadow integration, C3/C4 readiness,
 and E3B-A live activation remain later gates.
 
 
-## C1 implementation candidate
+## Protected C1 implementation
 
 Issue #117 implements this ADR off-path in `crates/aether_control_bridge`.
 
@@ -131,5 +131,7 @@ The implementation preserves the ADR boundary:
 - no ordinary HTTP path is connected;
 - no live routing/control-plane activation occurs.
 
-C1 protection, not this candidate implementation alone, is the gate for a
-future C2 real-request shadow-integration tranche.
+C1 was protected on exact reviewed head `97c0878d067fcd7cdde978c2d3967c08ead5d006`
+by merge `2e959418f8a27dfb72beb8502e2b3ecdf82c6f65`. This protection makes C2
+real-request shadow integration the next eligible tranche; it does not authorize
+live routing.
