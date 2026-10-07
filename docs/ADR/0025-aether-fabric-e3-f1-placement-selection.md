@@ -1,6 +1,6 @@
 # ADR 0025 — AETHER/FABRIC E3/F1 Placement-Selection Extraction
 
-Status: F1A protected — implementation merge `24589252ca5584c1ac4385f8fd57b9c680eebbf3`; F1B implementation candidate
+Status: F1B protected — implementation merge `04393c83eebe00ef7b24b5efcd767ffbdbc3b3d3`; F1C pending
 Date: 2026-10-06
 Issue: #94
 E1 basis: `aether-fabric/1.0`
@@ -159,3 +159,19 @@ evidence. It remains pre-`RouteRealized`, carries no `mechanical_attempt_id`, an
 has `authority_effect = none`. It is not connected to `aether_http` or any live
 routing path. F1D remains the first shadow-integration tranche; E3B live cutover
 remains separately governed.
+
+
+## F1B protected completion
+
+F1B was reviewed on exact source head `a010ad94672f32aac582f91bf73fc7bdec93340d` and protected by squash merge
+`04393c83eebe00ef7b24b5efcd767ffbdbc3b3d3` on 6 October 2026.
+
+The protected selector filters exclusively through F1A admissibility and then
+ranks eligible resources by lower queue depth, greater available admission
+capacity, and stable resource ID. The exact policy artifact is digest-bound.
+Placement evidence remains pre-`RouteRealized`, non-operative, and
+`authority_effect = none`.
+
+The next bounded successor is F1C hostile/replay evidence. F1D shadow hookup,
+F1E differential equivalence, E3A full extraction closure, and E3B live routing
+remain outside F1B authority.
