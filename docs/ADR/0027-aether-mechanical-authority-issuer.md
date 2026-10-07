@@ -1,6 +1,6 @@
 # ADR 0027 — AETHER mechanical-authority issuer boundary
 
-Status: C0 candidate
+Status: Accepted — protected C0 merge `4eb776748b3c70829bd8dca0c1bc48cb6210776f`
 Issue: #113
 Protected predecessor: `0a1552adf719dbe57667a9b8705b986f0f381483`
 
@@ -102,3 +102,14 @@ Costs:
 
 Before live activation, disable/delete the off-path issuer and shadow registry.
 No AETHER semantic-state migration is required.
+
+
+## Protected decision
+
+ADR 0027 was accepted through the C0 exact-head transaction on source
+`3a7558311e92616c1200fbcc501e188ed495d192` and protected merge
+`4eb776748b3c70829bd8dca0c1bc48cb6210776f`.
+
+This acceptance authorizes C1 off-path implementation of the AETHER-owned
+control bridge only. C2 ordinary-request shadow integration, C3/C4 readiness,
+and E3B-A live activation remain later gates.

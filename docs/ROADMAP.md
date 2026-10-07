@@ -278,7 +278,7 @@ Near-term E3B order:
    race/replay evidence — **protected complete**;
 3. preserve AETHER semantic authority and the current live reference path —
    **still mandatory**;
-4. upstream governed E1/E3 control-record producer — **C0-A through C0-F specified; exact-head protection pending**;
+4. upstream governed E1/E3 control-record producer — **C0-A through C0-F protected complete; C1 off-path implementation next**;
 5. after protected C0, implement C1 off-path issuer/control registry, then C2 real-HTTP shadow issuance, C3 differential closure and C4 activation-readiness;
 6. complete the exact activation delta with rollback/canary evidence;
 7. stop before live production activation unless the reserved control-plane disposition is authentically present on that exact packet.
