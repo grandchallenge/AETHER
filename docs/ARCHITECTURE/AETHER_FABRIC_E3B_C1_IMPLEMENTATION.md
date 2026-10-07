@@ -1,9 +1,9 @@
-# AETHER/FABRIC E3B-C1 — Off-Path Control-Bridge Implementation
+# AETHER/FABRIC E3B-C1 â€” Off-Path Control-Bridge Implementation
 
-Status: implementation candidate; exact-head governance pending  
-Issue: #117  
-Parent: #110  
-Protected C0 basis: `5493da50aaeff9c944cee8c01891bad498e631ac`  
+Status: implementation candidate; exact-head governance pending
+Issue: #117
+Parent: #110
+Protected C0 basis: `5493da50aaeff9c944cee8c01891bad498e631ac`
 Exact implementation code commit: `8df42c6cd3afa09df8f99c2b0a55a97d11aa5423`
 
 ## 1. C1 scope
