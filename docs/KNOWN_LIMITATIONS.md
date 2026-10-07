@@ -283,6 +283,30 @@ ordinary feature backlog:
 - SQLite remains the default local/package journal backend. The optional Postgres backend is journal-first only: it preserves committed source order per namespace through the `Journal` contract, but it is not a SQL rule engine, not a global `AsOf`, not consensus over derived state, and not a sidecar catalog backend.
 - The planner now makes the “do not chase one giant node beyond `XL`” rule explicit, but the partition/federation posture is still operational guidance rather than an automated re-sharding or multi-host placement system.
 
+## AETHER/FABRIC E3B readiness boundary
+
+The E3B readiness candidate now has a pure, freshly revalidated
+`PlacementSelected -> RouteRealized` bridge and a default-OFF
+`CandidateReadiness` evidence surface. This is not live routing.
+
+The actual protected HTTP execution path still lacks runtime upstream-governed
+`MechanicalEnvelopeAuthorized`, `PlacementConstraintSet`, current
+`ControlStateWitness`, and `PlacementSelected` records. Consequently:
+
+- FABRIC cannot safely activate itself on ordinary HTTP work;
+- HTTP authentication, namespace admission, semaphore availability, and local
+  liveness are insufficient substitutes for those records;
+- no live-FABRIC routing mode exists in the readiness candidate;
+- the exact upstream control-record producer and its integrity/authority binding
+  remain an activation dependency;
+- production activation additionally remains reserved to the exact
+  control-plane/Human Steward gate;
+- Article XI is required if a future exact activation candidate changes the
+  effective Article IX/AETHER authority boundary.
+
+These limits are deliberate fail-closed boundaries, not missing implicit
+fallbacks.
+
 ## Boundary Clients And Scaling
 
 - `aether_api` remains a temporary compatibility facade over the recovered

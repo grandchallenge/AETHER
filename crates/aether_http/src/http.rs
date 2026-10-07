@@ -361,6 +361,7 @@ pub struct HttpKernelState {
     services: Arc<NamespaceServiceDirectory>,
     partitioned: Option<Arc<ReplicatedAuthorityPartitionService>>,
     blocking: BoundedBlockingExecutor,
+    fabric_routing_mode: FabricRoutingMode,
     auth: Arc<Mutex<HttpAuth>>,
     audit: AuditLog,
     status: Arc<Mutex<ServiceStatusResponse>>,
@@ -374,6 +375,10 @@ pub struct HttpKernelState {
 impl HttpKernelState {
     pub fn new(service: impl KernelService + Send + 'static) -> Self {
         Self::with_options(service, HttpKernelOptions::default())
+    }
+
+    pub fn fabric_routing_mode(&self) -> FabricRoutingMode {
+        self.fabric_routing_mode
     }
 
     /// Read-only F1A projection of the current local blocking resource pool.
@@ -484,6 +489,7 @@ impl HttpKernelState {
             namespace_queue_limit,
             audit_queue_limit,
             resource_limits,
+            fabric_routing_mode,
         } = options;
         let status =
             service_status.unwrap_or_else(|| services.default_status(audit_log_path.clone()));
@@ -495,6 +501,7 @@ impl HttpKernelState {
                 namespace_queue_limit,
                 resource_limits.operation_timeout_ms,
             ),
+            fabric_routing_mode,
             auth: Arc::new(Mutex::new(HttpAuth::from_config(auth))),
             audit: AuditLog::new(audit_log_path, audit_queue_limit),
             status: Arc::new(Mutex::new(status)),
@@ -1164,6 +1171,14 @@ pub struct HttpAccessToken {
     pub revoked: bool,
 }
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FabricRoutingMode {
+    #[default]
+    ReferenceOnly,
+    CandidateReadiness,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct HttpKernelOptions {
     pub auth: HttpAuthConfig,
@@ -1178,6 +1193,8 @@ pub struct HttpKernelOptions {
     pub audit_queue_limit: usize,
     #[serde(default)]
     pub resource_limits: HttpResourceLimits,
+    #[serde(default)]
+    pub fabric_routing_mode: FabricRoutingMode,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -1218,6 +1235,7 @@ impl Default for HttpKernelOptions {
             namespace_queue_limit: default_namespace_queue_limit(),
             audit_queue_limit: default_audit_queue_limit(),
             resource_limits: HttpResourceLimits::default(),
+            fabric_routing_mode: FabricRoutingMode::ReferenceOnly,
         }
     }
 }
@@ -1260,6 +1278,11 @@ impl HttpKernelOptions {
 
     pub fn with_resource_limits(mut self, limits: HttpResourceLimits) -> Self {
         self.resource_limits = limits;
+        self
+    }
+
+    pub fn with_fabric_routing_mode(mut self, mode: FabricRoutingMode) -> Self {
+        self.fabric_routing_mode = mode;
         self
     }
 }

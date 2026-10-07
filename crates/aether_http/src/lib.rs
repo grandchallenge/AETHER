@@ -12,6 +12,7 @@ pub mod sidecar {
 }
 
 pub mod deployment;
+mod fabric_cutover;
 mod fabric_equivalence;
 mod fabric_shadow;
 pub mod http;
@@ -23,6 +24,7 @@ pub use deployment::{
     PilotTokenConfig, ResolvedPilotHttpTransport, ResolvedPilotServiceConfig, ResolvedPilotStorage,
     ResolvedPilotTokenSummary,
 };
+pub use fabric_cutover::FabricCutoverError;
 pub use fabric_equivalence::{
     adjudicate_f1e_live_equivalence, FabricDifferentialEquivalenceError,
     FabricDifferentialEquivalenceEvidence,
@@ -32,9 +34,10 @@ pub use http::{
     http_router, http_router_with_options, http_router_with_partitioned_options,
     http_router_with_postgres_namespaces, http_router_with_postgres_namespaces_and_tls,
     http_router_with_sqlite_namespaces, AuditContext, AuditEntry, AuditLogResponse, AuthScope,
-    HealthResponse, HttpAccessToken, HttpAuthConfig, HttpKernelOptions, HttpKernelState,
-    HttpResourceLimits, PageInfo, PageRequest, PagedHistoryResponse, PagedRunDocumentResponse,
-    PagedTraceResponse, StructuredErrorResponse, AETHER_NAMESPACE_HEADER, AETHER_REQUEST_ID_HEADER,
+    FabricRoutingMode, HealthResponse, HttpAccessToken, HttpAuthConfig, HttpKernelOptions,
+    HttpKernelState, HttpResourceLimits, PageInfo, PageRequest, PagedHistoryResponse,
+    PagedRunDocumentResponse, PagedTraceResponse, StructuredErrorResponse, AETHER_NAMESPACE_HEADER,
+    AETHER_REQUEST_ID_HEADER,
 };
 pub use status::{
     AuthReloadResponse, NamespaceStatusSummary, PrincipalStatusSummary, ReplicaStatusSummary,
