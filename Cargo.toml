@@ -8,6 +8,7 @@ members = [
     "crates/aether_plan",
     "crates/aether_runtime",
     "crates/aether_fabric",
+    "crates/aether_control_bridge",
     "crates/aether_reflex",
     "crates/aether_explain",
     "crates/aether_sidecar",

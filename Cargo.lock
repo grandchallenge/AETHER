@@ -45,6 +45,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "aether_control_bridge"
+version = "0.1.0"
+dependencies = [
+ "aether_fabric",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror",
+]
+
+[[package]]
 name = "aether_explain"
 version = "0.1.0"
 dependencies = [
