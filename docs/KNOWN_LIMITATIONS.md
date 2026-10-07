@@ -329,3 +329,21 @@ fallbacks.
 - Imported-fact federation is semantically exact for the current slice, but that slice is intentionally narrow: imported queries must currently be single-goal tuple-producing reads rather than arbitrary joined row shapes.
 - Sidecars remain partition-local and journal-subordinated in the replicated prototype. They do not replicate or fail over independently.
 - Sidecars also remain local SQLite catalogs in Service v2, including when the authoritative journal backend is Postgres. Postgres sidecar catalogs, remote sidecar failover, and sidecar-first control planes are deferred.
+
+
+### E3B-C0 residual limits
+
+The C0 issuer contract is specification-only until protected and then
+implemented in C1.
+
+Even after C0 protection:
+- C1/C2 integrity is restricted to the same protected AETHER process;
+- cross-process/network authority transport remains undefined and unauthorized;
+- seven authoritative mutation endpoint classes remain outside the first lane;
+- C1 will be off-path and C2 shadow-only;
+- no `live_fabric` mode exists;
+- no production signing/key-lifecycle profile has been selected;
+- E3B-A still requires an exact routing/rollback/canary packet and reserved
+  activation disposition.
+
+These are fail-closed boundaries rather than implicit future permissions.

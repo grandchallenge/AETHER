@@ -35,7 +35,7 @@ remain contract/hostile evidence only and are not live-equivalence evidence.
 
 Neither F1D nor F1E transfers routing authority. The AETHER reference path remains authoritative. F1D comparison evidence and F1E differential-equivalence evidence have `authority_effect = none` and do not acquire permits, mutate queues, reserve or dispatch work, create attempts, create `RouteRealized`, start or complete semantic attempts, or admit results.
 
-E3B-R readiness is now protected at `04659f96b0010e7d88e13fb6c8c26c6e8654f0ac`, but live routing/cutover remains separately governed and is not authorized by F1A-F1E, E3A, or E3B-R completion. The activation preflight is `AETHER_FABRIC_E3B_A0_ACTIVATION_PREFLIGHT.md`.
+E3B-R readiness is protected at `04659f96b0010e7d88e13fb6c8c26c6e8654f0ac`. C0-A through C0-F now have a complete authority-issuance synthesis candidate under issue #113, but C0 is not protected until its own exact-head review/check/merge/readback transaction closes. Live routing/cutover remains separately governed and is not authorized by F1A-F1E, E3A, E3B-R, or the C0 candidate. The activation preflight is `AETHER_FABRIC_E3B_A0_ACTIVATION_PREFLIGHT.md`.
 
 ## Documentary supersession
 
