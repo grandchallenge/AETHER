@@ -1,6 +1,6 @@
 # AETHER/FABRIC E3B-C0 — Upstream Authority-Record Issuance Plan
 
-Status: plan candidate
+Status: execution candidate — C0-A through C0-F substantive work complete; exact-head governance pending
 Issue: #113
 Parent: #110
 Protected basis: `e8b1a5cc8801c19eda81b37b847a82072c2e72d0`
@@ -546,9 +546,27 @@ approval.
 
 ```text
 E3B-R: PROTECTED COMPLETE
-C0: PLAN READY FOR EXECUTION
+C0-A-F: SUBSTANTIVE COMPLETE
+C0 PROTECTED COMPLETION: PENDING EXACT-HEAD GOVERNANCE
 C1: NOT AUTHORIZED UNTIL C0 PROTECTED
 E3B-A: BLOCKED
 reserved_activation_disposition: UNSET
 live_fabric_routing: NOT ACTIVE
 ```
+
+
+## Execution result
+
+C0-A through C0-F are now instantiated on the C0 synthesis branch:
+
+- `C0_AUTHORITY_SOURCE_INVENTORY.md`
+- `C0_ISSUANCE_STATE_MACHINE.md`
+- `C0_RECORD_MAPPING.md`
+- `C0_CONTROL_INTEGRITY.md`
+- `C0_THREATS.md`
+- `C0_CONSTITUTIONAL_DISPOSITION.md`
+- `AETHER_FABRIC_E3B_C0_AUTHORITY_ISSUANCE_CONTRACT.md`
+- ADR 0027.
+
+Substantive disposition: **PASS**, subject to the exact-head C0 governance
+gates in section 14.
