@@ -2,7 +2,7 @@
 
 Status: CANDIDATE, not yet protected. Issue #127. Parent #110; original C3 issue #124.
 
-Protected predecessor: \`abd43a849dd3fe7acb0abf881ebc3e737f05a15a\`.
+Protected predecessor: `abd43a849dd3fe7acb0abf881ebc3e737f05a15a`.
 
 ## Why this correction exists
 
@@ -22,13 +22,13 @@ certificate was premature. This tranche preserves the prior work and
    completion status and SHA-256 of their canonical serialized successful
    result to the corresponding C2 request identity. This is computed on the
    authoritative reference result and cannot affect that result.
-   \`execute\`, \`execute_partitioned\` and trace-resolution completion paths
+   `execute`, `execute_partitioned` and trace-resolution completion paths
    participate. Failed reference requests carry the status but do not
    acquire a fabricated success/result digest.
 2. The controller's existing bounded evidence queue now counts evictions.
-   \`c3_replay_bundle\` discloses that count. An overflow causes replay
+   `c3_replay_bundle` discloses that count. An overflow causes replay
    adjudication to fail, not to silently certify incomplete coverage.
-   \`export_c3_replay_bundle\` writes JSON using create-new semantics,
+   `export_c3_replay_bundle` writes JSON using create-new semantics,
    synchronizes it to storage, refuses overwrites and supports replay.
    Export is *explicit*, not an automatically configured production sink.
 3. C3 records retain operation-profile, issuer-build, selector-build,
@@ -39,7 +39,7 @@ certificate was premature. This tranche preserves the prior work and
    operation/method/path/profile bindings, non-empty request/subject,
    identity/digest presence, distinct request IDs, resource-selection
    projection, reference-only authority, HTTP success status and
-   reference-result digest, even if a caller supplied the label \`Equivalent\`.
+   reference-result digest, even if a caller supplied the label `Equivalent`.
 4. An authenticated in-process HTTP-router test dispatches all 23 first-lane
    handlers through the actual Axum router and compares their statuses
    with a separately initialized reference-only router. All 23 statuses
@@ -67,7 +67,7 @@ produce successful domain results in the empty-fixture test:
 - HTTP 409: explain_tuple.
 - HTTP 404: resolve_trace_handle, resolve_trace_handle_page.
 
-Consequently \`adjudicate_c3_replay_bundle\` correctly withholds the
+Consequently `adjudicate_c3_replay_bundle` correctly withholds the
 all-23 positive coverage certificate. The 23 direct C2 controller
 exercise is expressly a structural test; it now **expects an error**
 if used as completed HTTP evidence.
@@ -89,7 +89,23 @@ create-new snapshot export is deliberate/manual here.
 This repair does not establish multi-resource selection equivalence
 (the protected F1E domain is one local blocking resource pool).
 
-No C4 or E3B-A activation gate is waived. \`ReferenceOnly\` remains the
+No C4 or E3B-A activation gate is waived. `ReferenceOnly` remains the
 only production-authoritative path; no FABRIC permit, reservation, queue,
 dispatch, operative realization, cross-process authority, semantic
 state write, response mutation or activation is authorized.
+
+## Post-review C3/R1 verdict hardening
+
+The repaired C3 observation constructor emits disagreement, never
+equivalent, unless the paired reference HTTP result completed with
+HTTP 200 and a canonical result digest. The aggregate checker then
+reconstructs a C2 source projection from every stored observation,
+recomputes its individual verdict, and refuses mismatched labels or
+missing/duplicate request evidence. This also makes a direct controller
+test, a failed handler, or a partially captured response incapable
+of proving full 23-operation successful-reference closure.
+
+The resulting record remains a trusted-controller observation, not
+cryptographic proof that arbitrary externally supplied JSON came
+from AETHER. Full positive-case fixture coverage and continuous
+durable capture are still unproven and must not be inferred.

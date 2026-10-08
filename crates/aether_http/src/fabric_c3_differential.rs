@@ -57,6 +57,9 @@ pub struct C3DifferentialEvidence {
     pub request_payload_digest: Option<String>,
     pub reference_result_status: Option<u16>,
     pub reference_result_digest: Option<String>,
+    pub source_disposition: C2ShadowDisposition,
+    pub source_permitted_set_equal: Option<bool>,
+    pub source_differential_equivalent: Option<bool>,
 }
 
 impl C3DifferentialEvidence {
@@ -97,6 +100,9 @@ pub fn adjudicate_c3_observation(source: &C2ShadowEvidence) -> C3DifferentialEvi
         request_payload_digest: source.request_payload_digest.clone(),
         reference_result_status: source.reference_result_status,
         reference_result_digest: source.reference_result_digest.clone(),
+        source_disposition: source.disposition.clone(),
+        source_permitted_set_equal: source.permitted_set_equal,
+        source_differential_equivalent: source.differential_equivalent,
     };
 
     if source.authority_effect != "none" {
@@ -163,6 +169,17 @@ pub fn adjudicate_c3_observation(source: &C2ShadowEvidence) -> C3DifferentialEvi
                 out.disagreement_class = Some(C3DisagreementClass::PermittedSetMismatch);
                 return out;
             }
+            if source.reference_result_status != Some(200)
+                || !source
+                    .reference_result_digest
+                    .as_ref()
+                    .is_some_and(|digest| {
+                        digest.len() == 64 && digest.bytes().all(|byte| byte.is_ascii_hexdigit())
+                    })
+            {
+                out.disagreement_class = Some(C3DisagreementClass::ReferenceResultUnpaired);
+                return out;
+            }
             out.verdict = C3DifferentialVerdict::UnavailableEquivalent;
             return out;
         }
@@ -194,6 +211,17 @@ pub fn adjudicate_c3_observation(source: &C2ShadowEvidence) -> C3DifferentialEvi
         return out;
     }
 
+    if source.reference_result_status != Some(200)
+        || !source
+            .reference_result_digest
+            .as_ref()
+            .is_some_and(|digest| {
+                digest.len() == 64 && digest.bytes().all(|byte| byte.is_ascii_hexdigit())
+            })
+    {
+        out.disagreement_class = Some(C3DisagreementClass::ReferenceResultUnpaired);
+        return out;
+    }
     out.verdict = C3DifferentialVerdict::Equivalent;
     out
 }
@@ -265,6 +293,42 @@ pub fn adjudicate_c3_first_lane_coverage(
     // reference-response pairings, including uniqueness.
     let mut request_ids = BTreeSet::new();
     for item in observations {
+        let source = C2ShadowEvidence {
+            request_id: item.request_id.clone(),
+            operation_class: item.operation_class,
+            method: item.method.clone(),
+            path: item.path.clone(),
+            namespace_ref: item.namespace_ref.clone(),
+            principal_ref: item.principal_ref.clone(),
+            operation_admission_id: item.operation_admission_id.clone(),
+            envelope_id: item.envelope_id.clone(),
+            placement_decision_id: item.placement_decision_id.clone(),
+            candidate_mechanical_attempt_id: item.candidate_mechanical_attempt_id.clone(),
+            decision_resource_snapshot_digest: item.decision_resource_snapshot_digest.clone(),
+            fresh_control_witness_revision: item.fresh_control_witness_revision.clone(),
+            fresh_resource_snapshot_digest: item.fresh_resource_snapshot_digest.clone(),
+            reference_permitted_resource_ids: item.reference_permitted_resource_ids.clone(),
+            fabric_selected_resource_id: item.fabric_selected_resource_id.clone(),
+            permitted_set_equal: item.source_permitted_set_equal,
+            differential_equivalent: item.source_differential_equivalent,
+            disposition: item.source_disposition.clone(),
+            detail: None,
+            authority_effect: item.authority_effect.clone(),
+            reference_path_authoritative: item.reference_path_authoritative,
+            operation_profile_digest: item.operation_profile_digest.clone(),
+            issuer_build_digest: item.issuer_build_digest.clone(),
+            selector_build_digest: item.selector_build_digest.clone(),
+            effective_policy_digest: item.effective_policy_digest.clone(),
+            request_payload_digest: item.request_payload_digest.clone(),
+            reference_result_status: item.reference_result_status,
+            reference_result_digest: item.reference_result_digest.clone(),
+        };
+        let verified = adjudicate_c3_observation(&source);
+        if verified.verdict != item.verdict
+            || verified.disagreement_class != item.disagreement_class
+        {
+            return Err(C3CoverageError::InvalidCoverageEvidence);
+        }
         let valid_digest = |d: &Option<String>| {
             d.as_ref()
                 .is_some_and(|s| s.len() == 64 && s.bytes().all(|b| b.is_ascii_hexdigit()))
@@ -364,6 +428,13 @@ mod tests {
         }
     }
 
+    fn complete_source(operation: OperationClass) -> C2ShadowEvidence {
+        let mut record = source(operation);
+        record.reference_result_status = Some(200);
+        record.reference_result_digest = Some("e".repeat(64));
+        record
+    }
+
     #[test]
     fn exact_23_operation_lane_closes_structurally() {
         let observations = OperationClass::ALL_FIRST_LANE
@@ -373,7 +444,7 @@ mod tests {
             .collect::<Vec<_>>();
         assert_eq!(
             adjudicate_c3_first_lane_coverage(&observations),
-            Err(C3CoverageError::ReferenceResultUnpaired)
+            Err(C3CoverageError::DifferentialDisagreement)
         );
     }
 
@@ -430,7 +501,7 @@ mod tests {
         let observations = OperationClass::ALL_FIRST_LANE
             .into_iter()
             .take(22)
-            .map(source)
+            .map(complete_source)
             .map(|item| adjudicate_c3_observation(&item))
             .collect::<Vec<_>>();
         assert_eq!(
@@ -446,10 +517,10 @@ mod tests {
             .map(source)
             .map(|source| adjudicate_c3_observation(&source))
             .collect::<Vec<_>>();
-        assert!(records.iter().all(|item| item.is_equivalent()));
+        assert!(records.iter().all(|item| !item.is_equivalent()));
         assert_eq!(
             adjudicate_c3_first_lane_coverage(&records),
-            Err(C3CoverageError::ReferenceResultUnpaired)
+            Err(C3CoverageError::DifferentialDisagreement)
         );
     }
 
@@ -457,7 +528,7 @@ mod tests {
     fn coverage_rechecks_provenance_after_verdict_and_rejects_duplicates() {
         let mut records = OperationClass::ALL_FIRST_LANE
             .into_iter()
-            .map(source)
+            .map(complete_source)
             .map(|item| adjudicate_c3_observation(&item))
             .collect::<Vec<_>>();
         for item in &mut records {
@@ -483,7 +554,7 @@ mod tests {
     fn coverage_rejects_mismatched_profile_even_if_verdict_marked_equivalent() {
         let mut records = OperationClass::ALL_FIRST_LANE
             .into_iter()
-            .map(source)
+            .map(complete_source)
             .map(|item| adjudicate_c3_observation(&item))
             .collect::<Vec<_>>();
         for item in &mut records {

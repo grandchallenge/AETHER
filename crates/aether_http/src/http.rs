@@ -4589,10 +4589,10 @@ mod c2_shadow_tests {
             .map(crate::adjudicate_c3_observation)
             .collect::<Vec<_>>();
         assert_eq!(adjudicated.len(), 23);
-        assert!(adjudicated.iter().all(|item| item.is_equivalent()));
+        assert!(adjudicated.iter().all(|item| !item.is_equivalent()));
         assert_eq!(
             crate::adjudicate_c3_first_lane_coverage(&adjudicated),
-            Err(crate::C3CoverageError::ReferenceResultUnpaired),
+            Err(crate::C3CoverageError::DifferentialDisagreement),
             "controller coverage is not authenticated HTTP result coverage"
         );
         assert_eq!(

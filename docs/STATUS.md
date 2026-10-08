@@ -722,3 +722,7 @@ outcomes, provenance and loss-aware replay, plus a 23-route authenticated
 HTTP matrix. Full all-23 positive-case equivalence remains unproved
 pending seeded fixtures for twelve failing domain requests. Do not
 advance to C4 on the original C3 receipt alone.
+
+C3-R1 additionally rejects individual equivalence verdicts unless a successful
+reference HTTP result and digest are paired; stored labels are independently
+recomputed by the coverage checker. Untrusted JSON is not signed authority.

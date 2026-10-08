@@ -383,3 +383,7 @@ capture is bounded; evidence loss blocks the checker. Replay export
 is create-new and explicit, not a continuous signed production audit
 stream. There is no multi-resource equivalence theorem or C4
 authorization.
+
+C3-R1 additionally rejects individual equivalence verdicts unless a successful
+reference HTTP result and digest are paired; stored labels are independently
+recomputed by the coverage checker. Untrusted JSON is not signed authority.
