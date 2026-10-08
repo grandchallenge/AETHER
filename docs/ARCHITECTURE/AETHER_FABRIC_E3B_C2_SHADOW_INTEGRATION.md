@@ -1,9 +1,9 @@
-# AETHER/FABRIC E3B-C2 — Real-HTTP Shadow Control-Bridge Integration
+﻿# AETHER/FABRIC E3B-C2 â€” Real-HTTP Shadow Control-Bridge Integration
 
-Status: implementation candidate; exact-head governance pending  
-Issue: #120  
-Parent: #110  
-Protected C1 basis: `2e959418f8a27dfb72beb8502e2b3ecdf82c6f65`  
+Status: implementation candidate; exact-head governance pending
+Issue: #120
+Parent: #110
+Protected C1 basis: `2e959418f8a27dfb72beb8502e2b3ecdf82c6f65`
 Protected documentary basis: `c0ef165dbbef735d502acc08fe2a4ee1021c5887`
 
 ## 1. Scope
