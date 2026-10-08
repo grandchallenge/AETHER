@@ -12,6 +12,7 @@ pub mod sidecar {
 }
 
 pub mod deployment;
+mod fabric_control_shadow;
 mod fabric_cutover;
 mod fabric_equivalence;
 mod fabric_shadow;
@@ -24,6 +25,7 @@ pub use deployment::{
     PilotTokenConfig, ResolvedPilotHttpTransport, ResolvedPilotServiceConfig, ResolvedPilotStorage,
     ResolvedPilotTokenSummary,
 };
+pub use fabric_control_shadow::{C2ShadowConfig, C2ShadowDisposition, C2ShadowEvidence};
 pub use fabric_cutover::FabricCutoverError;
 pub use fabric_equivalence::{
     adjudicate_f1e_live_equivalence, FabricDifferentialEquivalenceError,

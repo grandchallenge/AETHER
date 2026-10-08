@@ -83,6 +83,7 @@ name = "aether_http"
 version = "0.1.0"
 dependencies = [
  "aether_ast",
+ "aether_control_bridge",
  "aether_fabric",
  "aether_partition",
  "aether_pilot",
