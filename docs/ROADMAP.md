@@ -325,3 +325,11 @@ frozen contract.
 ### AETHER/FABRIC E3B-C3 differential closure - protected complete
 
 Issue #124 is protected complete at PR #125 merge `3a1798baeba0e5bc05ab46fde8a2c9d12c48d8ee` from exact reviewed source head `adc96dc70fde82e2e108aa2cab9f29d68a516bc5`. C3 reuses protected F1E equivalence, binds it to the real C1/C2 evidence chain, requires exact 23-operation first-lane coverage, and fails closed on classified disagreement. The next eligible E3B step is a separately governed C4 activation-readiness tranche. C4 is not activation, and E3B-A remains blocked pending the reserved A0 disposition.
+
+
+## C3-R1 evidence repair / successor
+
+Issue #127 repairs the C3 certification weakness without activating
+FABRIC. Complete real successful request pairing for all 23 profiles
+before a full C3 HTTP-equivalence certificate, then revisit C4 only
+under separately governed readiness. E3B-A remains blocked.

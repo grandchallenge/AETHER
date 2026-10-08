@@ -11,7 +11,10 @@ use aether_fabric::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::VecDeque;
-use std::sync::Mutex;
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Mutex,
+};
 
 pub const C2_SHADOW_DECISION_REVISION: &str = "aether-http-c2-shadow/1";
 pub const C2_SHADOW_SOURCE_AUTHORITY: &str = "aether-http-semantic-edge";
@@ -93,6 +96,20 @@ pub struct C2ShadowEvidence {
     pub detail: Option<String>,
     pub authority_effect: String,
     pub reference_path_authoritative: bool,
+    #[serde(default)]
+    pub operation_profile_digest: Option<String>,
+    #[serde(default)]
+    pub issuer_build_digest: Option<String>,
+    #[serde(default)]
+    pub selector_build_digest: Option<String>,
+    #[serde(default)]
+    pub effective_policy_digest: Option<String>,
+    #[serde(default)]
+    pub request_payload_digest: Option<String>,
+    #[serde(default)]
+    pub reference_result_status: Option<u16>,
+    #[serde(default)]
+    pub reference_result_digest: Option<String>,
 }
 
 pub(crate) struct C2ShadowController {
@@ -101,10 +118,17 @@ pub(crate) struct C2ShadowController {
     selector: SelectorImplementationIdentity,
     evidence: Mutex<VecDeque<C2ShadowEvidence>>,
     evidence_capacity: usize,
+    evicted_observations: AtomicU64,
+    issuer_build_digest: String,
+    selector_build_digest: String,
 }
 
 impl C2ShadowController {
     pub(crate) fn new(config: C2ShadowConfig, operation_timeout_ms: u64) -> Self {
+        let issuer_build_digest = config.issuer_build.digest().unwrap_or_default();
+        let selector_build_digest = aether_fabric::canonicalize_serializable(&config.selector)
+            .map(|bytes| sha256_hex(&bytes))
+            .unwrap_or_default();
         let issuer = AetherMechanicalAuthorityIssuer::for_c2_shadow(
             config.issuer_ref,
             config.issuer_revision,
@@ -122,6 +146,9 @@ impl C2ShadowController {
             selector: config.selector,
             evidence: Mutex::new(VecDeque::with_capacity(config.evidence_capacity.max(1))),
             evidence_capacity: config.evidence_capacity.max(1),
+            evicted_observations: AtomicU64::new(0),
+            issuer_build_digest,
+            selector_build_digest,
         }
     }
 
@@ -131,8 +158,33 @@ impl C2ShadowController {
         };
         while retained.len() >= self.evidence_capacity {
             retained.pop_front();
+            self.evicted_observations.fetch_add(1, Ordering::Relaxed);
         }
         retained.push_back(evidence);
+    }
+
+    pub(crate) fn evicted_observations(&self) -> u64 {
+        self.evicted_observations.load(Ordering::Relaxed)
+    }
+
+    /// Pair the authoritative completion with the exact shadow request identity.
+    /// A missing/evicted shadow entry must never be silently treated as coverage.
+    pub(crate) fn record_reference_result(
+        &self,
+        request_id: &str,
+        status: u16,
+        result_digest: Option<String>,
+    ) {
+        if let Ok(mut retained) = self.evidence.lock() {
+            if let Some(entry) = retained
+                .iter_mut()
+                .rev()
+                .find(|item| item.request_id == request_id)
+            {
+                entry.reference_result_status = Some(status);
+                entry.reference_result_digest = result_digest;
+            }
+        }
     }
 
     pub(crate) fn snapshot(&self) -> Vec<C2ShadowEvidence> {
@@ -179,6 +231,13 @@ impl C2ShadowController {
             detail: None,
             authority_effect: "none".into(),
             reference_path_authoritative: true,
+            operation_profile_digest: None,
+            issuer_build_digest: Some(self.issuer_build_digest.clone()),
+            selector_build_digest: Some(self.selector_build_digest.clone()),
+            effective_policy_digest: None,
+            request_payload_digest: None,
+            reference_result_status: None,
+            reference_result_digest: None,
         };
 
         if let Some(error) = material.payload_error {
@@ -204,6 +263,7 @@ impl C2ShadowController {
             }
         };
         base.operation_class = Some(operation_class);
+        base.operation_profile_digest = operation_class.profile().digest().ok();
 
         let profile = operation_class.profile();
         let policy_binding = if profile.policy_binding_required {
@@ -224,6 +284,17 @@ impl C2ShadowController {
         } else {
             PolicyBindingEvidence::Public
         };
+
+        base.effective_policy_digest = match &policy_binding {
+            PolicyBindingEvidence::Bound {
+                effective_policy_digest,
+            } => Some(effective_policy_digest.clone()),
+            PolicyBindingEvidence::Public => Some(sha256_hex(b"aether-public-policy/1")),
+            PolicyBindingEvidence::DeniedEscalation => None,
+        };
+        base.request_payload_digest = canonicalize_serializable(&typed_request_payload)
+            .map(|bytes| sha256_hex(&bytes))
+            .ok();
 
         let input = OperationAdmissionInput {
             request_id: request_id.to_owned(),

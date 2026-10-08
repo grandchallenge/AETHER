@@ -94,3 +94,14 @@ E3B-A: BLOCKED
 reserved_activation_disposition: UNSET
 live_fabric_routing: NOT ACTIVE
 ```
+
+
+## C3-R1 independent post-merge review correction
+
+The protected C3 completion above is historically accurate as a merge
+receipt but overstates the HTTP-evidence closure. Issue #127 corrects
+the verdict: 23 operation profiles were driven internally, not 23
+successful, paired authoritative HTTP requests. R1 introduces a
+real-handler matrix, loss-aware replay and result pairing. Until all
+23 operations have successful paired reference result evidence, the
+full all-23 HTTP-equivalence claim remains NOT CERTIFIED.
