@@ -366,3 +366,8 @@ Current limits are:
 
 The local test executable hash in the C1 evidence record is diagnostic build
 evidence only; it is not a deployable production-authority artifact.
+
+
+### E3B-C3 candidate limits
+
+C3 issue #124 adds differential evidence only. The current candidate does not route work through FABRIC, acquire permits or queue/reserve/dispatch production work, change HTTP responses or semantic state, define cross-process authority transport, widen excluded mutations, or create `live_fabric`. Its exhaustive 23-operation evidence is exact closed-registry/controller coverage; the admitted-history test provides real-handler end-to-end evidence and the excluded-append handler proves mutation bypass. Protected review/check/merge/readback is required before C3 may be called complete. C4 requires separate governance; E3B-A and the reserved activation disposition remain blocked/unset.
