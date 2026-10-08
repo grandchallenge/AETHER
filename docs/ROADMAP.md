@@ -320,3 +320,8 @@ If the team needs a practical ordering, use this one:
 Distributed-truth widening, DSL ergonomics, and broad product expansion remain
 behind this sequence unless a separate accepted ADR proves they do not touch a
 frozen contract.
+
+
+### AETHER/FABRIC E3B-C3 differential closure
+
+Issue #124 is the active separately governed successor to protected C2. Its candidate reuses protected F1E equivalence, binds it to the real C1/C2 evidence chain, requires exact 23-operation first-lane coverage, and fails closed on classified disagreement. C3 must remain reference-authoritative and non-operative through protected adjudication. Only after C3 protection may a separately governed C4 activation-readiness packet be instantiated. C4 is not activation, and E3B-A remains blocked pending the reserved A0 disposition.

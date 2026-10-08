@@ -12,6 +12,7 @@ pub mod sidecar {
 }
 
 pub mod deployment;
+mod fabric_c3_differential;
 mod fabric_control_shadow;
 mod fabric_cutover;
 mod fabric_equivalence;
@@ -24,6 +25,11 @@ pub use deployment::{
     PilotConcurrencyConfig, PilotHttpTransportConfig, PilotServiceConfig, PilotStorageConfig,
     PilotTokenConfig, ResolvedPilotHttpTransport, ResolvedPilotServiceConfig, ResolvedPilotStorage,
     ResolvedPilotTokenSummary,
+};
+pub use fabric_c3_differential::{
+    adjudicate_c3_first_lane_coverage, adjudicate_c3_observation, C3CoverageError,
+    C3CoverageSummary, C3DifferentialEvidence, C3DifferentialVerdict, C3DisagreementClass,
+    C3_DIFFERENTIAL_REVISION,
 };
 pub use fabric_control_shadow::{C2ShadowConfig, C2ShadowDisposition, C2ShadowEvidence};
 pub use fabric_cutover::FabricCutoverError;

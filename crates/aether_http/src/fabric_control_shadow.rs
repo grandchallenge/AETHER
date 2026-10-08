@@ -1,4 +1,4 @@
-use crate::http::HttpKernelState;
+use crate::{fabric_equivalence::adjudicate_f1e_live_equivalence, http::HttpKernelState};
 use aether_ast::PolicyContext;
 use aether_control_bridge::{
     unix_ms_to_rfc3339, AetherMechanicalAuthorityIssuer, IssuerBuildIdentity,
@@ -83,6 +83,12 @@ pub struct C2ShadowEvidence {
     pub placement_decision_id: Option<String>,
     pub candidate_mechanical_attempt_id: Option<String>,
     pub permitted_set_equal: Option<bool>,
+    pub decision_resource_snapshot_digest: Option<String>,
+    pub fresh_control_witness_revision: Option<String>,
+    pub fresh_resource_snapshot_digest: Option<String>,
+    pub reference_permitted_resource_ids: Vec<String>,
+    pub fabric_selected_resource_id: Option<String>,
+    pub differential_equivalent: Option<bool>,
     pub disposition: C2ShadowDisposition,
     pub detail: Option<String>,
     pub authority_effect: String,
@@ -163,6 +169,12 @@ impl C2ShadowController {
             placement_decision_id: None,
             candidate_mechanical_attempt_id: None,
             permitted_set_equal: None,
+            decision_resource_snapshot_digest: None,
+            fresh_control_witness_revision: None,
+            fresh_resource_snapshot_digest: None,
+            reference_permitted_resource_ids: Vec::new(),
+            fabric_selected_resource_id: None,
+            differential_equivalent: None,
             disposition: C2ShadowDisposition::ShadowFailed,
             detail: None,
             authority_effect: "none".into(),
@@ -280,6 +292,19 @@ impl C2ShadowController {
             }
         };
         base.permitted_set_equal = Some(comparison.permitted_set_equal);
+        base.decision_resource_snapshot_digest =
+            Some(comparison.resource_snapshot.snapshot_digest.clone());
+        base.reference_permitted_resource_ids = comparison.reference_permitted_resource_ids.clone();
+        base.fabric_selected_resource_id = comparison.fabric_selected_resource_id.clone();
+        match adjudicate_f1e_live_equivalence(&comparison) {
+            Ok(_) => base.differential_equivalent = Some(true),
+            Err(error) => {
+                base.differential_equivalent = Some(false);
+                base.detail = Some(format!("C3 differential adjudication failed: {error}"));
+                self.retain(base);
+                return;
+            }
+        }
 
         let selected = match comparison.fabric_decision {
             PlacementDecision::Selected(selected) => selected,
@@ -303,6 +328,7 @@ impl C2ShadowController {
                 return;
             }
         };
+        base.fresh_control_witness_revision = Some(current_witness.observed_revision.clone());
         let current_snapshot = match state.fabric_reference_pool_snapshot(realization_time_unix_ms)
         {
             Ok(snapshot) => snapshot,
@@ -312,6 +338,7 @@ impl C2ShadowController {
                 return;
             }
         };
+        base.fresh_resource_snapshot_digest = Some(current_snapshot.snapshot_digest.clone());
         let occurred_at = match unix_ms_to_rfc3339(realization_time_unix_ms) {
             Ok(value) => value,
             Err(error) => {

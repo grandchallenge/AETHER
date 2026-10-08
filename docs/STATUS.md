@@ -707,3 +707,8 @@ Formalist, Adversary and Referee exact-head reviews passed; CI, Supply Chain,
 GCL conformance, policy, security and routing checks passed. C2 is therefore
 protected complete. The reference path remains authoritative and E3B-A/live
 FABRIC routing remain blocked.
+
+
+## AETHER/FABRIC E3B-C3 differential closure - candidate
+
+Issue #124 is instantiated from protected C2 basis `3f7105d91f924b7d2568589a98ed939be1e406f5`. The candidate adds a fail-closed `aether-http-c3-differential/1` ledger around the already-protected F1E equivalence predicate, binds the verdict to the C1/C2 identity chain, and requires exact coverage of all 23 first-lane operation profiles. Local focused, hostile, replay, workspace, clippy and E2/F1A validation is green. The reference path remains authoritative; C3 has no routing, queue, dispatch, response or semantic-state effect. Protected review/check/merge/readback is pending. C4 and E3B-A are not authorized by this candidate.

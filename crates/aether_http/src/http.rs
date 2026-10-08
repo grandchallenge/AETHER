@@ -4127,6 +4127,20 @@ mod c2_shadow_tests {
         assert!(evidence.placement_decision_id.is_some());
         assert!(evidence.candidate_mechanical_attempt_id.is_some());
         assert_eq!(evidence.permitted_set_equal, Some(true));
+        assert_eq!(evidence.differential_equivalent, Some(true));
+        assert!(evidence.decision_resource_snapshot_digest.is_some());
+        assert!(evidence.fresh_control_witness_revision.is_some());
+        assert!(evidence.fresh_resource_snapshot_digest.is_some());
+        assert_eq!(evidence.reference_permitted_resource_ids.len(), 1);
+        assert_eq!(
+            evidence.fabric_selected_resource_id.as_deref(),
+            evidence
+                .reference_permitted_resource_ids
+                .first()
+                .map(String::as_str)
+        );
+        let c3 = crate::adjudicate_c3_observation(evidence);
+        assert!(c3.is_equivalent());
         assert_eq!(
             state.fabric_routing_mode(),
             FabricRoutingMode::ReferenceOnly
@@ -4214,6 +4228,55 @@ mod c2_shadow_tests {
             .expect_err("missing ordinary HTTP authorization must be denied");
         assert_eq!(error.status_code(), StatusCode::UNAUTHORIZED);
         assert!(state.c2_shadow_evidence().is_empty());
+        assert_eq!(
+            state.fabric_routing_mode(),
+            FabricRoutingMode::ReferenceOnly
+        );
+    }
+
+    #[test]
+    fn c3_exhaustive_first_lane_controller_evidence_closes_all_23_operations() {
+        let mut config = shadow_config();
+        config.registry_capacity = 64;
+        config.evidence_capacity = 64;
+        let state = HttpKernelState::with_options(
+            crate::InMemoryKernelService::new(),
+            HttpKernelOptions::default().with_c2_shadow(config),
+        );
+        let controller = state.c2_shadow.as_ref().expect("C2 shadow controller");
+
+        for (index, operation) in aether_control_bridge::OperationClass::ALL_FIRST_LANE
+            .into_iter()
+            .enumerate()
+        {
+            let profile = operation.profile();
+            controller.observe_request(
+                &state,
+                &format!("request:c3-exhaustive:{index}:{}", operation.as_str()),
+                &profile.http_method,
+                &profile.http_path,
+                NamespaceId::default().as_str(),
+                "c3-test-principal",
+                None,
+                &profile.required_scope,
+                None,
+                C2ShadowRequestMaterial::empty(None),
+                10_000 + index as u64 * 10,
+            );
+        }
+
+        let source = state.c2_shadow_evidence();
+        assert_eq!(source.len(), 23);
+        let adjudicated = source
+            .iter()
+            .map(crate::adjudicate_c3_observation)
+            .collect::<Vec<_>>();
+        let summary = crate::adjudicate_c3_first_lane_coverage(&adjudicated)
+            .expect("all 23 protected first-lane operations must be equivalent");
+        assert_eq!(summary.observed_operation_classes, 23);
+        assert!(summary.exact_first_lane_coverage);
+        assert!(summary.all_observations_equivalent);
+        assert_eq!(summary.authority_effect, "none");
         assert_eq!(
             state.fabric_routing_mode(),
             FabricRoutingMode::ReferenceOnly
