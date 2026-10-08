@@ -361,7 +361,7 @@ Current limits are:
 - seven authoritative mutation endpoints remain excluded;
 - no production queue/reservation/dispatch effect is permitted from C2 evidence;
 - no `live_fabric` routing mode exists;
-- C2 is an implementation candidate on issue #120 until exact-head review/check/merge/readback closes;
+- PR #121 protects the C2 issuance/selector-comparison subset, but C2 remains incomplete until the issue #120 pure-realization repair receives exact-head review/check/merge/readback;
 - E3B-A remains separately reserved and blocked.
 
 The local test executable hash in the C1 evidence record is diagnostic build

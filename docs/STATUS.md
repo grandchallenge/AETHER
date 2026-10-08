@@ -677,13 +677,16 @@ Local exact-code validation:
 
 C1 exact-head review/check/merge/readback is complete on source head `97c0878d067fcd7cdde978c2d3967c08ead5d006`, protected merge `2e959418f8a27dfb72beb8502e2b3ecdf82c6f65`.
 
-## AETHER/FABRIC E3B-C2 real-HTTP shadow integration candidate
+## AETHER/FABRIC E3B-C2 real-HTTP shadow integration — protected partial + realization repair
 
 Issue #120 implements the separately authorized C2 shadow tranche from protected
-C1. Eligible admitted ordinary HTTP operations now construct and verify C1
-control records, run the protected selector comparison, retain bounded
-`authority_effect = none` evidence without route realization or mechanical-attempt
-creation, and then continue actual execution through the existing reference path.
+C1. PR #121 was validly protected at merge `212abc8774f9c9c7e0ce4bea26ebcd4c0dca8c2c`
+and supplies ordinary-request C1 issuance plus non-authoritative selector comparison.
+Post-merge readback against the pre-existing #120 scope clarification showed that
+C2 also requires pure, non-operative realization validation. The bounded repair
+adds a fresh control/resource recheck and candidate `RouteRealized` / candidate
+mechanical-attempt evidence with `authority_effect = none`, while actual execution
+continues exclusively through the existing reference path.
 
 The default remains `FabricRoutingMode::ReferenceOnly`. C2 acquires no
 production permit, queue slot, reservation or dispatch; cannot change an HTTP
@@ -697,6 +700,7 @@ Focused local C2 validation is green:
 - forced excluded-operation rejection passes;
 - exact replay idempotency passes.
 
-C2 remains an implementation candidate pending full regression replay,
-exact-head Formalist/Adversary/Referee review, protected checks,
-merge/readback, and issue #120 receipt.
+The #121 protected merge remains valid but is not by itself C2 completion.
+The realization repair is locally green and remains pending exact-head
+Formalist/Adversary/Referee review, protected checks, protected merge/readback,
+and issue #120 completion receipt.
