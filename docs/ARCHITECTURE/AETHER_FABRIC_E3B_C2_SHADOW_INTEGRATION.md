@@ -90,22 +90,60 @@ substituted for the reference HTTP result.
 
 Policy escalation remains an ordinary AETHER denial, not a shadow-only warning.
 
-## 6. Current validation
+## 6. Exact implementation identity
 
-Focused local validation:
+Implementation code commit:
 
-- `cargo check -p aether_control_bridge -p aether_http` — PASS;
-- C2 focused HTTP/control tests: 4/4 PASS:
+`7fc72fb9f2e73189a36786f79c2bf48f7b7d1e9d`
+
+Implementation tree:
+
+`4be87c99e842b5b347900a8931ce5adeddd89111`
+
+Exact source identities:
+
+- `crates/aether_http/src/fabric_control_shadow.rs`
+  - Git blob: `43482b4e7834e6ab9ce5bf9ded7740132f8c443d`
+  - SHA-256: `5a3a3cc2bb76854e6a30818454bcc4517c79594d92d120f019e90d90a8aa93a4`
+- `crates/aether_http/src/http.rs`
+  - Git blob: `c20cb554d0ca14bfa9ff9fa66e6035262d254290`
+  - SHA-256: `e2233cbf95bb6f3643d821bc45882f8e41e4d3099c5209ea1b12494b319fd172`
+- `crates/aether_control_bridge/src/lib.rs`
+  - Git blob: `7f87c91151d28357a7342194b1d1cc719e81d4e1`
+  - SHA-256: `adf7978acc41816f8ecbf68b72d2e88a063872eb4e731fa3591561e12c56847a`
+
+## 7. Current validation
+
+Exact-code local validation on `7fc72fb9f2e73189a36786f79c2bf48f7b7d1e9d`:
+
+- C2 focused HTTP/control suite: 6/6 PASS:
   - admitted real-handler history request emits candidate evidence while
     remaining reference-authoritative;
+  - exact replay is idempotent;
+  - forced excluded mutation is shadow-rejected;
   - actual excluded append handler never enters C2;
-  - forced excluded operation is shadow-rejected;
-  - exact replay is idempotent.
+  - shadow issuer-initialization failure cannot alter the successful reference
+    HTTP response;
+  - ordinary HTTP authorization denial never enters the C2 lane;
+- C1 control-bridge suite: 29/29 PASS plus compile-fail authority-capability
+  doctest PASS;
+- `aether_fabric`: 38/38 PASS;
+- `aether_http`: 45/45 PASS;
+- `cargo test --workspace -j 2` after clean target rebuild: PASS;
+- `cargo clippy --workspace --all-targets -j 2 -- -D warnings`: PASS;
+- `python -m pytest python/tests/test_aether_fabric_e2.py python/tests/test_aether_fabric_f1a.py`:
+  16/16 PASS.
 
-Full workspace, clippy and E2/F1/E3B-R regression replay remain required on the
-final candidate head before protection.
+The first full-workspace replay encountered stale Windows target-cache/compiler
+artifacts and a compiler-memory failure. The target tree was removed and the
+same exact code was replayed from a clean build with bounded parallelism; that
+clean replay passed. Existing stress/soak tests remain ignored under their
+pre-existing annotations.
 
-## 7. Hard exclusions
+Protected CI on the final governance candidate must independently rebuild and
+validate C2.
+
+## 8. Hard exclusions
 
 C2 does not authorize or implement:
 
@@ -120,7 +158,7 @@ C2 does not authorize or implement:
 - `live_fabric`;
 - E3B-A.
 
-## 8. Governance boundary
+## 9. Governance boundary
 
 C2 is not complete until its exact final candidate head has:
 
