@@ -322,6 +322,6 @@ behind this sequence unless a separate accepted ADR proves they do not touch a
 frozen contract.
 
 
-### AETHER/FABRIC E3B-C3 differential closure
+### AETHER/FABRIC E3B-C3 differential closure - protected complete
 
-Issue #124 is the active separately governed successor to protected C2. Its candidate reuses protected F1E equivalence, binds it to the real C1/C2 evidence chain, requires exact 23-operation first-lane coverage, and fails closed on classified disagreement. C3 must remain reference-authoritative and non-operative through protected adjudication. Only after C3 protection may a separately governed C4 activation-readiness packet be instantiated. C4 is not activation, and E3B-A remains blocked pending the reserved A0 disposition.
+Issue #124 is protected complete at PR #125 merge `3a1798baeba0e5bc05ab46fde8a2c9d12c48d8ee` from exact reviewed source head `adc96dc70fde82e2e108aa2cab9f29d68a516bc5`. C3 reuses protected F1E equivalence, binds it to the real C1/C2 evidence chain, requires exact 23-operation first-lane coverage, and fails closed on classified disagreement. The next eligible E3B step is a separately governed C4 activation-readiness tranche. C4 is not activation, and E3B-A remains blocked pending the reserved A0 disposition.

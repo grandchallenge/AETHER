@@ -152,6 +152,6 @@ obligation, which was protected by PR #122 at merge
 routing and E3B-A remain unauthorized.
 
 
-## C3 differential-closure candidate
+## C3 differential closure protected
 
-Issue #124 reuses the protected F1E equivalence adjudicator as the inner no-widening predicate and wraps it in `aether-http-c3-differential/1`, binding comparison to request/admission/envelope/placement/fresh-witness/resource-snapshot/candidate-attempt identities and exact first-lane coverage. This is evidence-only and preserves `ReferenceOnly`; it does not change the authority classification or activate E3B-A.
+Issue #124 is protected complete through PR #125 merge `3a1798baeba0e5bc05ab46fde8a2c9d12c48d8ee` from exact source head `adc96dc70fde82e2e108aa2cab9f29d68a516bc5`. C3 reuses the protected F1E equivalence adjudicator as the inner no-widening predicate and wraps it in `aether-http-c3-differential/1`, binding comparison to request/admission/envelope/placement/fresh-witness/resource-snapshot/candidate-attempt identities and exact first-lane coverage. This remains evidence-only and preserves `ReferenceOnly`; it does not change the authority classification or activate E3B-A.

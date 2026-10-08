@@ -709,6 +709,6 @@ protected complete. The reference path remains authoritative and E3B-A/live
 FABRIC routing remain blocked.
 
 
-## AETHER/FABRIC E3B-C3 differential closure - candidate
+## AETHER/FABRIC E3B-C3 differential closure - protected complete
 
-Issue #124 is instantiated from protected C2 basis `3f7105d91f924b7d2568589a98ed939be1e406f5`. The candidate adds a fail-closed `aether-http-c3-differential/1` ledger around the already-protected F1E equivalence predicate, binds the verdict to the C1/C2 identity chain, and requires exact coverage of all 23 first-lane operation profiles. Local focused, hostile, replay, workspace, clippy and E2/F1A validation is green. The reference path remains authoritative; C3 has no routing, queue, dispatch, response or semantic-state effect. Protected review/check/merge/readback is pending. C4 and E3B-A are not authorized by this candidate.
+Issue #124 is protected complete from exact source head `adc96dc70fde82e2e108aa2cab9f29d68a516bc5`, merged by PR #125 as `3a1798baeba0e5bc05ab46fde8a2c9d12c48d8ee`. Formalist, Adversary and Referee exact-head reviews passed; CI, Supply Chain and GCL conformance passed; no inline review threads remained. The protected C3 ledger closes exact 23-operation first-lane differential coverage while `ReferenceOnly` remains authoritative and C3 remains non-operative. C4 activation-readiness requires separate governance; E3B-A remains blocked.
