@@ -677,7 +677,7 @@ Local exact-code validation:
 
 C1 exact-head review/check/merge/readback is complete on source head `97c0878d067fcd7cdde978c2d3967c08ead5d006`, protected merge `2e959418f8a27dfb72beb8502e2b3ecdf82c6f65`.
 
-## AETHER/FABRIC E3B-C2 real-HTTP shadow integration — protected partial + realization repair
+## AETHER/FABRIC E3B-C2 real-HTTP shadow integration — protected complete
 
 Issue #120 implements the separately authorized C2 shadow tranche from protected
 C1. PR #121 was validly protected at merge `212abc8774f9c9c7e0ce4bea26ebcd4c0dca8c2c`
@@ -700,7 +700,10 @@ Focused local C2 validation is green:
 - forced excluded-operation rejection passes;
 - exact replay idempotency passes.
 
-The #121 protected merge remains valid but is not by itself C2 completion.
-The realization repair is locally green and remains pending exact-head
-Formalist/Adversary/Referee review, protected checks, protected merge/readback,
-and issue #120 completion receipt.
+The #121 protected merge remains valid as the first C2 transition. The bounded
+realization repair was reviewed on exact head `a41043c9ee21de725cc841ba3122e931906da6b6`
+and protected by PR #122 at merge `6caa2d634bcc6c0592728895334268db77ae2c31`.
+Formalist, Adversary and Referee exact-head reviews passed; CI, Supply Chain,
+GCL conformance, policy, security and routing checks passed. C2 is therefore
+protected complete. The reference path remains authoritative and E3B-A/live
+FABRIC routing remain blocked.

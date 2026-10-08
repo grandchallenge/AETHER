@@ -1,6 +1,6 @@
 ﻿# AETHER/FABRIC E3B-C2 â€” Real-HTTP Shadow Control-Bridge Integration
 
-Status: bounded realization repair candidate after protected partial merge #121; exact-head repair governance pending
+Status: protected complete — differential/readiness successor eligible only under separate governance; E3B-A blocked
 Issue: #120
 Parent: #110
 Protected C1 basis: `2e959418f8a27dfb72beb8502e2b3ecdf82c6f65`
@@ -151,8 +151,12 @@ same exact code was replayed from a clean build with bounded parallelism; that
 clean replay passed. Existing stress/soak tests remain ignored under their
 pre-existing annotations.
 
-Protected CI on the final governance candidate must independently rebuild and
-validate C2.
+Protected exact-head validation completed on repair governance head
+`a41043c9ee21de725cc841ba3122e931906da6b6`: CI run `37802860987`, Supply
+Chain run `37802861103`, and GCL conformance run `37802862376` all succeeded.
+Required CI gate `113400428507`, Required Supply Chain gate `113399455695`,
+Rust PR fast `113399394008`, policy `113399328420`, security/action-policy
+`113399327726`, and routing-enforcement `113399327787` all succeeded.
 
 ## 8. Hard exclusions
 
@@ -169,16 +173,36 @@ C2 does not authorize or implement:
 - `live_fabric`;
 - E3B-A.
 
-## 9. Governance boundary
+## 9. Protected governance completion
 
-C2 is not complete until its exact final candidate head has:
+C2 is protected complete through two preserved transitions:
 
-- focused and full regression evidence;
-- Formalist, Adversary and Referee exact-head passes;
-- protected CI/supply-chain/policy/security/routing checks;
-- no unresolved review threads;
-- protected merge/readback; and
-- issue #120 completion receipt.
+- PR #121 protected the ordinary-request C1 issuance and F1 selector-comparison
+  subset at merge `212abc8774f9c9c7e0ce4bea26ebcd4c0dca8c2c`;
+- post-merge readback against the pre-existing issue #120 clarification identified
+  the remaining pure-realization evidence obligation;
+- exact repair head `a41043c9ee21de725cc841ba3122e931906da6b6`
+  received Formalist PASS review `5459229503`, Adversary PASS review
+  `5459230065`, and Referee completion review `5459230978`;
+- all required protected checks on that exact head passed, with no inline review
+  threads;
+- PR #122 protected the bounded realization repair at merge
+  `6caa2d634bcc6c0592728895334268db77ae2c31`;
+- protected `main` readback was exact at that merge before this documentary
+  completion delta.
 
-C2 completion may authorize only the separately governed differential/readiness
+C2 completion may authorize only a separately governed differential/readiness
 successor. It does not authorize live production routing.
+
+Current boundary:
+
+```text
+E3B-R: PROTECTED COMPLETE
+C0-A-F: PROTECTED COMPLETE
+C1: PROTECTED COMPLETE
+C2: PROTECTED COMPLETE
+next differential/readiness tranche: ELIGIBLE ONLY UNDER SEPARATE GOVERNANCE
+E3B-A: BLOCKED
+reserved_activation_disposition: UNSET
+live_fabric_routing: NOT ACTIVE
+```
