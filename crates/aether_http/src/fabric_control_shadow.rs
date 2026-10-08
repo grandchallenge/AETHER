@@ -1,11 +1,12 @@
 use crate::http::HttpKernelState;
 use aether_ast::PolicyContext;
 use aether_control_bridge::{
-    AetherMechanicalAuthorityIssuer, IssuerBuildIdentity, OperationAdmissionInput, OperationClass,
-    PolicyBindingEvidence,
+    unix_ms_to_rfc3339, AetherMechanicalAuthorityIssuer, IssuerBuildIdentity,
+    OperationAdmissionInput, OperationClass, PolicyBindingEvidence,
 };
 use aether_fabric::{
-    canonicalize_serializable, sha256_hex, PlacementDecision, SelectorImplementationIdentity,
+    canonicalize_serializable, realize_selected_placement, sha256_hex, PlacementDecision,
+    RealizationRequest, SelectorImplementationIdentity,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -80,6 +81,7 @@ pub struct C2ShadowEvidence {
     pub operation_admission_id: Option<String>,
     pub envelope_id: Option<String>,
     pub placement_decision_id: Option<String>,
+    pub candidate_mechanical_attempt_id: Option<String>,
     pub permitted_set_equal: Option<bool>,
     pub disposition: C2ShadowDisposition,
     pub detail: Option<String>,
@@ -159,6 +161,7 @@ impl C2ShadowController {
             operation_admission_id: None,
             envelope_id: None,
             placement_decision_id: None,
+            candidate_mechanical_attempt_id: None,
             permitted_set_equal: None,
             disposition: C2ShadowDisposition::ShadowFailed,
             detail: None,
@@ -278,15 +281,72 @@ impl C2ShadowController {
         };
         base.permitted_set_equal = Some(comparison.permitted_set_equal);
 
-        match comparison.fabric_decision {
-            PlacementDecision::Selected(selected) => {
-                base.placement_decision_id = Some(selected.placement_decision_id);
-                base.disposition = C2ShadowDisposition::CandidateValidated;
-            }
+        let selected = match comparison.fabric_decision {
+            PlacementDecision::Selected(selected) => selected,
             PlacementDecision::Unavailable(_) => {
                 base.disposition = C2ShadowDisposition::CandidateUnavailable;
+                self.retain(base);
+                return;
             }
+        };
+        base.placement_decision_id = Some(selected.placement_decision_id.clone());
+
+        let realization_time_unix_ms = decided_at_unix_ms.saturating_add(1);
+        let current_witness = match issuer.registry().observe(
+            &bundle.control_state_witness.envelope_id,
+            realization_time_unix_ms,
+        ) {
+            Ok(witness) => witness,
+            Err(error) => {
+                base.detail = Some(format!("fresh control observation failed: {error}"));
+                self.retain(base);
+                return;
+            }
+        };
+        let current_snapshot = match state.fabric_reference_pool_snapshot(realization_time_unix_ms)
+        {
+            Ok(snapshot) => snapshot,
+            Err(error) => {
+                base.detail = Some(format!("fresh resource snapshot failed: {error}"));
+                self.retain(base);
+                return;
+            }
+        };
+        let occurred_at = match unix_ms_to_rfc3339(realization_time_unix_ms) {
+            Ok(value) => value,
+            Err(error) => {
+                base.detail = Some(format!("realization timestamp failed: {error}"));
+                self.retain(base);
+                return;
+            }
+        };
+        let realization_request = RealizationRequest {
+            realization_request_id: format!("c2-shadow-realize:{request_id}"),
+            realization_time_unix_ms,
+            occurred_at,
+        };
+        let route = match realize_selected_placement(
+            &bundle.envelope_bytes,
+            &bundle.placement_constraint,
+            &selected,
+            &current_snapshot,
+            &current_witness,
+            &realization_request,
+        ) {
+            Ok(route) => route,
+            Err(error) => {
+                base.detail = Some(format!("pure realization validation failed: {error}"));
+                self.retain(base);
+                return;
+            }
+        };
+        if route.authority_effect != "none" {
+            base.detail = Some("candidate RouteRealized evidence acquired authority effect".into());
+            self.retain(base);
+            return;
         }
+        base.candidate_mechanical_attempt_id = Some(route.mechanical_attempt_id);
+        base.disposition = C2ShadowDisposition::CandidateValidated;
         self.retain(base);
     }
 }

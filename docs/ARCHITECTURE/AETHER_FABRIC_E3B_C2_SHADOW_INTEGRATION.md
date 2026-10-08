@@ -1,6 +1,6 @@
 ﻿# AETHER/FABRIC E3B-C2 â€” Real-HTTP Shadow Control-Bridge Integration
 
-Status: implementation candidate; exact-head governance pending
+Status: bounded realization repair candidate after protected partial merge #121; exact-head repair governance pending
 Issue: #120
 Parent: #110
 Protected C1 basis: `2e959418f8a27dfb72beb8502e2b3ecdf82c6f65`
@@ -19,9 +19,10 @@ For eligible first-lane operations, the HTTP boundary now:
 4. issues and verifies the C1 operation-admission, mechanical-authorization,
    E1 envelope, E3 placement constraint and current control witness;
 5. runs the protected F1 selector against the same local-pool reference surface;
-6. retains the resulting non-authoritative placement/unavailable evidence without
-   route realization or mechanical-attempt creation; and
-7. continues the actual request through the pre-existing AETHER reference path.
+6. performs a fresh control-state/resource observation and pure candidate
+   `RouteRealized` validation when a resource is selected;
+7. retains that candidate evidence with `authority_effect = none`; and
+8. continues the actual request through the pre-existing AETHER reference path.
 
 The shadow lane cannot change the HTTP response or acquire production routing
 authority.
@@ -49,6 +50,7 @@ No `live_fabric` mode is introduced.
 - operation-admission ID;
 - E1 envelope ID;
 - placement-decision ID when selection succeeds;
+- candidate mechanical-attempt identity from pure realization validation;
 - reference/FABRIC permitted-set equality;
 - disposition and failure detail;
 - `authority_effect = none`;
@@ -56,10 +58,11 @@ No `live_fabric` mode is introduced.
 
 The evidence queue is bounded and process-local.
 
-C2 does not construct `RouteRealized` and does not mint a
-`mechanical_attempt_id`. Shadow execution stops at non-authoritative placement
-comparison/evidence. It acquires no permit, reserves/enqueues/dispatches no work,
-does not start a semantic attempt, and cannot activate FABRIC routing.
+A candidate `RouteRealized` record and its candidate mechanical-attempt identity
+are validation evidence only. They acquire no permit, reserve/enqueue/dispatch no
+work, create no operative/production attempt, do not start a semantic attempt,
+and cannot activate FABRIC routing. The actual request remains on the AETHER
+reference path.
 
 ## 4. Closed first lane
 
@@ -84,37 +87,45 @@ Exact C2 replay reuses the C1 deterministic identities and idempotent registry
 behavior. Equal request identity/material at equal decision time produces equal
 shadow evidence.
 
-Shadow serialization, issuer, selector, control-witness or resource-snapshot
-failures are retained as `ShadowFailed`/`ShadowRejected` evidence and are not
-substituted for the reference HTTP result.
+Shadow serialization, issuer, selector, fresh-control, resource-snapshot or
+pure-realization failures are retained as `ShadowFailed`/`ShadowRejected`
+evidence and are not substituted for the reference HTTP result.
 
 Policy escalation remains an ordinary AETHER denial, not a shadow-only warning.
 
 ## 6. Exact implementation identity
 
-Implementation code commit:
+Protected partial implementation merge:
 
-`7fc72fb9f2e73189a36786f79c2bf48f7b7d1e9d`
+`212abc8774f9c9c7e0ce4bea26ebcd4c0dca8c2c` (PR #121)
 
-Implementation tree:
+Bounded realization-repair code commit:
 
-`4be87c99e842b5b347900a8931ce5adeddd89111`
+`3f533024ac805568bd4018999fdee082f264cc4a`
 
-Exact source identities:
+Repair implementation tree:
+
+`8301e5edda31872e9ee8765db7ca5028d634a929`
+
+Exact repair source identities:
 
 - `crates/aether_http/src/fabric_control_shadow.rs`
-  - Git blob: `43482b4e7834e6ab9ce5bf9ded7740132f8c443d`
-  - SHA-256: `5a3a3cc2bb76854e6a30818454bcc4517c79594d92d120f019e90d90a8aa93a4`
+  - Git blob: `050fba18ce6dcc810260616e8cfbdb9d19a38f8f`
+  - SHA-256: `4ebcd6144cb10f7152a43040566472009c1b3cde5cce3d23a67071497012fdd9`
 - `crates/aether_http/src/http.rs`
-  - Git blob: `c20cb554d0ca14bfa9ff9fa66e6035262d254290`
-  - SHA-256: `e2233cbf95bb6f3643d821bc45882f8e41e4d3099c5209ea1b12494b319fd172`
+  - Git blob: `235d0909d0d4729cf914cad9f789bcd1d9ce60a6`
+  - SHA-256: `85ab990a5af75b52f6ceeada14c69ab69996aa5e94a9df3f447255e44bf9aa85`
 - `crates/aether_control_bridge/src/lib.rs`
   - Git blob: `7f87c91151d28357a7342194b1d1cc719e81d4e1`
   - SHA-256: `adf7978acc41816f8ecbf68b72d2e88a063872eb4e731fa3591561e12c56847a`
 
+The #121 merge remains a valid protected transition. The repair binds the
+additional pure-realization evidence required by the pre-existing issue #120
+scope clarification; it does not retroactively rewrite or invalidate #121.
+
 ## 7. Current validation
 
-Exact-code local validation on `7fc72fb9f2e73189a36786f79c2bf48f7b7d1e9d`:
+Exact-code local validation on repair commit `3f533024ac805568bd4018999fdee082f264cc4a`:
 
 - C2 focused HTTP/control suite: 6/6 PASS:
   - admitted real-handler history request emits candidate evidence while
