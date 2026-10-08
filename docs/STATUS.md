@@ -681,9 +681,9 @@ C1 exact-head review/check/merge/readback is complete on source head `97c0878d06
 
 Issue #120 implements the separately authorized C2 shadow tranche from protected
 C1. Eligible admitted ordinary HTTP operations now construct and verify C1
-control records, run the protected selector and fresh pure realization
-validation, retain bounded `authority_effect = none` evidence, and then continue
-actual execution through the existing reference path.
+control records, run the protected selector comparison, retain bounded
+`authority_effect = none` evidence without route realization or mechanical-attempt
+creation, and then continue actual execution through the existing reference path.
 
 The default remains `FabricRoutingMode::ReferenceOnly`. C2 acquires no
 production permit, queue slot, reservation or dispatch; cannot change an HTTP
