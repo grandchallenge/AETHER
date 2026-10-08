@@ -7,7 +7,6 @@ use aether_plan::CompiledProgram;
 use aether_resolver::{MaterializedResolver, Resolver};
 use aether_runtime::{DerivedSet, RuleRuntime, SemiNaiveRuntime};
 use aether_schema::Schema;
-use rand::{rngs::OsRng, RngCore};
 use rusqlite::{config::DbConfig, params, Connection, OptionalExtension, TransactionBehavior};
 use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
 use sha2::{Digest as _, Sha256};
@@ -82,7 +81,7 @@ pub struct TraceHandle(String);
 impl TraceHandle {
     pub fn generate() -> Self {
         let mut bytes = [0u8; 32];
-        OsRng.fill_bytes(&mut bytes);
+        rand::fill(&mut bytes);
         Self(hex_encode(&bytes))
     }
 
