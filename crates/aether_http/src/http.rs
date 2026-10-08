@@ -4125,6 +4125,7 @@ mod c2_shadow_tests {
         assert!(evidence.operation_admission_id.is_some());
         assert!(evidence.envelope_id.is_some());
         assert!(evidence.placement_decision_id.is_some());
+        assert!(evidence.candidate_mechanical_attempt_id.is_some());
         assert_eq!(evidence.permitted_set_equal, Some(true));
         assert_eq!(
             state.fabric_routing_mode(),

@@ -19,9 +19,10 @@ For eligible first-lane operations, the HTTP boundary now:
 4. issues and verifies the C1 operation-admission, mechanical-authorization,
    E1 envelope, E3 placement constraint and current control witness;
 5. runs the protected F1 selector against the same local-pool reference surface;
-6. retains the resulting non-authoritative placement/unavailable evidence without
-   route realization or mechanical-attempt creation; and
-7. continues the actual request through the pre-existing AETHER reference path.
+6. performs a fresh control-state/resource observation and pure candidate
+   `RouteRealized` validation when a resource is selected;
+7. retains that candidate evidence with `authority_effect = none`; and
+8. continues the actual request through the pre-existing AETHER reference path.
 
 The shadow lane cannot change the HTTP response or acquire production routing
 authority.
@@ -49,6 +50,7 @@ No `live_fabric` mode is introduced.
 - operation-admission ID;
 - E1 envelope ID;
 - placement-decision ID when selection succeeds;
+- candidate mechanical-attempt identity from pure realization validation;
 - reference/FABRIC permitted-set equality;
 - disposition and failure detail;
 - `authority_effect = none`;
@@ -56,10 +58,11 @@ No `live_fabric` mode is introduced.
 
 The evidence queue is bounded and process-local.
 
-C2 does not construct `RouteRealized` and does not mint a
-`mechanical_attempt_id`. Shadow execution stops at non-authoritative placement
-comparison/evidence. It acquires no permit, reserves/enqueues/dispatches no work,
-does not start a semantic attempt, and cannot activate FABRIC routing.
+A candidate `RouteRealized` record and its candidate mechanical-attempt identity
+are validation evidence only. They acquire no permit, reserve/enqueue/dispatch no
+work, create no operative/production attempt, do not start a semantic attempt,
+and cannot activate FABRIC routing. The actual request remains on the AETHER
+reference path.
 
 ## 4. Closed first lane
 
@@ -84,9 +87,9 @@ Exact C2 replay reuses the C1 deterministic identities and idempotent registry
 behavior. Equal request identity/material at equal decision time produces equal
 shadow evidence.
 
-Shadow serialization, issuer, selector, control-witness or resource-snapshot
-failures are retained as `ShadowFailed`/`ShadowRejected` evidence and are not
-substituted for the reference HTTP result.
+Shadow serialization, issuer, selector, fresh-control, resource-snapshot or
+pure-realization failures are retained as `ShadowFailed`/`ShadowRejected`
+evidence and are not substituted for the reference HTTP result.
 
 Policy escalation remains an ordinary AETHER denial, not a shadow-only warning.
 
