@@ -132,6 +132,13 @@ The implementation preserves the ADR boundary:
 - no live routing/control-plane activation occurs.
 
 C1 was protected on exact reviewed head `97c0878d067fcd7cdde978c2d3967c08ead5d006`
-by merge `2e959418f8a27dfb72beb8502e2b3ecdf82c6f65`. This protection makes C2
-real-request shadow integration the next eligible tranche; it does not authorize
-live routing.
+by merge `2e959418f8a27dfb72beb8502e2b3ecdf82c6f65`.
+
+## C2 shadow integration candidate
+
+Issue #120 implements the next authorized step: eligible ordinary HTTP requests
+run the C1 issuance/selector/fresh-realization validation path beside the
+reference path and retain bounded evidence with `authority_effect = none`.
+The reference path remains authoritative; the C2 lane cannot acquire a permit,
+reserve/enqueue/dispatch work, mutate the HTTP result, enable `live_fabric`, or
+activate E3B-A. Exact-head protection of C2 remains pending.

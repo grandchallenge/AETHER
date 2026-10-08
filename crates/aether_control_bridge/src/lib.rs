@@ -529,7 +529,7 @@ pub enum AuthorityIssuanceError {
     RegistryFull,
     #[error("unknown envelope: {0}")]
     UnknownEnvelope(String),
-    #[error("cross-process/network authority transport is not authorized by C1")]
+    #[error("cross-process/network authority transport is not authorized by C1/C2")]
     CrossProcessUnauthorized,
 }
 
@@ -890,6 +890,59 @@ struct PreparedControlBundle {
 }
 
 impl AetherMechanicalAuthorityIssuer {
+    /// Construct the AETHER-owned issuer for the separately governed C2
+    /// real-HTTP shadow lane.
+    ///
+    /// This creates only the same-process authority capability already defined
+    /// by C1. It does not enable routing, dispatch, queue admission, or
+    /// cross-process authority transport.
+    pub fn for_c2_shadow(
+        issuer_ref: impl Into<String>,
+        issuer_revision: impl Into<String>,
+        build: IssuerBuildIdentity,
+        operation_timeout_ms: u64,
+        registry_capacity: usize,
+    ) -> Result<Self, AuthorityIssuanceError> {
+        let issuer_ref = issuer_ref.into();
+        let issuer_revision = issuer_revision.into();
+        if issuer_ref.trim().is_empty() || issuer_revision.trim().is_empty() {
+            return Err(AuthorityIssuanceError::InvalidInput(
+                "C2 shadow issuer_ref/issuer_revision must be non-empty".into(),
+            ));
+        }
+        if operation_timeout_ms == 0 {
+            return Err(AuthorityIssuanceError::InvalidInput(
+                "C2 shadow operation_timeout_ms must be greater than zero".into(),
+            ));
+        }
+        if registry_capacity == 0 {
+            return Err(AuthorityIssuanceError::InvalidInput(
+                "C2 shadow registry_capacity must be greater than zero".into(),
+            ));
+        }
+        let build_digest = build.digest()?;
+        let proof_digest = framed_digest(&[
+            ("issuer-ref", issuer_ref.as_bytes()),
+            ("issuer-revision", issuer_revision.as_bytes()),
+            ("issuer-build", build_digest.as_bytes()),
+        ]);
+        Ok(Self {
+            issuer_ref: issuer_ref.clone(),
+            issuer_revision,
+            build,
+            operation_timeout_ms,
+            capability: AuthorityCapability {
+                proof_digest: proof_digest.clone(),
+            },
+            registry: EnvelopeControlRegistry {
+                capacity: registry_capacity,
+                authority_proof_digest: proof_digest,
+                source_authority_ref: issuer_ref,
+                entries: BTreeMap::new(),
+            },
+        })
+    }
+
     pub fn registry(&self) -> &EnvelopeControlRegistry {
         &self.registry
     }
@@ -1606,7 +1659,7 @@ fn framed_digest(parts: &[(&str, &[u8])]) -> String {
     bytes_to_lower_hex(hasher.finalize().as_slice())
 }
 
-fn unix_ms_to_rfc3339(unix_ms: u64) -> Result<String, AuthorityIssuanceError> {
+pub fn unix_ms_to_rfc3339(unix_ms: u64) -> Result<String, AuthorityIssuanceError> {
     let seconds = unix_ms / 1_000;
     let millis = unix_ms % 1_000;
     let days = seconds / 86_400;

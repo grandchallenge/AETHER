@@ -675,4 +675,28 @@ Local exact-code validation:
 - full Rust workspace: PASS;
 - full workspace clippy with warnings denied: PASS.
 
-C1 exact-head review/check/merge/readback is complete on source head `97c0878d067fcd7cdde978c2d3967c08ead5d006`, protected merge `2e959418f8a27dfb72beb8502e2b3ecdf82c6f65`. C2 real-HTTP shadow integration is now authorized as the next separately governed tranche; it has not started and remains non-operative by definition.
+C1 exact-head review/check/merge/readback is complete on source head `97c0878d067fcd7cdde978c2d3967c08ead5d006`, protected merge `2e959418f8a27dfb72beb8502e2b3ecdf82c6f65`.
+
+## AETHER/FABRIC E3B-C2 real-HTTP shadow integration candidate
+
+Issue #120 implements the separately authorized C2 shadow tranche from protected
+C1. Eligible admitted ordinary HTTP operations now construct and verify C1
+control records, run the protected selector and fresh pure realization
+validation, retain bounded `authority_effect = none` evidence, and then continue
+actual execution through the existing reference path.
+
+The default remains `FabricRoutingMode::ReferenceOnly`. C2 acquires no
+production permit, queue slot, reservation or dispatch; cannot change an HTTP
+result; does not widen the seven excluded mutation endpoints; does not define
+cross-process authority; and does not authorize `live_fabric` or E3B-A.
+
+Focused local C2 validation is green:
+- modified C1/C2 crates type-check;
+- golden admitted-history handler evidence passes;
+- actual excluded append bypass passes;
+- forced excluded-operation rejection passes;
+- exact replay idempotency passes.
+
+C2 remains an implementation candidate pending full regression replay,
+exact-head Formalist/Adversary/Referee review, protected checks,
+merge/readback, and issue #120 receipt.

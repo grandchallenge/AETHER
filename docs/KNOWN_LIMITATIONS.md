@@ -353,15 +353,15 @@ C1 is protected complete at `2e959418f8a27dfb72beb8502e2b3ecdf82c6f65` and delib
 the AETHER-owned issuer/control registry disconnected from ordinary HTTP execution.
 
 Current limits are:
-- no public production constructor for `AetherMechanicalAuthorityIssuer`;
-- no HTTP caller of `aether_control_bridge`;
+- the C2-only issuer factory remains same-process and shadow-only; it is not a production routing constructor;
+- ordinary eligible HTTP requests can now call `aether_control_bridge` only through the non-operative C2 shadow lane;
 - authority integrity is same-process only under
   `aether-control-bridge-inproc/1`;
 - no production signing/key lifecycle or network trust profile;
 - seven authoritative mutation endpoints remain excluded;
-- no production queue/dispatch effect;
-- no `live_fabric` routing mode;
-- C2 shadow integration is now the next eligible tranche but is not yet implemented or protected;
+- no production queue/reservation/dispatch effect is permitted from C2 evidence;
+- no `live_fabric` routing mode exists;
+- C2 is an implementation candidate on issue #120 until exact-head review/check/merge/readback closes;
 - E3B-A remains separately reserved and blocked.
 
 The local test executable hash in the C1 evidence record is diagnostic build

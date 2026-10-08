@@ -1,11 +1,12 @@
 use crate::{
-    deployment::PilotServiceConfig, ActivateSchemaRequest, ApiError, AppendAdmissionRequest,
-    AsOfRequest, AuthReloadResponse, CoordinationCut, CoordinationDeltaReportRequest,
-    CoordinationPilotReportRequest, CurrentStateRequest, ExplainTupleRequest,
-    FederatedExplainReport, FederatedHistoryRequest, FederatedRunDocumentRequest,
-    GetArtifactReferenceRequest, HistoryRequest, KernelService, NamespaceId, ParseDocumentRequest,
-    PartitionAppendRequest, PartitionHistoryRequest, PartitionStateRequest,
-    PartitionStatusResponse, PostgresKernelService, PromoteReplicaRequest,
+    deployment::PilotServiceConfig,
+    fabric_control_shadow::{C2ShadowController, C2ShadowRequestMaterial},
+    ActivateSchemaRequest, ApiError, AppendAdmissionRequest, AsOfRequest, AuthReloadResponse,
+    CoordinationCut, CoordinationDeltaReportRequest, CoordinationPilotReportRequest,
+    CurrentStateRequest, ExplainTupleRequest, FederatedExplainReport, FederatedHistoryRequest,
+    FederatedRunDocumentRequest, GetArtifactReferenceRequest, HistoryRequest, KernelService,
+    NamespaceId, ParseDocumentRequest, PartitionAppendRequest, PartitionHistoryRequest,
+    PartitionStateRequest, PartitionStatusResponse, PostgresKernelService, PromoteReplicaRequest,
     RegisterArtifactReferenceRequest, RegisterSchemaRequest, RegisterVectorRecordRequest,
     ReplicatedAuthorityPartitionService, ResolveTraceHandleRequest, RunDocumentRequest,
     SearchVectorsRequest, ServiceMode, ServiceResourceControlStatus, ServiceStatusResponse,
@@ -362,6 +363,7 @@ pub struct HttpKernelState {
     partitioned: Option<Arc<ReplicatedAuthorityPartitionService>>,
     blocking: BoundedBlockingExecutor,
     fabric_routing_mode: FabricRoutingMode,
+    pub(crate) c2_shadow: Option<Arc<C2ShadowController>>,
     auth: Arc<Mutex<HttpAuth>>,
     audit: AuditLog,
     status: Arc<Mutex<ServiceStatusResponse>>,
@@ -379,6 +381,13 @@ impl HttpKernelState {
 
     pub fn fabric_routing_mode(&self) -> FabricRoutingMode {
         self.fabric_routing_mode
+    }
+
+    pub fn c2_shadow_evidence(&self) -> Vec<crate::C2ShadowEvidence> {
+        self.c2_shadow
+            .as_ref()
+            .map(|controller| controller.snapshot())
+            .unwrap_or_default()
     }
 
     /// Read-only F1A projection of the current local blocking resource pool.
@@ -490,6 +499,7 @@ impl HttpKernelState {
             audit_queue_limit,
             resource_limits,
             fabric_routing_mode,
+            c2_shadow,
         } = options;
         let status =
             service_status.unwrap_or_else(|| services.default_status(audit_log_path.clone()));
@@ -502,6 +512,12 @@ impl HttpKernelState {
                 resource_limits.operation_timeout_ms,
             ),
             fabric_routing_mode,
+            c2_shadow: c2_shadow.map(|config| {
+                Arc::new(C2ShadowController::new(
+                    config,
+                    resource_limits.operation_timeout_ms,
+                ))
+            }),
             auth: Arc::new(Mutex::new(HttpAuth::from_config(auth))),
             audit: AuditLog::new(audit_log_path, audit_queue_limit),
             status: Arc::new(Mutex::new(status)),
@@ -632,12 +648,14 @@ impl HttpKernelState {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn execute<T, F>(
         &self,
         headers: &HeaderMap,
         method: &'static str,
         path: &'static str,
         required_scope: AuthScope,
+        shadow_request: Option<C2ShadowRequestMaterial>,
         mut context: AuditContext,
         operation: F,
     ) -> Result<T, HttpError>
@@ -670,6 +688,52 @@ impl HttpKernelState {
                 return Err(error);
             }
         };
+
+        if let (Some(controller), Some(shadow_request)) = (&self.c2_shadow, shadow_request) {
+            let mut shadow_context = context.clone();
+            let operation_uses_policy =
+                aether_control_bridge::OperationClass::from_http(method, path)
+                    .map(|operation| operation.profile().policy_binding_required)
+                    .unwrap_or(false);
+            let effective_policy = if operation_uses_policy {
+                match apply_policy_binding(
+                    &principal,
+                    shadow_request.requested_policy_context.clone(),
+                    &mut shadow_context,
+                ) {
+                    Ok(policy) => policy,
+                    Err(error) => {
+                        self.audit.record(AuditEntry::for_denied(
+                            method,
+                            path,
+                            error.status_code(),
+                            error.audit_principal(),
+                            principal.principal_id.clone(),
+                            principal.token_id.clone(),
+                            required_scope,
+                            error.audit_message(),
+                            shadow_context,
+                        ));
+                        return Err(error);
+                    }
+                }
+            } else {
+                None
+            };
+            controller.observe_request(
+                self,
+                &current_request_id(),
+                method,
+                path,
+                namespace.as_str(),
+                principal.principal_id.as_deref().unwrap_or(&principal.id),
+                principal.token_id.as_deref(),
+                required_scope.as_str(),
+                effective_policy.as_ref(),
+                shadow_request,
+                now_millis(),
+            );
+        }
 
         if let Err(error) = self.rate_limiter.admit(
             &namespace,
@@ -746,12 +810,14 @@ impl HttpKernelState {
         result
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn execute_partitioned<T, F>(
         &self,
         headers: &HeaderMap,
         method: &'static str,
         path: &'static str,
         required_scope: AuthScope,
+        shadow_request: Option<C2ShadowRequestMaterial>,
         context: AuditContext,
         operation: F,
     ) -> Result<T, HttpError>
@@ -785,6 +851,52 @@ impl HttpKernelState {
                 return Err(error);
             }
         };
+
+        if let (Some(controller), Some(shadow_request)) = (&self.c2_shadow, shadow_request) {
+            let mut shadow_context = context.clone();
+            let operation_uses_policy =
+                aether_control_bridge::OperationClass::from_http(method, path)
+                    .map(|operation| operation.profile().policy_binding_required)
+                    .unwrap_or(false);
+            let effective_policy = if operation_uses_policy {
+                match apply_policy_binding(
+                    &principal,
+                    shadow_request.requested_policy_context.clone(),
+                    &mut shadow_context,
+                ) {
+                    Ok(policy) => policy,
+                    Err(error) => {
+                        self.audit.record(AuditEntry::for_denied(
+                            method,
+                            path,
+                            error.status_code(),
+                            error.audit_principal(),
+                            principal.principal_id.clone(),
+                            principal.token_id.clone(),
+                            required_scope,
+                            error.audit_message(),
+                            shadow_context,
+                        ));
+                        return Err(error);
+                    }
+                }
+            } else {
+                None
+            };
+            controller.observe_request(
+                self,
+                &current_request_id(),
+                method,
+                path,
+                namespace.as_str(),
+                principal.principal_id.as_deref().unwrap_or(&principal.id),
+                principal.token_id.as_deref(),
+                required_scope.as_str(),
+                effective_policy.as_ref(),
+                shadow_request,
+                now_millis(),
+            );
+        }
 
         if let Err(error) = self.rate_limiter.admit(
             &namespace,
@@ -906,6 +1018,26 @@ impl HttpKernelState {
                     return Err(error);
                 }
             };
+
+        if let Some(controller) = &self.c2_shadow {
+            let material = C2ShadowRequestMaterial::from_serializable(
+                &request,
+                request.policy_context.clone(),
+            );
+            controller.observe_request(
+                self,
+                &current_request_id(),
+                "POST",
+                path,
+                namespace.as_str(),
+                principal.principal_id.as_deref().unwrap_or(&principal.id),
+                principal.token_id.as_deref(),
+                AuthScope::Explain.as_str(),
+                request.policy_context.as_ref(),
+                material,
+                now_millis(),
+            );
+        }
 
         if let Some(requested_page) = requested_page {
             if let Err(error) = page_info(requested_page, 0, self.resource_limits.max_page_size) {
@@ -1195,6 +1327,8 @@ pub struct HttpKernelOptions {
     pub resource_limits: HttpResourceLimits,
     #[serde(default)]
     pub fabric_routing_mode: FabricRoutingMode,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub c2_shadow: Option<crate::C2ShadowConfig>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -1236,6 +1370,7 @@ impl Default for HttpKernelOptions {
             audit_queue_limit: default_audit_queue_limit(),
             resource_limits: HttpResourceLimits::default(),
             fabric_routing_mode: FabricRoutingMode::ReferenceOnly,
+            c2_shadow: None,
         }
     }
 }
@@ -1283,6 +1418,11 @@ impl HttpKernelOptions {
 
     pub fn with_fabric_routing_mode(mut self, mode: FabricRoutingMode) -> Self {
         self.fabric_routing_mode = mode;
+        self
+    }
+
+    pub fn with_c2_shadow(mut self, config: crate::C2ShadowConfig) -> Self {
+        self.c2_shadow = Some(config);
         self
     }
 }
@@ -2742,6 +2882,7 @@ async fn history(
             "GET",
             "/v1/history",
             AuthScope::Ops,
+            Some(C2ShadowRequestMaterial::empty(None)),
             request_context.clone(),
             move |service, principal, context| {
                 let policy_context = apply_policy_binding(principal, None, context)?;
@@ -2775,6 +2916,10 @@ async fn history_page(
             "GET",
             "/v1/history/page",
             AuthScope::Ops,
+            Some(C2ShadowRequestMaterial::from_serializable(
+                &requested_page,
+                None,
+            )),
             request_context,
             move |service, principal, context| {
                 let policy_context = apply_policy_binding(principal, None, context)?;
@@ -2855,6 +3000,7 @@ async fn append(
             "POST",
             "/v1/append",
             AuthScope::Append,
+            None,
             request_context.clone(),
             move |service, principal, _context| {
                 let mut request = request;
@@ -2879,6 +3025,7 @@ async fn append_dry_run(
             "POST",
             "/v1/append/dry-run",
             AuthScope::Append,
+            Some(C2ShadowRequestMaterial::from_serializable(&request, None)),
             request_context,
             move |service, principal, _context| {
                 let mut request = request;
@@ -2900,6 +3047,7 @@ async fn append_receipts_endpoint(
             "GET",
             "/v1/append/receipts",
             AuthScope::Ops,
+            Some(C2ShadowRequestMaterial::empty(None)),
             AuditContext {
                 temporal_view: Some("append_receipts".into()),
                 ..Default::default()
@@ -2920,6 +3068,7 @@ async fn schema_catalog_endpoint(
             "GET",
             "/v1/schema",
             AuthScope::Query,
+            Some(C2ShadowRequestMaterial::empty(None)),
             AuditContext {
                 temporal_view: Some("schema_catalog".into()),
                 ..Default::default()
@@ -2941,6 +3090,7 @@ async fn register_schema_endpoint(
             "POST",
             "/v1/schema/register",
             AuthScope::Ops,
+            None,
             AuditContext {
                 temporal_view: Some("schema_register".into()),
                 ..Default::default()
@@ -2964,6 +3114,7 @@ async fn activate_schema_endpoint(
             "POST",
             "/v1/schema/activate",
             AuthScope::Ops,
+            None,
             AuditContext {
                 temporal_view: Some("schema_activate".into()),
                 ..Default::default()
@@ -2992,6 +3143,10 @@ async fn current_state(
             "POST",
             "/v1/state/current",
             AuthScope::Query,
+            Some(C2ShadowRequestMaterial::from_serializable(
+                &request,
+                request.policy_context.clone(),
+            )),
             request_context.clone(),
             move |service, principal, context| {
                 let mut request = request;
@@ -3024,6 +3179,10 @@ async fn as_of(
             "POST",
             "/v1/state/as-of",
             AuthScope::Query,
+            Some(C2ShadowRequestMaterial::from_serializable(
+                &request,
+                request.policy_context.clone(),
+            )),
             request_context.clone(),
             move |service, principal, context| {
                 let mut request = request;
@@ -3052,6 +3211,7 @@ async fn parse_document(
             "POST",
             "/v1/documents/parse",
             AuthScope::Query,
+            Some(C2ShadowRequestMaterial::from_serializable(&request, None)),
             request_context.clone(),
             move |service, _principal, _context| {
                 if request.dsl.len() > limits.max_document_bytes {
@@ -3089,6 +3249,10 @@ async fn run_document(
             "POST",
             "/v1/documents/run",
             AuthScope::Query,
+            Some(C2ShadowRequestMaterial::from_serializable(
+                &request,
+                request.policy_context.clone(),
+            )),
             request_context.clone(),
             move |service, principal, context| {
                 let mut request = request;
@@ -3130,6 +3294,10 @@ async fn run_document_page(
             "POST",
             "/v1/documents/run/page",
             AuthScope::Query,
+            Some(C2ShadowRequestMaterial::from_serializable(
+                &serde_json::json!({"page": requested_page, "body": &request}),
+                request.policy_context.clone(),
+            )),
             request_context,
             move |service, principal, context| {
                 page_info(requested_page, 0, limits.max_page_size)?;
@@ -3186,6 +3354,10 @@ async fn coordination_pilot_report(
             "POST",
             "/v1/reports/pilot/coordination",
             AuthScope::Query,
+            Some(C2ShadowRequestMaterial::from_serializable(
+                &request,
+                request.policy_context.clone(),
+            )),
             request_context.clone(),
             move |service, principal, context| {
                 let mut request = request;
@@ -3237,6 +3409,10 @@ async fn coordination_delta_report(
             "POST",
             "/v1/reports/pilot/coordination-delta",
             AuthScope::Query,
+            Some(C2ShadowRequestMaterial::from_serializable(
+                &request,
+                request.policy_context.clone(),
+            )),
             request_context,
             move |service, principal, context| {
                 let mut request = request;
@@ -3279,6 +3455,7 @@ async fn partition_status(
             "GET",
             "/v1/partitions/status",
             AuthScope::Ops,
+            Some(C2ShadowRequestMaterial::empty(None)),
             AuditContext {
                 command_source: Some("http".into()),
                 temporal_view: Some("partition_status".into()),
@@ -3317,6 +3494,7 @@ async fn promote_replica(
             "POST",
             "/v1/partitions/promote",
             AuthScope::Ops,
+            None,
             request_context,
             move |service, _principal, context| {
                 let response = service.promote_replica(request).map_err(HttpError::Api)?;
@@ -3345,6 +3523,7 @@ async fn partition_append(
             "POST",
             "/v1/partitions/append",
             AuthScope::Append,
+            None,
             request_context,
             move |service, principal, context| {
                 request.principal = Some(principal.id.clone());
@@ -3373,6 +3552,10 @@ async fn partition_history(
             "POST",
             "/v1/partitions/history",
             AuthScope::Query,
+            Some(C2ShadowRequestMaterial::from_serializable(
+                &request,
+                request.policy_context.clone(),
+            )),
             request_context,
             move |service, principal, context| {
                 let mut request = request;
@@ -3412,6 +3595,10 @@ async fn partition_state(
             "POST",
             "/v1/partitions/state",
             AuthScope::Query,
+            Some(C2ShadowRequestMaterial::from_serializable(
+                &request,
+                request.policy_context.clone(),
+            )),
             request_context,
             move |service, principal, context| {
                 let mut request = request;
@@ -3442,6 +3629,10 @@ async fn federated_history(
             "POST",
             "/v1/federated/history",
             AuthScope::Query,
+            Some(C2ShadowRequestMaterial::from_serializable(
+                &request,
+                request.policy_context.clone(),
+            )),
             request_context,
             move |service, principal, context| {
                 let mut request = request;
@@ -3480,6 +3671,10 @@ async fn federated_run_document(
             "POST",
             "/v1/federated/run",
             AuthScope::Query,
+            Some(C2ShadowRequestMaterial::from_serializable(
+                &request,
+                request.policy_context.clone(),
+            )),
             request_context,
             move |service, principal, context| {
                 let mut request = request;
@@ -3522,6 +3717,10 @@ async fn federated_report(
             "POST",
             "/v1/federated/report",
             AuthScope::Explain,
+            Some(C2ShadowRequestMaterial::from_serializable(
+                &request,
+                request.policy_context.clone(),
+            )),
             request_context,
             move |service, principal, context| {
                 let mut request = request;
@@ -3567,6 +3766,10 @@ async fn explain_tuple(
             "POST",
             "/v1/explain/tuple",
             AuthScope::Explain,
+            Some(C2ShadowRequestMaterial::from_serializable(
+                &request,
+                request.policy_context.clone(),
+            )),
             request_context.clone(),
             move |service, principal, context| {
                 let mut request = request;
@@ -3653,6 +3856,7 @@ async fn register_artifact_reference(
             "POST",
             "/v1/sidecars/artifacts/register",
             AuthScope::Append,
+            None,
             request_context.clone(),
             move |service, _principal, _context| {
                 let response = service
@@ -3680,6 +3884,10 @@ async fn get_artifact_reference(
             "POST",
             "/v1/sidecars/artifacts/get",
             AuthScope::Query,
+            Some(C2ShadowRequestMaterial::from_serializable(
+                &request,
+                request.policy_context.clone(),
+            )),
             request_context.clone(),
             move |service, principal, context| {
                 let mut request = request;
@@ -3711,6 +3919,7 @@ async fn register_vector_record(
             "POST",
             "/v1/sidecars/vectors/register",
             AuthScope::Append,
+            None,
             request_context.clone(),
             move |service, _principal, _context| {
                 let response = service
@@ -3739,6 +3948,10 @@ async fn search_vectors(
             "POST",
             "/v1/sidecars/vectors/search",
             AuthScope::Query,
+            Some(C2ShadowRequestMaterial::from_serializable(
+                &request,
+                request.policy_context.clone(),
+            )),
             request_context.clone(),
             move |service, principal, context| {
                 let mut request = request;
@@ -3854,6 +4067,210 @@ fn now_millis() -> u64 {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default();
     duration.as_millis().min(u128::from(u64::MAX)) as u64
+}
+
+#[cfg(test)]
+mod c2_shadow_tests {
+    use super::*;
+    use aether_control_bridge::IssuerBuildIdentity;
+    use aether_fabric::SelectorImplementationIdentity;
+
+    fn shadow_config() -> crate::C2ShadowConfig {
+        crate::C2ShadowConfig {
+            issuer_ref: "aether-control-bridge:c2-http-test".into(),
+            issuer_revision: "c2-http-test/1".into(),
+            issuer_build: IssuerBuildIdentity {
+                source_commit: "c2-http-test-source".into(),
+                source_tree: "c2-http-test-tree".into(),
+                artifact_sha256: "a".repeat(64),
+            },
+            selector: SelectorImplementationIdentity {
+                selector_id: "c2-http-shadow-selector".into(),
+                source_commit: "selector-source".into(),
+                source_tree: "selector-tree".into(),
+                artifact_sha256: "b".repeat(64),
+            },
+            registry_capacity: 32,
+            evidence_capacity: 32,
+        }
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn admitted_history_emits_nonoperative_c2_shadow_evidence() {
+        let state = HttpKernelState::with_options(
+            crate::InMemoryKernelService::new(),
+            HttpKernelOptions::default().with_c2_shadow(shadow_config()),
+        );
+        let workers_before = state.blocking.workers.available_permits();
+        let admitted_before = state.blocking.admitted.available_permits();
+
+        let response = history(State(state.clone()), HeaderMap::new())
+            .await
+            .expect("history request remains reference-authoritative");
+        assert!(response.0.datoms.is_empty());
+
+        let evidence = state.c2_shadow_evidence();
+        assert_eq!(evidence.len(), 1);
+        let evidence = &evidence[0];
+        assert_eq!(
+            evidence.operation_class,
+            Some(aether_control_bridge::OperationClass::History)
+        );
+        assert_eq!(
+            evidence.disposition,
+            crate::C2ShadowDisposition::CandidateValidated
+        );
+        assert_eq!(evidence.authority_effect, "none");
+        assert!(evidence.reference_path_authoritative);
+        assert!(evidence.operation_admission_id.is_some());
+        assert!(evidence.envelope_id.is_some());
+        assert!(evidence.placement_decision_id.is_some());
+        assert_eq!(evidence.permitted_set_equal, Some(true));
+        assert_eq!(
+            state.fabric_routing_mode(),
+            FabricRoutingMode::ReferenceOnly
+        );
+        assert_eq!(state.blocking.workers.available_permits(), workers_before);
+        assert_eq!(state.blocking.admitted.available_permits(), admitted_before);
+    }
+
+    #[test]
+    fn exact_c2_shadow_replay_is_idempotent() {
+        let state = HttpKernelState::with_options(
+            crate::InMemoryKernelService::new(),
+            HttpKernelOptions::default().with_c2_shadow(shadow_config()),
+        );
+        let controller = state.c2_shadow.as_ref().expect("C2 shadow controller");
+        for _ in 0..2 {
+            controller.observe_request(
+                &state,
+                "request:fixed-replay",
+                "GET",
+                "/v1/history",
+                NamespaceId::default().as_str(),
+                "anonymous",
+                None,
+                AuthScope::Ops.as_str(),
+                None,
+                C2ShadowRequestMaterial::empty(None),
+                1_000,
+            );
+        }
+
+        let evidence = state.c2_shadow_evidence();
+        assert_eq!(evidence.len(), 2);
+        assert_eq!(evidence[0], evidence[1]);
+        assert_eq!(
+            evidence[0].disposition,
+            crate::C2ShadowDisposition::CandidateValidated
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn shadow_initialization_failure_does_not_change_reference_response() {
+        let mut config = shadow_config();
+        config.issuer_build.artifact_sha256 = "not-a-sha256".into();
+        let state = HttpKernelState::with_options(
+            crate::InMemoryKernelService::new(),
+            HttpKernelOptions::default().with_c2_shadow(config),
+        );
+
+        let response = history(State(state.clone()), HeaderMap::new())
+            .await
+            .expect("shadow initialization failure must not replace the reference result");
+        assert!(response.0.datoms.is_empty());
+
+        let evidence = state.c2_shadow_evidence();
+        assert_eq!(evidence.len(), 1);
+        assert_eq!(
+            evidence[0].disposition,
+            crate::C2ShadowDisposition::ShadowFailed
+        );
+        assert!(evidence[0].reference_path_authoritative);
+        assert_eq!(evidence[0].authority_effect, "none");
+        assert!(evidence[0]
+            .detail
+            .as_deref()
+            .is_some_and(|detail| detail.contains("initialization failed")));
+        assert_eq!(
+            state.fabric_routing_mode(),
+            FabricRoutingMode::ReferenceOnly
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn ordinary_authorization_denial_never_enters_c2_shadow_lane() {
+        let auth = HttpAuthConfig::new().with_token("ops-token", "operator", [AuthScope::Ops]);
+        let state = HttpKernelState::with_options(
+            crate::InMemoryKernelService::new(),
+            HttpKernelOptions::default()
+                .with_auth(auth)
+                .with_c2_shadow(shadow_config()),
+        );
+
+        let error = history(State(state.clone()), HeaderMap::new())
+            .await
+            .expect_err("missing ordinary HTTP authorization must be denied");
+        assert_eq!(error.status_code(), StatusCode::UNAUTHORIZED);
+        assert!(state.c2_shadow_evidence().is_empty());
+        assert_eq!(
+            state.fabric_routing_mode(),
+            FabricRoutingMode::ReferenceOnly
+        );
+    }
+
+    #[test]
+    fn excluded_operation_is_rejected_when_forced_into_shadow_controller() {
+        let state = HttpKernelState::with_options(
+            crate::InMemoryKernelService::new(),
+            HttpKernelOptions::default().with_c2_shadow(shadow_config()),
+        );
+        let controller = state.c2_shadow.as_ref().expect("C2 shadow controller");
+        controller.observe_request(
+            &state,
+            "request:hostile-excluded",
+            "POST",
+            "/v1/append",
+            NamespaceId::default().as_str(),
+            "anonymous",
+            None,
+            AuthScope::Append.as_str(),
+            None,
+            C2ShadowRequestMaterial::empty(None),
+            2_000,
+        );
+
+        let evidence = state.c2_shadow_evidence();
+        assert_eq!(evidence.len(), 1);
+        assert_eq!(
+            evidence[0].disposition,
+            crate::C2ShadowDisposition::ShadowRejected
+        );
+        assert!(evidence[0]
+            .detail
+            .as_deref()
+            .is_some_and(|detail| detail.contains("excluded")));
+        assert_eq!(
+            state.fabric_routing_mode(),
+            FabricRoutingMode::ReferenceOnly
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn excluded_append_path_does_not_enter_c2_shadow_lane() {
+        let state = HttpKernelState::with_options(
+            crate::InMemoryKernelService::new(),
+            HttpKernelOptions::default().with_c2_shadow(shadow_config()),
+        );
+        let request = AppendAdmissionRequest::default();
+
+        let _ = append(State(state.clone()), HeaderMap::new(), Json(request)).await;
+        assert!(state.c2_shadow_evidence().is_empty());
+        assert_eq!(
+            state.fabric_routing_mode(),
+            FabricRoutingMode::ReferenceOnly
+        );
+    }
 }
 
 #[cfg(test)]

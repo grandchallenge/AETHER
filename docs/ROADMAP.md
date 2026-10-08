@@ -279,7 +279,7 @@ Near-term E3B order:
 3. preserve AETHER semantic authority and the current live reference path —
    **still mandatory**;
 4. upstream governed E1/E3 control-record producer — **C0-A through C0-F and C1 off-path issuer/control registry protected complete**;
-5. C2 real-HTTP shadow issuance — **next eligible tranche; not started**; then C3 differential closure and C4 activation-readiness;
+5. C2 real-HTTP shadow issuance — **implemented as governance candidate on issue #120; exact-head protection pending**; then C3 differential closure and C4 activation-readiness;
 6. complete the exact activation delta with rollback/canary evidence;
 7. stop before live production activation unless the reserved control-plane disposition is authentically present on that exact packet.
 

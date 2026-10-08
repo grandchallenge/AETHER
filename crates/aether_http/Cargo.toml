@@ -6,6 +6,7 @@ rust-version.workspace = true
 version.workspace = true
 
 [dependencies]
+aether_control_bridge = { path = "../aether_control_bridge" }
 aether_fabric = { path = "../aether_fabric" }
 aether_ast = { path = "../aether_ast" }
 aether_partition = { path = "../aether_partition" }
