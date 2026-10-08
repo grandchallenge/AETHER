@@ -712,3 +712,13 @@ FABRIC routing remain blocked.
 ## AETHER/FABRIC E3B-C3 differential closure - protected complete
 
 Issue #124 is protected complete from exact source head `adc96dc70fde82e2e108aa2cab9f29d68a516bc5`, merged by PR #125 as `3a1798baeba0e5bc05ab46fde8a2c9d12c48d8ee`. Formalist, Adversary and Referee exact-head reviews passed; CI, Supply Chain and GCL conformance passed; no inline review threads remained. The protected C3 ledger closes exact 23-operation first-lane differential coverage while `ReferenceOnly` remains authoritative and C3 remains non-operative. C4 activation-readiness requires separate governance; E3B-A remains blocked.
+
+
+## C3-R1 follow-up: evidentiary correction (issue #127)
+
+The earlier C3 23-profile controller closure must NOT be interpreted as
+23 successful real HTTP requests. C3-R1 introduces paired reference
+outcomes, provenance and loss-aware replay, plus a 23-route authenticated
+HTTP matrix. Full all-23 positive-case equivalence remains unproved
+pending seeded fixtures for twelve failing domain requests. Do not
+advance to C4 on the original C3 receipt alone.

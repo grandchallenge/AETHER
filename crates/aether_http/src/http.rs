@@ -390,6 +390,34 @@ impl HttpKernelState {
             .unwrap_or_default()
     }
 
+    /// Non-operative, explicitly bounded evidence readback.
+    /// A dropped record makes full-lane closure impossible.
+    pub fn c3_replay_bundle(&self) -> crate::C3ReplayBundle {
+        let (raw, dropped) = self
+            .c2_shadow
+            .as_ref()
+            .map(|controller| (controller.snapshot(), controller.evicted_observations()))
+            .unwrap_or_default();
+        crate::C3ReplayBundle {
+            revision: crate::C3_DIFFERENTIAL_REVISION.into(),
+            evicted_observations: dropped,
+            observations: raw.iter().map(crate::adjudicate_c3_observation).collect(),
+        }
+    }
+
+    /// Write a replayable, create-new-only C3 snapshot without replacing
+    /// existing evidence. Does not claim a deployed continuous durable sink.
+    pub fn export_c3_replay_bundle(
+        &self,
+        path: impl AsRef<std::path::Path>,
+    ) -> std::io::Result<()> {
+        let bundle = self.c3_replay_bundle();
+        let bytes = serde_json::to_vec_pretty(&bundle).map_err(std::io::Error::other)?;
+        let mut file = OpenOptions::new().write(true).create_new(true).open(path)?;
+        file.write_all(&bytes)?;
+        file.sync_all()
+    }
+
     /// Read-only F1A projection of the current local blocking resource pool.
     ///
     /// This inspects semaphore counters only. It does not acquire a permit,
@@ -660,7 +688,7 @@ impl HttpKernelState {
         operation: F,
     ) -> Result<T, HttpError>
     where
-        T: Send + 'static,
+        T: Serialize + Send + 'static,
         F: FnOnce(
                 &mut dyn KernelService,
                 &AuthenticatedPrincipal,
@@ -669,6 +697,7 @@ impl HttpKernelState {
             + Send
             + 'static,
     {
+        let request_id = current_request_id();
         let namespace = namespace_from_headers(headers)?;
         context.namespace = Some(namespace.to_string());
         let principal = match self.authorize(headers, required_scope, &namespace) {
@@ -722,7 +751,7 @@ impl HttpKernelState {
             };
             controller.observe_request(
                 self,
-                &current_request_id(),
+                &request_id,
                 method,
                 path,
                 namespace.as_str(),
@@ -798,6 +827,14 @@ impl HttpKernelState {
             Ok(_) => StatusCode::OK,
             Err(error) => error.status_code(),
         };
+        if let Some(controller) = &self.c2_shadow {
+            let digest = result.as_ref().ok().and_then(|response| {
+                aether_fabric::canonicalize_serializable(response)
+                    .ok()
+                    .map(|bytes| aether_fabric::sha256_hex(&bytes))
+            });
+            controller.record_reference_result(&request_id, status.as_u16(), digest);
+        }
         self.audit.record(AuditEntry::for_request(
             method,
             path,
@@ -822,7 +859,7 @@ impl HttpKernelState {
         operation: F,
     ) -> Result<T, HttpError>
     where
-        T: Send + 'static,
+        T: Serialize + Send + 'static,
         F: FnOnce(
                 &ReplicatedAuthorityPartitionService,
                 &AuthenticatedPrincipal,
@@ -831,6 +868,7 @@ impl HttpKernelState {
             + Send
             + 'static,
     {
+        let request_id = current_request_id();
         let namespace = namespace_from_headers(headers)?;
         let mut context = context;
         context.namespace = Some(namespace.to_string());
@@ -885,7 +923,7 @@ impl HttpKernelState {
             };
             controller.observe_request(
                 self,
-                &current_request_id(),
+                &request_id,
                 method,
                 path,
                 namespace.as_str(),
@@ -962,6 +1000,14 @@ impl HttpKernelState {
             Ok(_) => StatusCode::OK,
             Err(error) => error.status_code(),
         };
+        if let Some(controller) = &self.c2_shadow {
+            let digest = result.as_ref().ok().and_then(|response| {
+                aether_fabric::canonicalize_serializable(response)
+                    .ok()
+                    .map(|bytes| aether_fabric::sha256_hex(&bytes))
+            });
+            controller.record_reference_result(&request_id, status.as_u16(), digest);
+        }
         self.audit.record(AuditEntry::for_request(
             method,
             path,
@@ -981,6 +1027,7 @@ impl HttpKernelState {
         requested_page: Option<PageRequest>,
         mut context: AuditContext,
     ) -> Result<crate::ResolveTraceHandleResponse, HttpError> {
+        let request_id = current_request_id();
         let namespace = namespace_from_headers(headers)?;
         context.namespace = Some(namespace.to_string());
         let principal = match self.authorize(headers, AuthScope::Explain, &namespace) {
@@ -1026,7 +1073,7 @@ impl HttpKernelState {
             );
             controller.observe_request(
                 self,
-                &current_request_id(),
+                &request_id,
                 "POST",
                 path,
                 namespace.as_str(),
@@ -1153,6 +1200,14 @@ impl HttpKernelState {
             .as_ref()
             .map(|_| StatusCode::OK)
             .unwrap_or_else(|error| error.status_code());
+        if let Some(controller) = &self.c2_shadow {
+            let digest = result.as_ref().ok().and_then(|response| {
+                aether_fabric::canonicalize_serializable(response)
+                    .ok()
+                    .map(|bytes| aether_fabric::sha256_hex(&bytes))
+            });
+            controller.record_reference_result(&request_id, status.as_u16(), digest);
+        }
         self.audit.record(AuditEntry::for_request(
             "POST",
             path,
@@ -1592,13 +1647,21 @@ pub fn http_router_with_partitioned_options(
     partitioned: ReplicatedAuthorityPartitionService,
     options: HttpKernelOptions,
 ) -> Router {
+    build_http_router_with_partitioned_state(service, partitioned, options).0
+}
+
+fn build_http_router_with_partitioned_state(
+    service: impl KernelService + Send + 'static,
+    partitioned: ReplicatedAuthorityPartitionService,
+    options: HttpKernelOptions,
+) -> (Router, HttpKernelState) {
     let max_body_bytes = options.resource_limits.max_request_body_bytes;
     let state = HttpKernelState::with_partitioned_options(service, partitioned, options);
     let body_audit = BodyAuditConfig {
         audit: state.audit.clone(),
         max_body_bytes,
     };
-    Router::new()
+    let router = Router::new()
         .route("/health", get(health))
         .route("/v1/status", get(service_status))
         .route("/v1/history", get(history))
@@ -1648,23 +1711,31 @@ pub fn http_router_with_partitioned_options(
             post(register_vector_record),
         )
         .route("/v1/sidecars/vectors/search", post(search_vectors))
-        .with_state(state)
+        .with_state(state.clone())
         .layer(DefaultBodyLimit::max(max_body_bytes))
         .layer(middleware::from_fn(request_id_middleware))
-        .layer(Extension(body_audit))
+        .layer(Extension(body_audit));
+    (router, state)
 }
 
 pub fn http_router_with_options(
     service: impl KernelService + Send + 'static,
     options: HttpKernelOptions,
 ) -> Router {
+    build_http_router_with_state(service, options).0
+}
+
+fn build_http_router_with_state(
+    service: impl KernelService + Send + 'static,
+    options: HttpKernelOptions,
+) -> (Router, HttpKernelState) {
     let max_body_bytes = options.resource_limits.max_request_body_bytes;
     let state = HttpKernelState::with_options(service, options);
     let body_audit = BodyAuditConfig {
         audit: state.audit.clone(),
         max_body_bytes,
     };
-    Router::new()
+    let router = Router::new()
         .route("/health", get(health))
         .route("/v1/status", get(service_status))
         .route("/v1/history", get(history))
@@ -1706,10 +1777,11 @@ pub fn http_router_with_options(
             post(register_vector_record),
         )
         .route("/v1/sidecars/vectors/search", post(search_vectors))
-        .with_state(state)
+        .with_state(state.clone())
         .layer(DefaultBodyLimit::max(max_body_bytes))
         .layer(middleware::from_fn(request_id_middleware))
-        .layer(Extension(body_audit))
+        .layer(Extension(body_audit));
+    (router, state)
 }
 
 pub fn http_router_with_sqlite_namespaces(
@@ -4141,12 +4213,257 @@ mod c2_shadow_tests {
         );
         let c3 = crate::adjudicate_c3_observation(evidence);
         assert!(c3.is_equivalent());
+        assert_eq!(c3.reference_result_status, Some(200));
+        assert!(c3.reference_result_digest.is_some());
         assert_eq!(
             state.fabric_routing_mode(),
             FabricRoutingMode::ReferenceOnly
         );
         assert_eq!(state.blocking.workers.available_permits(), workers_before);
         assert_eq!(state.blocking.admitted.available_permits(), admitted_before);
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn c3_authoritative_reference_result_is_paired_and_replay_export_is_create_new() {
+        let state = HttpKernelState::with_options(
+            crate::InMemoryKernelService::new(),
+            HttpKernelOptions::default().with_c2_shadow(shadow_config()),
+        );
+        let response = history(State(state.clone()), HeaderMap::new())
+            .await
+            .unwrap();
+        let canonical = aether_fabric::canonicalize_serializable(&response.0).unwrap();
+        let bundle = state.c3_replay_bundle();
+        assert_eq!(bundle.evicted_observations, 0);
+        assert_eq!(bundle.observations.len(), 1);
+        let record = &bundle.observations[0];
+        assert_eq!(record.reference_result_status, Some(200));
+        assert_eq!(
+            record.reference_result_digest.as_deref(),
+            Some(aether_fabric::sha256_hex(&canonical).as_str())
+        );
+        assert!(record.is_equivalent());
+        let path = std::env::temp_dir().join(format!(
+            "aether-c3-replay-{:032x}.json",
+            rand::random::<u128>()
+        ));
+        state.export_c3_replay_bundle(&path).unwrap();
+        let recovered: crate::C3ReplayBundle =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        assert_eq!(bundle, recovered);
+        assert!(
+            state.export_c3_replay_bundle(&path).is_err(),
+            "must never overwrite an existing replay artifact"
+        );
+        std::fs::remove_file(path).unwrap();
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn c3_overflow_is_explicit_evidence_loss_not_coverage() {
+        let mut config = shadow_config();
+        config.evidence_capacity = 1;
+        let state = HttpKernelState::with_options(
+            crate::InMemoryKernelService::new(),
+            HttpKernelOptions::default().with_c2_shadow(config),
+        );
+        let _ = history(State(state.clone()), HeaderMap::new())
+            .await
+            .unwrap();
+        let _ = history(State(state.clone()), HeaderMap::new())
+            .await
+            .unwrap();
+        let bundle = state.c3_replay_bundle();
+        assert_eq!(bundle.observations.len(), 1);
+        assert_eq!(bundle.evicted_observations, 1);
+        assert_eq!(
+            crate::adjudicate_c3_replay_bundle(&bundle),
+            Err(crate::C3CoverageError::EvidenceLoss)
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn c3_authenticated_router_dispatches_every_first_lane_handler_without_cutover() {
+        use aether_control_bridge::OperationClass as Op;
+        use tower::ServiceExt;
+
+        let root = std::env::temp_dir().join(format!(
+            "aether-c3-http-matrix-{:032x}",
+            rand::random::<u128>()
+        ));
+        let partitioned = ReplicatedAuthorityPartitionService::open(&root, Vec::new()).unwrap();
+        let mut config = shadow_config();
+        config.registry_capacity = 64;
+        config.evidence_capacity = 64;
+        let auth = HttpAuthConfig::new().with_token(
+            "c3-test-token",
+            "c3-http-principal",
+            [
+                AuthScope::Ops,
+                AuthScope::Query,
+                AuthScope::Append,
+                AuthScope::Explain,
+            ],
+        );
+        let (router, state) = build_http_router_with_partitioned_state(
+            crate::InMemoryKernelService::new(),
+            partitioned,
+            HttpKernelOptions::default()
+                .with_auth(auth)
+                .with_c2_shadow(config),
+        );
+
+        // A separately instantiated reference-only router is the baseline.
+        // No test ever grants FABRIC production authority.
+        let reference_root = root.with_extension("reference");
+        let reference_partitioned =
+            ReplicatedAuthorityPartitionService::open(&reference_root, Vec::new()).unwrap();
+        let reference_auth = HttpAuthConfig::new().with_token(
+            "c3-test-token",
+            "c3-http-principal",
+            [
+                AuthScope::Ops,
+                AuthScope::Query,
+                AuthScope::Append,
+                AuthScope::Explain,
+            ],
+        );
+        let (reference_router, _reference_state) = build_http_router_with_partitioned_state(
+            crate::InMemoryKernelService::new(),
+            reference_partitioned,
+            HttpKernelOptions::default().with_auth(reference_auth),
+        );
+
+        fn body_for(operation: Op) -> Vec<u8> {
+            macro_rules! encode {
+                ($request:expr) => {
+                    serde_json::to_vec(&$request).unwrap()
+                };
+            }
+            match operation {
+                Op::History
+                | Op::HistoryPage
+                | Op::AppendReceipts
+                | Op::SchemaCatalog
+                | Op::PartitionStatus => Vec::new(),
+                Op::AppendDryRun => encode!(AppendAdmissionRequest::default()),
+                Op::CurrentState => encode!(CurrentStateRequest::default()),
+                Op::AsOf => encode!(AsOfRequest::default()),
+                Op::ParseDocument => encode!(ParseDocumentRequest::default()),
+                Op::RunDocument | Op::RunDocumentPage => encode!(RunDocumentRequest::default()),
+                Op::CoordinationPilotReport => encode!(CoordinationPilotReportRequest::default()),
+                Op::CoordinationDeltaReport => encode!(CoordinationDeltaReportRequest::default()),
+                Op::PartitionHistory => encode!(PartitionHistoryRequest::default()),
+                Op::PartitionState => encode!(PartitionStateRequest::default()),
+                Op::FederatedHistory => encode!(FederatedHistoryRequest::default()),
+                Op::FederatedRunDocument | Op::FederatedReport => {
+                    encode!(FederatedRunDocumentRequest::default())
+                }
+                Op::ExplainTuple => encode!(ExplainTupleRequest::default()),
+                Op::ResolveTraceHandle | Op::ResolveTraceHandlePage => {
+                    encode!(ResolveTraceHandleRequest {
+                        handle: crate::execution::TraceHandle::generate(),
+                        policy_context: None,
+                        verify_replay: false
+                    })
+                }
+                Op::GetArtifactReference => encode!(GetArtifactReferenceRequest::default()),
+                Op::SearchVectors => encode!(SearchVectorsRequest::default()),
+            }
+        }
+
+        let mut route_results = Vec::new();
+        for operation in Op::ALL_FIRST_LANE {
+            let profile = operation.profile();
+            let body = body_for(operation);
+            let request = axum::http::Request::builder()
+                .method(profile.http_method.as_str())
+                .uri(profile.http_path.as_str())
+                .header(AUTHORIZATION, "Bearer c3-test-token")
+                .header(CONTENT_TYPE, "application/json")
+                .body(Body::from(body))
+                .unwrap();
+            let reference_request = axum::http::Request::builder()
+                .method(profile.http_method.as_str())
+                .uri(profile.http_path.as_str())
+                .header(AUTHORIZATION, "Bearer c3-test-token")
+                .header(CONTENT_TYPE, "application/json")
+                .body(Body::from(body_for(operation)))
+                .unwrap();
+            let response = router.clone().oneshot(request).await.unwrap();
+            let baseline = reference_router
+                .clone()
+                .oneshot(reference_request)
+                .await
+                .unwrap();
+            let actual_status = response.status();
+            assert_eq!(
+                actual_status,
+                baseline.status(),
+                "shadow instrumentation changed reference HTTP status for {}",
+                operation.as_str()
+            );
+            if actual_status == StatusCode::OK
+                && matches!(
+                    operation,
+                    Op::History
+                        | Op::HistoryPage
+                        | Op::AppendDryRun
+                        | Op::AppendReceipts
+                        | Op::SchemaCatalog
+                        | Op::CurrentState
+                        | Op::PartitionStatus
+                        | Op::FederatedHistory
+                        | Op::SearchVectors
+                )
+            {
+                let actual_body = to_bytes(response.into_body(), 1024 * 1024).await.unwrap();
+                let baseline_body = to_bytes(baseline.into_body(), 1024 * 1024).await.unwrap();
+                let actual: serde_json::Value = serde_json::from_slice(&actual_body).unwrap();
+                let reference: serde_json::Value = serde_json::from_slice(&baseline_body).unwrap();
+                assert_eq!(
+                    actual,
+                    reference,
+                    "shadow altered stable reference response for {}",
+                    operation.as_str()
+                );
+            }
+            route_results.push((operation.as_str().to_owned(), actual_status.as_u16()));
+        }
+
+        println!("C3 HTTP matrix: {route_results:?}");
+        let raw = state.c2_shadow_evidence();
+        assert_eq!(
+            raw.len(),
+            23,
+            "not all authenticated HTTP handlers reached C2: {route_results:?}"
+        );
+        let observed = raw
+            .iter()
+            .filter_map(|record| record.operation_class)
+            .collect::<BTreeSet<_>>();
+        let expected = Op::ALL_FIRST_LANE.into_iter().collect::<BTreeSet<_>>();
+        assert_eq!(observed, expected);
+        assert!(raw.iter().all(|record| record.reference_result_status.is_some()),
+            "HTTP reference-result status must pair with every admitted shadow observation: {route_results:?}");
+        assert_eq!(
+            state.fabric_routing_mode(),
+            FabricRoutingMode::ReferenceOnly
+        );
+        // Real HTTP routing coverage is not equivalent to 23 successful paired
+        // reference results: absent actual results correctly withhold certification.
+        let bundle = state.c3_replay_bundle();
+        assert_eq!(bundle.evicted_observations, 0);
+        if route_results.iter().any(|(_, status)| *status != 200) {
+            assert!(
+                crate::adjudicate_c3_replay_bundle(&bundle).is_err(),
+                "failed reference handlers must not be laundered into full proof"
+            );
+        }
+        drop(router);
+        drop(state);
+        drop(reference_router);
+        let _ = std::fs::remove_dir_all(root);
+        let _ = std::fs::remove_dir_all(reference_root);
     }
 
     #[test]
@@ -4271,12 +4588,13 @@ mod c2_shadow_tests {
             .iter()
             .map(crate::adjudicate_c3_observation)
             .collect::<Vec<_>>();
-        let summary = crate::adjudicate_c3_first_lane_coverage(&adjudicated)
-            .expect("all 23 protected first-lane operations must be equivalent");
-        assert_eq!(summary.observed_operation_classes, 23);
-        assert!(summary.exact_first_lane_coverage);
-        assert!(summary.all_observations_equivalent);
-        assert_eq!(summary.authority_effect, "none");
+        assert_eq!(adjudicated.len(), 23);
+        assert!(adjudicated.iter().all(|item| item.is_equivalent()));
+        assert_eq!(
+            crate::adjudicate_c3_first_lane_coverage(&adjudicated),
+            Err(crate::C3CoverageError::ReferenceResultUnpaired),
+            "controller coverage is not authenticated HTTP result coverage"
+        );
         assert_eq!(
             state.fabric_routing_mode(),
             FabricRoutingMode::ReferenceOnly

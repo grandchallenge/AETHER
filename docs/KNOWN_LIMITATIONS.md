@@ -371,3 +371,15 @@ evidence only; it is not a deployable production-authority artifact.
 ### E3B-C3 protected limits
 
 C3 issue #124 is protected complete through PR #125 merge `3a1798baeba0e5bc05ab46fde8a2c9d12c48d8ee`, but remains differential evidence only. It does not route work through FABRIC, acquire permits or queue/reserve/dispatch production work, change HTTP responses or semantic state, define cross-process authority transport, widen excluded mutations, or create `live_fabric`. Its exhaustive 23-operation evidence is exact closed-registry/controller coverage; the admitted-history test provides real-handler end-to-end evidence and the excluded-append handler proves mutation bypass. C4 requires separate governance; E3B-A and the reserved activation disposition remain blocked/unset.
+
+
+## C3-R1 real-request evidence limits
+
+C3 originally certified only 23 controller/profile evaluations, not
+23 successful authenticated HTTP operations. R1 adds real routed
+handler pairs and fail-closed coverage adjudication; an empty-fixture
+matrix has 11 successful requests and 12 domain errors. In-memory
+capture is bounded; evidence loss blocks the checker. Replay export
+is create-new and explicit, not a continuous signed production audit
+stream. There is no multi-resource equivalence theorem or C4
+authorization.
