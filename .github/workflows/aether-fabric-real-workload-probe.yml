@@ -1,0 +1,39 @@
+name: AETHER FABRIC Real Workload Probe (Nonproduction)
+
+on:
+  pull_request:
+    paths:
+      - "crates/aether_http/tests/fabric_real_workload_probe.rs"
+      - ".github/workflows/aether-fabric-real-workload-probe.yml"
+permissions:
+  contents: read
+
+jobs:
+  disposable-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt
+          rustup default stable
+      - name: Check exact source formatting
+        run: cargo fmt --all -- --check
+      - name: Execute real AETHER workload probe
+        env:
+          AETHER_FABRIC_REAL_PROBE_RECEIPT: ${{ runner.temp }}/fabric-real-workload-probe.json
+        run: |
+          set -o pipefail
+          cargo test -p aether_http --test fabric_real_workload_probe -- --nocapture 2>&1 | tee fabric-real-workload-probe.log
+      - name: Preserve exact execution evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: aether-fabric-nonproduction-real-workload-${{ github.event.pull_request.head.sha }}
+          path: |
+            fabric-real-workload-probe.log
+            ${{ runner.temp }}/fabric-real-workload-probe.json
+          if-no-files-found: warn
+          retention-days: 30
