@@ -386,9 +386,7 @@ impl HttpKernelState {
 
     /// Opt-in, read-only diagnostic material; never a permission or routing handle.
     /// None means disabled or unavailable; dropped evidence prohibits completeness.
-    pub fn source_bound_preview_readback(
-        &self,
-    ) -> Option<crate::SourceBoundReadback> {
+    pub fn source_bound_preview_readback(&self) -> Option<crate::SourceBoundReadback> {
         self.source_binding_preview.as_ref()?.readback()
     }
 
@@ -556,8 +554,9 @@ impl HttpKernelState {
                     resource_limits.operation_timeout_ms,
                 ))
             }),
-            source_binding_preview: source_bound_preview_capacity
-                .map(|capacity| Arc::new(crate::source_binding::SourceBindingPreview::new(capacity))),
+            source_binding_preview: source_bound_preview_capacity.map(|capacity| {
+                Arc::new(crate::source_binding::SourceBindingPreview::new(capacity))
+            }),
             auth: Arc::new(Mutex::new(HttpAuth::from_config(auth))),
             audit: AuditLog::new(audit_log_path, audit_queue_limit),
             status: Arc::new(Mutex::new(status)),
@@ -5663,7 +5662,10 @@ mod concurrency_tests {
                 .with_namespace_work_limits(1, 2)
                 .with_source_bound_preview_capacity(2),
         );
-        assert_eq!(state.fabric_routing_mode(), super::FabricRoutingMode::ReferenceOnly);
+        assert_eq!(
+            state.fabric_routing_mode(),
+            super::FabricRoutingMode::ReferenceOnly
+        );
         assert_eq!(
             state
                 .source_bound_preview_readback()
@@ -5725,11 +5727,14 @@ mod concurrency_tests {
         })
         .await
         .expect("real HTTP admission before worker start");
-        assert!(state
-            .source_bound_preview_readback()
-            .unwrap()
-            .observations
-            .is_empty(), "queue admission does not mint successful observation");
+        assert!(
+            state
+                .source_bound_preview_readback()
+                .unwrap()
+                .observations
+                .is_empty(),
+            "queue admission does not mint successful observation"
+        );
 
         drop(held);
         let response = tokio::time::timeout(Duration::from_secs(15), pending)
@@ -5752,14 +5757,20 @@ mod concurrency_tests {
         assert_eq!(readback.dropped_observations, 0);
         assert_eq!(readback.observations.len(), 1);
         let record = &readback.observations[0];
-        assert_eq!(record.operation_class, aether_control_bridge::OperationClass::RunDocument);
+        assert_eq!(
+            record.operation_class,
+            aether_control_bridge::OperationClass::RunDocument
+        );
         assert_eq!(record.http_method, "POST");
         assert_eq!(record.http_path, "/v1/documents/run");
         assert_eq!(record.required_scope, "query");
         assert_eq!(record.namespace_ref, "default");
         assert_eq!(record.principal_ref, "source-probe");
         assert_eq!(record.authority_effect, "none");
-        assert_eq!(record.disposition, crate::source_binding::SOURCE_BOUND_DISPOSITION);
+        assert_eq!(
+            record.disposition,
+            crate::source_binding::SOURCE_BOUND_DISPOSITION
+        );
         assert!(record.source_rate_and_namespace_admitted);
         assert!(record.reference_worker_started);
         assert!(record.semantic_result_succeeded);
@@ -5771,9 +5782,7 @@ mod concurrency_tests {
         );
         assert_eq!(
             record.semantic_result_digest,
-            aether_fabric::sha256_hex(
-                &aether_fabric::canonicalize_serializable(&result).unwrap()
-            )
+            aether_fabric::sha256_hex(&aether_fabric::canonicalize_serializable(&result).unwrap())
         );
 
         // Escalation denial occurs *inside* the worker after it starts. It
@@ -5808,14 +5817,23 @@ mod concurrency_tests {
             .await
             .expect("wrong token rejected");
         assert_eq!(wrong.status(), StatusCode::UNAUTHORIZED);
-        assert_eq!(state.source_bound_preview_readback().unwrap().observations.len(), 1);
+        assert_eq!(
+            state
+                .source_bound_preview_readback()
+                .unwrap()
+                .observations
+                .len(),
+            1
+        );
 
         let (_, disabled) = super::build_http_router_with_state(
             crate::InMemoryKernelService::new(),
             HttpKernelOptions::default(),
         );
         assert!(disabled.source_bound_preview_readback().is_none());
-        assert_eq!(disabled.fabric_routing_mode(), super::FabricRoutingMode::ReferenceOnly);
+        assert_eq!(
+            disabled.fabric_routing_mode(),
+            super::FabricRoutingMode::ReferenceOnly
+        );
     }
-
 }
