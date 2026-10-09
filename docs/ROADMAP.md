@@ -343,3 +343,12 @@ errors. Required next governance is to classify explain_tuple as a
 negative-control profile or authorize a real semantic API replacement;
 do not redefine 23/23 positive equivalence as achieved. No C4 promotion
 or live FABRIC activation is implied by C3-R2.
+
+
+## C3-R2 readback / next governing decision
+
+R2 is protected at c299e91d08e6dc9ff53afa2241977b6cbd8c3cce.
+No further fixture repair can make explain_tuple return HTTP 200
+without changing the source semantic implementation. Issue #130
+must adjudicate 22 positive + one negative-control profile versus
+a separately governed semantic API replacement before C4 is eligible.

@@ -176,3 +176,15 @@ HTTP-409 legacy denial, not a missing fixture. No C3 test may silently
 change the underlying semantic contract or claim all-23 positive
 closure. Separate protected classification or replacement governance
 is required before C4 can rely on any adjusted acceptance predicate.
+
+
+## C3-R2 protected classification boundary
+
+PR #129 protected the 22-positive/one-source-mandated-409
+authentic HTTP evidence at merge
+c299e91d08e6dc9ff53afa2241977b6cbd8c3cce.
+No issuer semantic authority was widened. Source-semantic
+legacy explain_tuple remains intentionally denied. Changing its
+first-lane acceptance classification is a separate protected
+governance decision tracked in issue #130, not a C3
+implementation repair or a grant of C4/E3B-A activation.

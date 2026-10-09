@@ -1,6 +1,6 @@
 # AETHER/FABRIC E3B-C3-R2 — Positive-case HTTP evidence and irreducible legacy exception
 
-Status: CANDIDATE — exact-head protected review/merge/readback pending
+Status: PROTECTED R2 EVIDENCE — strict all-23-positive certificate WITHHELD; issue #130 governance OPEN
 Parent governance: #110
 Open evidence repair: #127
 Protected R1 predecessor: 6185368fdcfa1375a9623de5b776b4b65f684f13
@@ -79,3 +79,32 @@ automatically configured continuous durable/signed capture sink;
 the inner protected F1E comparison covers only one local blocking
 resource pool. E3B-A, live FABRIC routing, and C4 activation-readiness
 remain unapproved/blocked until governing requirements are satisfied.
+
+## Protected adjudication and terminal readback
+
+R2 original protected predecessor: 6185368fdcfa1375a9623de5b776b4b65f684f13
+Exact R2 source head: 83fc9b42da2bc60e06e29ebd70c5058d4465e615
+Protected implementation PR #129 merge/readback: c299e91d08e6dc9ff53afa2241977b6cbd8c3cce
+
+On the exact source head:
+- Local aether_http tests: 60/60 PASS, including 22-positive/one-409
+  authenticated paired-router matrix and full hostile controller/replay suite.
+- cargo fmt --all -- --check: PASS
+- cargo clippy -p aether_http --all-targets -j 2 -- -D warnings: PASS
+- git diff --check: PASS
+- GCL conformance run 37862504784: PASS
+- CI run 37862503717: PASS
+  - Rust PR fast job 113601352831: PASS
+  - Required CI gate 113601959464: PASS
+- Supply Chain run 37862503634: PASS
+- Exact-head logical non-authoring reviews:
+  Formalist 5464262833, Adversary 5464263027,
+  Referee 5464263330: SCOPED PASS (GitHub COMMENTED,
+  all same author identity, not independent GitHub approvals).
+- No open inline review threads; protected main readback at exact merge.
+
+The protected contribution is NOT an all-23-positive equivalence
+certificate. Successful reference pairing holds for 22 profiles;
+the 23rd is the explicit source-semantic HTTP-409 denial. Acceptance
+reclassification or semantic API replacement awaits issue #130's
+separate protected governance. C4 and E3B-A remain blocked.

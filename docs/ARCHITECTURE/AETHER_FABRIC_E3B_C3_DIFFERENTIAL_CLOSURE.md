@@ -105,3 +105,17 @@ successful, paired authoritative HTTP requests. R1 introduces a
 real-handler matrix, loss-aware replay and result pairing. Until all
 23 operations have successful paired reference result evidence, the
 full all-23 HTTP-equivalence claim remains NOT CERTIFIED.
+
+
+## Superseding C3 evidence interpretation (protected R1/R2)
+
+C3 historical protected implementation #125/#126 remains valid as
+mechanical off-path code, but its initial all-23 HTTP-equivalence
+interpretation was disproved. R1 (#128 merge
+6185368fdcfa1375a9623de5b776b4b65f684f13) repaired
+pairing/identity/loss/coverage false positives. R2 (#129 merge
+c299e91d08e6dc9ff53afa2241977b6cbd8c3cce)
+reproduced 22 successful authenticated HTTP operations plus one
+source-mandated explain_tuple 409. The strict positive
+all-23 certificate is NOT established. Issue #130 is the
+protected first-lane acceptance governance boundary.

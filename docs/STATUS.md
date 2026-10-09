@@ -738,3 +738,16 @@ on BOTH paths, by an unconditional primary source implementation.
 The aggregate deliberately remains NOT CERTIFIED: 23 positive cases
 cannot be proved without changing the semantic API or revising the
 protected first-lane acceptance definition. C4/E3B-A remain blocked.
+
+
+## C3-R2 protected terminal readback
+
+PR #129 has been protected merged/read back at
+c299e91d08e6dc9ff53afa2241977b6cbd8c3cce from exact head
+83fc9b42da2bc60e06e29ebd70c5058d4465e615.
+The 23 real authenticated HTTP lane runs 22 successful
+reference/shadow pairs and one intentional, exactly matched
+legacy explain_tuple 409 denial. The strict all-23-positive
+C3 certificate is WITHHELD, not promoted by synthetic equivalence.
+Governance issue #130 controls the next legitimate classification
+decision; #127 remains open. C4/E3B-A/live FABRIC blocked.
