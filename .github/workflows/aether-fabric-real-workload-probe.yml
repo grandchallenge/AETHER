@@ -19,16 +19,8 @@ jobs:
         run: |
           rustup toolchain install stable --profile minimal --component rustfmt
           rustup default stable
-      - name: Prepare formatting readback
-        run: |
-          rustfmt --edition 2021 crates/aether_http/tests/fabric_real_workload_probe.rs
-          python3 - <<'PY'
-          from pathlib import Path
-          text=Path("crates/aether_http/tests/fabric_real_workload_probe.rs").read_text()
-          print("NONPROD_FORMATTED_SOURCE_START")
-          print(text, end="")
-          print("NONPROD_FORMATTED_SOURCE_END")
-          PY
+      - name: Check exact source formatting
+        run: cargo fmt --all -- --check
       - name: Execute real AETHER workload probe
         env:
           AETHER_FABRIC_REAL_PROBE_RECEIPT: ${{ runner.temp }}/fabric-real-workload-probe.json
