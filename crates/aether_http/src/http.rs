@@ -364,6 +364,7 @@ pub struct HttpKernelState {
     blocking: BoundedBlockingExecutor,
     fabric_routing_mode: FabricRoutingMode,
     pub(crate) c2_shadow: Option<Arc<C2ShadowController>>,
+    source_binding_preview: Option<Arc<crate::source_binding::SourceBindingPreview>>,
     auth: Arc<Mutex<HttpAuth>>,
     audit: AuditLog,
     status: Arc<Mutex<ServiceStatusResponse>>,
@@ -381,6 +382,14 @@ impl HttpKernelState {
 
     pub fn fabric_routing_mode(&self) -> FabricRoutingMode {
         self.fabric_routing_mode
+    }
+
+    /// Opt-in, read-only diagnostic material; never a permission or routing handle.
+    /// None means disabled or unavailable; dropped evidence prohibits completeness.
+    pub fn source_bound_preview_readback(
+        &self,
+    ) -> Option<crate::SourceBoundReadback> {
+        self.source_binding_preview.as_ref()?.readback()
     }
 
     pub fn c2_shadow_evidence(&self) -> Vec<crate::C2ShadowEvidence> {
@@ -528,6 +537,7 @@ impl HttpKernelState {
             resource_limits,
             fabric_routing_mode,
             c2_shadow,
+            source_bound_preview_capacity,
         } = options;
         let status =
             service_status.unwrap_or_else(|| services.default_status(audit_log_path.clone()));
@@ -546,6 +556,8 @@ impl HttpKernelState {
                     resource_limits.operation_timeout_ms,
                 ))
             }),
+            source_binding_preview: source_bound_preview_capacity
+                .map(|capacity| Arc::new(crate::source_binding::SourceBindingPreview::new(capacity))),
             auth: Arc::new(Mutex::new(HttpAuth::from_config(auth))),
             audit: AuditLog::new(audit_log_path, audit_queue_limit),
             status: Arc::new(Mutex::new(status)),
@@ -1384,6 +1396,8 @@ pub struct HttpKernelOptions {
     pub fabric_routing_mode: FabricRoutingMode,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub c2_shadow: Option<crate::C2ShadowConfig>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_bound_preview_capacity: Option<usize>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -1426,6 +1440,7 @@ impl Default for HttpKernelOptions {
             resource_limits: HttpResourceLimits::default(),
             fabric_routing_mode: FabricRoutingMode::ReferenceOnly,
             c2_shadow: None,
+            source_bound_preview_capacity: None,
         }
     }
 }
@@ -1478,6 +1493,12 @@ impl HttpKernelOptions {
 
     pub fn with_c2_shadow(mut self, config: crate::C2ShadowConfig) -> Self {
         self.c2_shadow = Some(config);
+        self
+    }
+
+    /// Explicitly opt in to bounded, non-operative, read-only source observations.
+    pub fn with_source_bound_preview_capacity(mut self, capacity: usize) -> Self {
+        self.source_bound_preview_capacity = Some(capacity.max(1));
         self
     }
 }
@@ -3315,6 +3336,22 @@ async fn run_document(
 ) -> Result<Json<crate::RunDocumentResponse>, HttpError> {
     let request_context = audit_context_for_document(&request.dsl);
     let limits = state.resource_limits;
+    // Bind the exact typed request before moving it into the real executor.
+    // All failures of this *preview* path are intentionally nonblocking.
+    let source_preview = state.source_binding_preview.clone();
+    let source_request_id = source_preview.as_ref().map(|_| current_request_id());
+    let source_payload_digest = source_preview.as_ref().and_then(|_| {
+        aether_fabric::canonicalize_serializable(&request)
+            .ok()
+            .map(|bytes| aether_fabric::sha256_hex(&bytes))
+    });
+    let source_profile = source_preview.as_ref().and_then(|_| {
+        let profile = aether_control_bridge::OperationClass::RunDocument.profile();
+        profile
+            .digest()
+            .ok()
+            .map(|digest| (profile.profile_ref, digest))
+    });
     let response = state
         .execute(
             &headers,
@@ -3330,6 +3367,17 @@ async fn run_document(
                 let mut request = request;
                 request.policy_context =
                     apply_policy_binding(principal, request.policy_context, context)?;
+                // This is the *actual* effective policy binding in AETHER's
+                // semantic closure, not C2's pre-admission shadow estimate.
+                let source_policy_digest = source_preview.as_ref().and_then(|_| {
+                    if let Some(policy) = request.policy_context.as_ref() {
+                        aether_fabric::canonicalize_serializable(policy)
+                            .ok()
+                            .map(|bytes| aether_fabric::sha256_hex(&bytes))
+                    } else {
+                        Some(aether_fabric::sha256_hex(b"aether-public-policy/1"))
+                    }
+                });
                 let response = service
                     .run_document_with_limits(
                         request,
@@ -3345,6 +3393,58 @@ async fn run_document(
                 context.last_element = response.state.as_of.map(|element| element.0);
                 context.derived_tuple_count = Some(response.derived.tuples.len());
                 context.row_count = response.query.as_ref().map(|query| query.rows.len());
+                // A completed successful callback establishes that authentication,
+                // rate/namespace admission, worker start and source policy acceptance
+                // really occurred. It cannot authorize a *new* mechanical attempt.
+                let result_digest = source_preview.as_ref().and_then(|_| {
+                    aether_fabric::canonicalize_serializable(&response)
+                        .ok()
+                        .map(|bytes| aether_fabric::sha256_hex(&bytes))
+                });
+                if let (
+                    Some(preview),
+                    Some(request_id),
+                    Some(request_payload_digest),
+                    Some((operation_profile_ref, operation_profile_digest)),
+                    Some(effective_policy_digest),
+                    Some(semantic_result_digest),
+                    Some(namespace_ref),
+                ) = (
+                    source_preview,
+                    source_request_id,
+                    source_payload_digest,
+                    source_profile,
+                    source_policy_digest,
+                    result_digest,
+                    context.namespace.clone(),
+                ) {
+                    preview.record(crate::SourceBoundObservation {
+                        request_id,
+                        operation_class: aether_control_bridge::OperationClass::RunDocument,
+                        operation_profile_ref,
+                        operation_profile_digest,
+                        http_method: "POST",
+                        http_path: "/v1/documents/run",
+                        namespace_ref,
+                        principal_ref: principal
+                            .principal_id
+                            .as_deref()
+                            .unwrap_or(&principal.id)
+                            .to_owned(),
+                        token_ref: principal.token_id.clone(),
+                        required_scope: AuthScope::Query.as_str(),
+                        request_payload_digest,
+                        effective_policy_digest,
+                        semantic_result_digest,
+                        observed_at_unix_ms: now_millis(),
+                        source_revision: None,
+                        disposition: crate::source_binding::SOURCE_BOUND_DISPOSITION,
+                        authority_effect: "none",
+                        source_rate_and_namespace_admitted: true,
+                        reference_worker_started: true,
+                        semantic_result_succeeded: true,
+                    });
+                }
                 Ok(response)
             },
         )
