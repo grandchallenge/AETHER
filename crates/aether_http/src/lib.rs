@@ -17,8 +17,8 @@ mod fabric_control_shadow;
 mod fabric_cutover;
 mod fabric_equivalence;
 mod fabric_shadow;
-mod source_binding;
 pub mod http;
+mod source_binding;
 pub mod status;
 
 pub use deployment::{
@@ -39,7 +39,6 @@ pub use fabric_equivalence::{
     FabricDifferentialEquivalenceEvidence,
 };
 pub use fabric_shadow::FabricShadowPlacementComparison;
-pub use source_binding::{SourceBoundObservation, SourceBoundReadback};
 pub use http::{
     http_router, http_router_with_options, http_router_with_partitioned_options,
     http_router_with_postgres_namespaces, http_router_with_postgres_namespaces_and_tls,
@@ -49,6 +48,7 @@ pub use http::{
     PagedRunDocumentResponse, PagedTraceResponse, StructuredErrorResponse, AETHER_NAMESPACE_HEADER,
     AETHER_REQUEST_ID_HEADER,
 };
+pub use source_binding::{SourceBoundObservation, SourceBoundReadback};
 pub use status::{
     AuthReloadResponse, NamespaceStatusSummary, PrincipalStatusSummary, ReplicaStatusSummary,
     ServiceMode, ServiceResourceControlStatus, ServiceStatusResponse, ServiceStatusStorage,
