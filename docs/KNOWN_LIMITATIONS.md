@@ -410,3 +410,8 @@ or a missing dataset. Historical C3 #124 completion does not
 override later strict C3 evidence correction #127 and issue #130.
 The one-local-resource F1E scope and explicitly exported, bounded
 in-memory evidence remain unchanged.
+
+
+## E3B #136 preview limitations
+
+This opt-in historical observer is not an execution permit. It records only successful run_document results. No per-operation authorization revision or fresh control-state witness is available through the current interface; revision is left unset. Preview records may be dropped on overflow or lock contention and are not signed or durable. Claims of future routing, cancellation control, and revocation-aware execution remain outside this tranche.
