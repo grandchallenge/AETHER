@@ -390,6 +390,29 @@ impl HttpKernelState {
         self.source_binding_preview.as_ref()?.readback()
     }
 
+    /// A non-operative instant diagnostic, not a mechanical authorization.
+    /// Holds the same source mutex used for authorization/reload while
+    /// comparing the retained exact observation; any later mutation
+    /// invalidates this comparison. No route or worker may consume it.
+    pub fn source_control_preview_check(
+        &self,
+        observation: &crate::SourceBoundObservation,
+    ) -> crate::SourceControlProbeVerdict {
+        use crate::SourceControlProbeVerdict;
+        let Ok(auth) = self.auth.try_lock() else {
+            return SourceControlProbeVerdict::DisabledOrUnavailable;
+        };
+        let evidence = self
+            .source_binding_preview
+            .as_ref()
+            .and_then(|preview| preview.readback());
+        crate::source_control_probe::verify_snapshot(
+            auth.generation,
+            evidence.as_ref(),
+            observation,
+        )
+    }
+
     pub fn c2_shadow_evidence(&self) -> Vec<crate::C2ShadowEvidence> {
         self.c2_shadow
             .as_ref()
