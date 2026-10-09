@@ -5765,7 +5765,7 @@ mod concurrency_tests {
         assert_eq!(record.http_path, "/v1/documents/run");
         assert_eq!(record.required_scope, "query");
         assert_eq!(record.namespace_ref, "default");
-        assert_eq!(record.principal_ref, "source-probe");
+        assert_eq!(record.principal_ref, "principal:source-probe");
         assert_eq!(record.authority_effect, "none");
         assert_eq!(
             record.disposition,
