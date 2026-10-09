@@ -2383,7 +2383,10 @@ impl HttpAuth {
     /// Source-owned replacement; caller must hold the existing auth mutex.
     /// Failed reload validation does not change this generation.
     fn replace_config(&mut self, config: HttpAuthConfig) -> Result<(), HttpError> {
-        let generation = self.generation.checked_add(1).ok_or(HttpError::LockPoisoned)?;
+        let generation = self
+            .generation
+            .checked_add(1)
+            .ok_or(HttpError::LockPoisoned)?;
         let mut replacement = Self::from_config(config);
         replacement.generation = generation;
         *self = replacement;
@@ -6203,7 +6206,9 @@ mod concurrency_tests {
             state.source_control_preview_check(&altered_payload),
             crate::SourceControlProbeVerdict::RecordMismatch
         );
-        assert_eq!(state.fabric_routing_mode(), super::FabricRoutingMode::ReferenceOnly);
+        assert_eq!(
+            state.fabric_routing_mode(),
+            super::FabricRoutingMode::ReferenceOnly
+        );
     }
-
 }
