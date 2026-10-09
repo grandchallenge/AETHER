@@ -5836,4 +5836,120 @@ mod concurrency_tests {
             super::FabricRoutingMode::ReferenceOnly
         );
     }
+    /// Hostile first-lane denials use the real source HTTP admission machinery,
+    /// not fabricated controller or shadow evidence.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn source_bound_preview_rejects_scope_revocation_namespace_and_rate_denials() {
+        use crate::{
+            coordination_pilot_dsl, coordination_pilot_seed_history, AppendRequest, KernelService,
+        };
+        use axum::{
+            body::Body,
+            http::{header::CONTENT_TYPE, Request},
+        };
+        use tower::ServiceExt;
+
+        let make_service = || {
+            let mut service = crate::InMemoryKernelService::new();
+            service
+                .append(AppendRequest {
+                    datoms: coordination_pilot_seed_history(),
+                })
+                .expect("seed nonempty query");
+            service
+        };
+        let payload = serde_json::to_vec(&serde_json::json!({
+            "dsl": coordination_pilot_dsl(
+                "current",
+                "goal execution_authorized(t, worker, epoch)\n  keep t, worker, epoch",
+            )
+        }))
+        .unwrap();
+        let make_request = |token: &str| {
+            Request::builder()
+                .method("POST")
+                .uri("/v1/documents/run")
+                .header(CONTENT_TYPE, "application/json")
+                .header(AUTHORIZATION, format!("Bearer {token}"))
+                .body(Body::from(payload.clone()))
+                .expect("HTTP request")
+        };
+        let mut auth = super::HttpAuthConfig::new()
+            .with_token("allowed", "allowed-principal", [AuthScope::Query])
+            .with_token("wrong-scope", "ops-principal", [AuthScope::Ops])
+            .with_token("revoked", "revoked-principal", [AuthScope::Query])
+            .with_token("confined", "confined-principal", [AuthScope::Query]);
+        auth.tokens[2].revoked = true;
+        auth.tokens[3].namespaces = vec![NamespaceId::new("other").unwrap()];
+        let (router, state) = super::build_http_router_with_state(
+            make_service(),
+            HttpKernelOptions::default()
+                .with_auth(auth)
+                .with_namespace_work_limits(1, 0)
+                .with_source_bound_preview_capacity(4),
+        );
+
+        for token in ["wrong-scope", "revoked", "confined"] {
+            let denied = router
+                .clone()
+                .oneshot(make_request(token))
+                .await
+                .expect("denied source request");
+            assert!(!denied.status().is_success());
+        }
+        assert!(state.source_bound_preview_readback().unwrap().observations.is_empty());
+
+        // A real source namespace slot is held, so the otherwise valid
+        // authenticated request is refused before global worker execution.
+        let namespace = NamespaceId::new("default").unwrap();
+        let held = state.admit_namespace(&namespace).expect("hold namespace slot");
+        let saturated = router
+            .clone()
+            .oneshot(make_request("allowed"))
+            .await
+            .expect("namespace-saturated HTTP request");
+        assert_eq!(saturated.status(), StatusCode::SERVICE_UNAVAILABLE);
+        assert!(state.source_bound_preview_readback().unwrap().observations.is_empty());
+        drop(held);
+
+        let succeeded = router
+            .clone()
+            .oneshot(make_request("allowed"))
+            .await
+            .expect("source reference call");
+        assert_eq!(succeeded.status(), StatusCode::OK);
+        assert_eq!(state.source_bound_preview_readback().unwrap().observations.len(), 1);
+
+        let (limited_router, limited_state) = super::build_http_router_with_state(
+            make_service(),
+            HttpKernelOptions::default()
+                .with_auth(super::HttpAuthConfig::new().with_token(
+                    "limited",
+                    "rate-principal",
+                    [AuthScope::Query],
+                ))
+                .with_resource_limits(HttpResourceLimits {
+                    requests_per_minute: 1,
+                    ..HttpResourceLimits::default()
+                })
+                .with_source_bound_preview_capacity(2),
+        );
+        let first = limited_router
+            .clone()
+            .oneshot(make_request("limited"))
+            .await
+            .expect("first rate-admitted request");
+        assert_eq!(first.status(), StatusCode::OK);
+        let throttled = limited_router
+            .clone()
+            .oneshot(make_request("limited"))
+            .await
+            .expect("second source request");
+        assert_eq!(throttled.status(), StatusCode::TOO_MANY_REQUESTS);
+        assert_eq!(
+            limited_state.source_bound_preview_readback().unwrap().observations.len(),
+            1
+        );
+    }
+
 }
