@@ -17,6 +17,7 @@ mod fabric_control_shadow;
 mod fabric_cutover;
 mod fabric_equivalence;
 mod fabric_shadow;
+mod source_binding;
 pub mod http;
 pub mod status;
 
@@ -38,6 +39,7 @@ pub use fabric_equivalence::{
     FabricDifferentialEquivalenceEvidence,
 };
 pub use fabric_shadow::FabricShadowPlacementComparison;
+pub use source_binding::{SourceBoundObservation, SourceBoundReadback};
 pub use http::{
     http_router, http_router_with_options, http_router_with_partitioned_options,
     http_router_with_postgres_namespaces, http_router_with_postgres_namespaces_and_tls,
