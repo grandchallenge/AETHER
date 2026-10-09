@@ -6051,4 +6051,159 @@ mod concurrency_tests {
             1
         );
     }
+    /// A queued, already-admitted HTTP query may complete after a real auth
+    /// config replacement. Its historical observation cannot be rechecked as
+    /// a current source claim. A new old-token request must be denied.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn source_control_epoch_rejects_queued_observation_after_auth_replacement() {
+        use crate::{
+            coordination_pilot_dsl, coordination_pilot_seed_history, AppendRequest, KernelService,
+        };
+        use axum::{
+            body::Body,
+            http::{header::CONTENT_TYPE, Request},
+        };
+        use tower::ServiceExt;
+
+        let mut service = crate::InMemoryKernelService::new();
+        service
+            .append(AppendRequest {
+                datoms: coordination_pilot_seed_history(),
+            })
+            .expect("seed real semantic operation");
+        let (router, state) = super::build_http_router_with_state(
+            service,
+            HttpKernelOptions::default()
+                .with_auth(super::HttpAuthConfig::new().with_token(
+                    "old-token",
+                    "old-principal",
+                    [AuthScope::Query],
+                ))
+                .with_namespace_work_limits(1, 1)
+                .with_source_bound_preview_capacity(4),
+        );
+        let payload = serde_json::to_vec(&serde_json::json!({
+            "dsl": coordination_pilot_dsl(
+                "current",
+                "goal execution_authorized(t, worker, epoch)\n  keep t, worker, epoch",
+            )
+        }))
+        .unwrap();
+        let make_request = |token: &str| {
+            Request::builder()
+                .method("POST")
+                .uri("/v1/documents/run")
+                .header(CONTENT_TYPE, "application/json")
+                .header(AUTHORIZATION, format!("Bearer {token}"))
+                .body(Body::from(payload.clone()))
+                .expect("typed source request")
+        };
+
+        let held = state
+            .blocking
+            .workers
+            .clone()
+            .acquire_owned()
+            .await
+            .expect("hold actual reference worker slot");
+        let pending = {
+            let router = router.clone();
+            let request = make_request("old-token");
+            tokio::spawn(async move { router.oneshot(request).await.expect("queued response") })
+        };
+        tokio::time::timeout(Duration::from_secs(15), async {
+            loop {
+                if state.blocking.admitted.available_permits() == 1 {
+                    break;
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("real source HTTP request was admitted and queued");
+        assert!(state
+            .source_bound_preview_readback()
+            .unwrap()
+            .observations
+            .is_empty());
+
+        // Exercise exactly the atomic source replacement used by the reload
+        // handler after its configuration validation. This is a deterministic
+        // test-only invocation, not an external deployment reload claim.
+        {
+            let mut auth = state.auth.lock().expect("same source auth mutex");
+            assert_eq!(auth.generation, 0);
+            auth.replace_config(super::HttpAuthConfig::new().with_token(
+                "new-token",
+                "new-principal",
+                [AuthScope::Query],
+            ))
+            .expect("replace auth under real source lock");
+            assert_eq!(auth.generation, 1);
+        }
+        drop(held);
+
+        let already_admitted = tokio::time::timeout(Duration::from_secs(15), pending)
+            .await
+            .expect("bounded completion")
+            .expect("join");
+        assert_eq!(already_admitted.status(), StatusCode::OK);
+        let prior = state.source_bound_preview_readback().unwrap();
+        assert_eq!(prior.observations.len(), 1);
+        let stale = &prior.observations[0];
+        assert_eq!(stale.auth_generation_at_admission, Some(0));
+        assert!(stale.source_revision.is_none());
+        assert_eq!(
+            state.source_control_preview_check(stale),
+            crate::SourceControlProbeVerdict::SourceGenerationChanged
+        );
+
+        let refused = router
+            .clone()
+            .oneshot(make_request("old-token"))
+            .await
+            .expect("revoked by replacement");
+        assert_eq!(refused.status(), StatusCode::UNAUTHORIZED);
+
+        let fresh = router
+            .clone()
+            .oneshot(make_request("new-token"))
+            .await
+            .expect("fresh source authenticated request");
+        assert_eq!(fresh.status(), StatusCode::OK);
+        let readback = state.source_bound_preview_readback().unwrap();
+        assert_eq!(readback.observations.len(), 2);
+        let newest = &readback.observations[1];
+        assert_eq!(newest.auth_generation_at_admission, Some(1));
+        assert_eq!(
+            state.source_control_preview_check(newest),
+            crate::SourceControlProbeVerdict::SnapshotMatchNonOperative
+        );
+        let mut cross_principal = newest.clone();
+        cross_principal.principal_ref = stale.principal_ref.clone();
+        assert_eq!(
+            state.source_control_preview_check(&cross_principal),
+            crate::SourceControlProbeVerdict::RecordMismatch
+        );
+        let mut cross_namespace = newest.clone();
+        cross_namespace.namespace_ref = "other".into();
+        assert_eq!(
+            state.source_control_preview_check(&cross_namespace),
+            crate::SourceControlProbeVerdict::RecordMismatch
+        );
+        let mut altered_policy = newest.clone();
+        altered_policy.effective_policy_digest = "f".repeat(64);
+        assert_eq!(
+            state.source_control_preview_check(&altered_policy),
+            crate::SourceControlProbeVerdict::RecordMismatch
+        );
+        let mut altered_payload = newest.clone();
+        altered_payload.request_payload_digest = "e".repeat(64);
+        assert_eq!(
+            state.source_control_preview_check(&altered_payload),
+            crate::SourceControlProbeVerdict::RecordMismatch
+        );
+        assert_eq!(state.fabric_routing_mode(), super::FabricRoutingMode::ReferenceOnly);
+    }
+
 }
