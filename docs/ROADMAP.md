@@ -356,8 +356,9 @@ a separately governed semantic API replacement before C4 is eligible.
 
 ## E3B source producer follow-on (#136)
 
-Validate and protect ADR 0025 and the default-OFF one-operation completed-
-reference observer. Then separately design an AETHER-issued, genuinely fresh
+ADR 0025 and the default-OFF one-operation completed-reference observer
+were protected in PR #138 at `aae5322ec53cc9dd27f3c4025a89ccf2265d29ea`.
+The next distinct work is to design an AETHER-issued, genuinely fresh
 source control witness before any operative E1/E3 bridge can be considered.
 The future work must address revocation after queue admission, reload and
 expiry, worker cancellation, no-duplicate-attempt identity, strict C3 #130,
