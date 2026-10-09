@@ -5632,4 +5632,190 @@ mod concurrency_tests {
         assert_eq!(final_pool.resources[0].queue_depth, 0);
         assert_eq!(final_pool.resources[0].available_capacity.available, 3);
     }
+    /// E3B source-binding integration: only a genuine successful authenticated,
+    /// admitted and policy-bound HTTP call emits observational material.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn source_bound_preview_attests_completed_real_work_not_queue_or_denial() {
+        use crate::{
+            coordination_pilot_dsl, coordination_pilot_seed_history, AppendRequest, KernelService,
+        };
+        use axum::{
+            body::{to_bytes, Body},
+            http::{header::CONTENT_TYPE, Request},
+        };
+        use tower::ServiceExt;
+
+        let mut service = crate::InMemoryKernelService::new();
+        service
+            .append(AppendRequest {
+                datoms: coordination_pilot_seed_history(),
+            })
+            .expect("seed non-empty coordination workload");
+
+        let (router, state) = super::build_http_router_with_state(
+            service,
+            HttpKernelOptions::default()
+                .with_auth(super::HttpAuthConfig::new().with_token(
+                    "source-binding-query-token",
+                    "source-probe",
+                    [AuthScope::Query],
+                ))
+                .with_namespace_work_limits(1, 2)
+                .with_source_bound_preview_capacity(2),
+        );
+        assert_eq!(state.fabric_routing_mode(), super::FabricRoutingMode::ReferenceOnly);
+        assert_eq!(
+            state
+                .source_bound_preview_readback()
+                .expect("preview enabled")
+                .observations
+                .len(),
+            0
+        );
+
+        let payload = serde_json::to_vec(&serde_json::json!({
+            "dsl": coordination_pilot_dsl(
+                "current",
+                "goal execution_authorized(t, worker, epoch)\n  keep t, worker, epoch",
+            )
+        }))
+        .expect("serialize seeded request");
+        let make_request = |token: Option<&str>, body: Vec<u8>| {
+            let mut builder = Request::builder()
+                .method("POST")
+                .uri("/v1/documents/run")
+                .header(CONTENT_TYPE, "application/json");
+            if let Some(token) = token {
+                builder = builder.header(AUTHORIZATION, format!("Bearer {token}"));
+            }
+            builder.body(Body::from(body)).expect("request")
+        };
+
+        let unauthorized = router
+            .clone()
+            .oneshot(make_request(None, payload.clone()))
+            .await
+            .expect("unauthorized HTTP response");
+        assert_eq!(unauthorized.status(), StatusCode::UNAUTHORIZED);
+        assert!(state
+            .source_bound_preview_readback()
+            .unwrap()
+            .observations
+            .is_empty());
+
+        let held = state
+            .blocking
+            .workers
+            .clone()
+            .acquire_owned()
+            .await
+            .expect("deterministic real worker queue occupation");
+        let pending = {
+            let router = router.clone();
+            let request = make_request(Some("source-binding-query-token"), payload.clone());
+            tokio::spawn(async move { router.oneshot(request).await.expect("real request") })
+        };
+        tokio::time::timeout(Duration::from_secs(15), async {
+            loop {
+                if state.blocking.admitted.available_permits() == 2 {
+                    break;
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("real HTTP admission before worker start");
+        assert!(state
+            .source_bound_preview_readback()
+            .unwrap()
+            .observations
+            .is_empty(), "queue admission does not mint successful observation");
+
+        drop(held);
+        let response = tokio::time::timeout(Duration::from_secs(15), pending)
+            .await
+            .expect("reference completion bound")
+            .expect("join");
+        assert_eq!(response.status(), StatusCode::OK);
+        let result: serde_json::Value = serde_json::from_slice(
+            &to_bytes(response.into_body(), 8 * 1024 * 1024)
+                .await
+                .expect("body"),
+        )
+        .expect("response JSON");
+        assert!(result
+            .pointer("/query/rows")
+            .and_then(serde_json::Value::as_array)
+            .is_some_and(|rows| !rows.is_empty()));
+
+        let readback = state.source_bound_preview_readback().unwrap();
+        assert_eq!(readback.dropped_observations, 0);
+        assert_eq!(readback.observations.len(), 1);
+        let record = &readback.observations[0];
+        assert_eq!(record.operation_class, aether_control_bridge::OperationClass::RunDocument);
+        assert_eq!(record.http_method, "POST");
+        assert_eq!(record.http_path, "/v1/documents/run");
+        assert_eq!(record.required_scope, "query");
+        assert_eq!(record.namespace_ref, "default");
+        assert_eq!(record.principal_ref, "source-probe");
+        assert_eq!(record.authority_effect, "none");
+        assert_eq!(record.disposition, crate::source_binding::SOURCE_BOUND_DISPOSITION);
+        assert!(record.source_rate_and_namespace_admitted);
+        assert!(record.reference_worker_started);
+        assert!(record.semantic_result_succeeded);
+        assert!(record.source_revision.is_none());
+        assert_eq!(record.request_payload_digest.len(), 64);
+        assert_eq!(
+            record.effective_policy_digest,
+            aether_fabric::sha256_hex(b"aether-public-policy/1")
+        );
+        assert_eq!(
+            record.semantic_result_digest,
+            aether_fabric::sha256_hex(
+                &aether_fabric::canonicalize_serializable(&result).unwrap()
+            )
+        );
+
+        // Escalation denial occurs *inside* the worker after it starts. It
+        // cannot be laundered into another completed source observation.
+        let mut escalated: serde_json::Value =
+            serde_json::from_slice(&payload).expect("typed JSON");
+        escalated["policy_context"] = serde_json::json!({
+            "capabilities": ["unauthorized-escalation"],
+            "visibilities": []
+        });
+        let forbidden = router
+            .clone()
+            .oneshot(make_request(
+                Some("source-binding-query-token"),
+                serde_json::to_vec(&escalated).unwrap(),
+            ))
+            .await
+            .expect("source policy rejection");
+        assert_eq!(forbidden.status(), StatusCode::FORBIDDEN);
+        let malformed = router
+            .clone()
+            .oneshot(make_request(
+                Some("source-binding-query-token"),
+                b"{malformed".to_vec(),
+            ))
+            .await
+            .expect("malformed JSON is rejected");
+        assert!(!malformed.status().is_success());
+        let wrong = router
+            .clone()
+            .oneshot(make_request(Some("wrong-token"), payload))
+            .await
+            .expect("wrong token rejected");
+        assert_eq!(wrong.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(state.source_bound_preview_readback().unwrap().observations.len(), 1);
+
+        let (_, disabled) = super::build_http_router_with_state(
+            crate::InMemoryKernelService::new(),
+            HttpKernelOptions::default(),
+        );
+        assert!(disabled.source_bound_preview_readback().is_none());
+        assert_eq!(disabled.fabric_routing_mode(), super::FabricRoutingMode::ReferenceOnly);
+    }
+
 }
