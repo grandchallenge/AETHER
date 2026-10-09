@@ -5945,9 +5945,9 @@ mod concurrency_tests {
                     "rate-principal",
                     [AuthScope::Query],
                 ))
-                .with_resource_limits(HttpResourceLimits {
+                .with_resource_limits(super::HttpResourceLimits {
                     requests_per_minute: 1,
-                    ..HttpResourceLimits::default()
+                    ..super::HttpResourceLimits::default()
                 })
                 .with_source_bound_preview_capacity(2),
         );
