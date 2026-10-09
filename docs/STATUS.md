@@ -753,13 +753,18 @@ Governance issue #130 controls the next legitimate classification
 decision; #127 remains open. C4/E3B-A/live FABRIC blocked.
 
 
-## E3B source-binding implementation candidate (#136; not admitted)
+## E3B source-bound observational implementation — protected readback
 
-The opt-in `run_document` source preview is implemented on an unmerged
-candidate branch, not protected production main. It observes an authentic
-post-policy successful HTTP/executor callback with a typed request digest,
-AETHER effective policy digest, principal/namespace, and semantic result.
-ReferenceOnly remains default; no FABRIC dispatch authority is minted.
-ADR 0025 documents the exact authority timeline and the missing current
-AETHER revocation/config witness. CI, hostile race replay, protected review
-and merge/readback remain required; #130/#133/E3B-A remain blocked.
+PR #138 was protected merged/read back to main at
+`aae5322ec53cc9dd27f3c4025a89ccf2265d29ea` from candidate
+`7e5b251dafcf527134787a56e5b8ac278ad29591`, based on
+`efe54fbfaf604402a1232f7a85e3f1477264a39c`. The exact candidate's
+required CI (including Rust formatting, clippy and full workspace tests),
+GCL conformance, Supply Chain and GH-OS routing enforcement passed.
+Opt-in `run_document` preview observes actual successful post-policy
+reference work with source identity and request, policy and result digests.
+The default remains ReferenceOnly. ADR 0025 classifies observations as
+NON-OPERATIVE and identifies the missing fresh AETHER control-state witness.
+No FABRIC mechanical permit, new routing mode, resource expansion or E3B-A
+activation was admitted. Fresh revocation/expiry/reload and cancellation
+races and C3 #130 / practical acceptance #133 remain unresolved.
