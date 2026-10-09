@@ -671,7 +671,7 @@ impl HttpKernelState {
         }
         {
             let mut auth = self.auth.lock().map_err(|_| HttpError::LockPoisoned)?;
-            *auth = HttpAuth::from_config(resolved.auth.clone());
+            auth.replace_config(resolved.auth.clone())?;
         }
         status.config_version.clone_from(&resolved.config_version);
         status.schema_version.clone_from(&resolved.schema_version);
@@ -2211,6 +2211,9 @@ struct AuthenticatedPrincipal {
     token_id: Option<String>,
     policy_context: Option<PolicyContext>,
     policy_bound: bool,
+    /// Captured under the same mutex as the actual source token decision.
+    /// Diagnostic only; not an E1/control-state revision or authorization.
+    auth_generation: u64,
 }
 
 #[derive(Clone)]
@@ -2316,6 +2319,8 @@ impl Default for AuditLog {
 #[derive(Clone, Default)]
 struct HttpAuth {
     tokens: HashMap<String, AuthenticatedToken>,
+    /// Monotone for this process, incremented only on successful config replacement.
+    generation: u64,
 }
 
 impl HttpAuth {
@@ -2346,7 +2351,20 @@ impl HttpAuth {
                 },
             );
         }
-        Self { tokens }
+        Self {
+            tokens,
+            generation: 0,
+        }
+    }
+
+    /// Source-owned replacement; caller must hold the existing auth mutex.
+    /// Failed reload validation does not change this generation.
+    fn replace_config(&mut self, config: HttpAuthConfig) -> Result<(), HttpError> {
+        let generation = self.generation.checked_add(1).ok_or(HttpError::LockPoisoned)?;
+        let mut replacement = Self::from_config(config);
+        replacement.generation = generation;
+        *self = replacement;
+        Ok(())
     }
 
     fn authorize(
@@ -2362,6 +2380,7 @@ impl HttpAuth {
                 token_id: None,
                 policy_context: None,
                 policy_bound: false,
+                auth_generation: self.generation,
             });
         }
 
@@ -2412,6 +2431,7 @@ impl HttpAuth {
             token_id: access.token_id.clone(),
             policy_context: access.policy_context.clone(),
             policy_bound: true,
+            auth_generation: self.generation,
         })
     }
 
@@ -3437,6 +3457,7 @@ async fn run_document(
                         semantic_result_digest,
                         observed_at_unix_ms: now_millis(),
                         source_revision: None,
+                        auth_generation_at_admission: Some(principal.auth_generation),
                         disposition: crate::source_binding::SOURCE_BOUND_DISPOSITION,
                         authority_effect: "none",
                         source_rate_and_namespace_admitted: true,
