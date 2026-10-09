@@ -1,6 +1,6 @@
 # ADR 0026 — AETHER HTTP-auth generation is a diagnostic epoch, not a control permit
 
-**Status:** E3B #140 non-operative implementation candidate, exact-head CI and protected review required.  
+**Status:** E3B #140 non-operative diagnostic subset protected via PR #141 at `3bbe48d7c361dd7a740def1da4ce56497a2d24ae`; full current-control witness unproved.  
 **Protected predecessor:** `3b66cfc9125ee84cca1c2c998f1849299b5b04e0`.  
 **Dependencies:** #136 protected result, ADR 0025, C0 authority issuance, #130 C3 acceptance, #133 practical acceptance, parent #110.  
 **Authority classification:** no Article IX production-semantic authority change; Article XI/E3B-A **not** granted.
