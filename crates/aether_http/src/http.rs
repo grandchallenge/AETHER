@@ -5403,7 +5403,7 @@ mod concurrency_tests {
         let payload = serde_json::to_vec(&serde_json::json!({
             "dsl": coordination_pilot_dsl(
                 "current",
-                "goal execution_authorized(t, worker, epoch)\\n  keep t, worker, epoch",
+                "goal execution_authorized(t, worker, epoch)\n  keep t, worker, epoch",
             )
         }))
         .expect("serialize query payload");
