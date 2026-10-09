@@ -19,6 +19,7 @@ mod fabric_equivalence;
 mod fabric_shadow;
 pub mod http;
 mod source_binding;
+mod source_control_probe;
 pub mod status;
 
 pub use deployment::{
@@ -49,6 +50,7 @@ pub use http::{
     AETHER_REQUEST_ID_HEADER,
 };
 pub use source_binding::{SourceBoundObservation, SourceBoundReadback};
+pub use source_control_probe::SourceControlProbeVerdict;
 pub use status::{
     AuthReloadResponse, NamespaceStatusSummary, PrincipalStatusSummary, ReplicaStatusSummary,
     ServiceMode, ServiceResourceControlStatus, ServiceStatusResponse, ServiceStatusStorage,
