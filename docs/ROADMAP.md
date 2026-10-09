@@ -367,8 +367,10 @@ FABRIC permissions; E3B-A remains a reserved, unset activation.
 
 ## E3B #140 current-control witness successor boundary
 
-After validating the local HTTP-auth epoch probe, the distinct next task is
-an AETHER-owned, same-attempt, consumptive, revocable mechanical admission
+The local HTTP-auth epoch probe was admitted via PR #141 at
+`3bbe48d7c361dd7a740def1da4ce56497a2d24ae`.
+The next **separately governed** task is an AETHER-owned, same-attempt,
+consumptive, revocable mechanical admission
 capability at the genuine executor seam. Do not upgrade a generation or copied
 observation into authorization. Specify atomic control-state validation with
 queue/cancel/retry semantics, source policy freshness and Article IX/XI review
