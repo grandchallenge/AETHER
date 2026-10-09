@@ -166,3 +166,13 @@ HTTP requests. C4 and E3B-A may not rely on that stronger certificate
 without separately protected positive-case evidence. The issuer's
 constitutional/authority classification and reference-only default
 are unchanged.
+
+
+## C3-R2 source-semantic boundary finding
+
+Issue #127/R2 adds positive seeded first-lane HTTP evidence for 22
+eligible profiles; explain_tuple is an intentional source-semantic
+HTTP-409 legacy denial, not a missing fixture. No C3 test may silently
+change the underlying semantic contract or claim all-23 positive
+closure. Separate protected classification or replacement governance
+is required before C4 can rely on any adjusted acceptance predicate.

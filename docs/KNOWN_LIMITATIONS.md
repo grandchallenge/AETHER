@@ -387,3 +387,15 @@ authorization.
 C3-R1 additionally rejects individual equivalence verdicts unless a successful
 reference HTTP result and digest are paired; stored labels are independently
 recomputed by the coverage checker. Untrusted JSON is not signed authority.
+
+
+## C3-R2 irreducible source-semantic exception
+
+The unmodified KernelServiceCore::explain_tuple unconditionally returns
+ApiError::AmbiguousTupleReference, mapped to HTTP 409. Its classification
+cannot be converted into positive first-lane HTTP success by any valid
+fixtures. R2 shows 22 real successful authenticated handlers and one
+matched intentional denial. The strict all-23-positive C3 certificate
+continues to FAIL CLOSED until protected lane/semantic governance
+resolves this boundary. Continuous signed capture and multi-resource
+equivalence remain outside the demonstrated scope.

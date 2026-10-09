@@ -333,3 +333,13 @@ Issue #127 repairs the C3 certification weakness without activating
 FABRIC. Complete real successful request pairing for all 23 profiles
 before a full C3 HTTP-equivalence certificate, then revisit C4 only
 under separately governed readiness. E3B-A remains blocked.
+
+
+## C3-R2 first-lane acceptance reconciliation
+
+The new seeded HTTP fixture proves 22 success + one designed legacy
+explain_tuple denial (409) instead of 11 successes + twelve unspecified
+errors. Required next governance is to classify explain_tuple as a
+negative-control profile or authorize a real semantic API replacement;
+do not redefine 23/23 positive equivalence as achieved. No C4 promotion
+or live FABRIC activation is implied by C3-R2.
