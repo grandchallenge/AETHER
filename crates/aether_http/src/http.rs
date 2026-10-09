@@ -5897,19 +5897,29 @@ mod concurrency_tests {
                 .expect("denied source request");
             assert!(!denied.status().is_success());
         }
-        assert!(state.source_bound_preview_readback().unwrap().observations.is_empty());
+        assert!(state
+            .source_bound_preview_readback()
+            .unwrap()
+            .observations
+            .is_empty());
 
         // A real source namespace slot is held, so the otherwise valid
         // authenticated request is refused before global worker execution.
         let namespace = NamespaceId::new("default").unwrap();
-        let held = state.admit_namespace(&namespace).expect("hold namespace slot");
+        let held = state
+            .admit_namespace(&namespace)
+            .expect("hold namespace slot");
         let saturated = router
             .clone()
             .oneshot(make_request("allowed"))
             .await
             .expect("namespace-saturated HTTP request");
         assert_eq!(saturated.status(), StatusCode::SERVICE_UNAVAILABLE);
-        assert!(state.source_bound_preview_readback().unwrap().observations.is_empty());
+        assert!(state
+            .source_bound_preview_readback()
+            .unwrap()
+            .observations
+            .is_empty());
         drop(held);
 
         let succeeded = router
@@ -5918,7 +5928,14 @@ mod concurrency_tests {
             .await
             .expect("source reference call");
         assert_eq!(succeeded.status(), StatusCode::OK);
-        assert_eq!(state.source_bound_preview_readback().unwrap().observations.len(), 1);
+        assert_eq!(
+            state
+                .source_bound_preview_readback()
+                .unwrap()
+                .observations
+                .len(),
+            1
+        );
 
         let (limited_router, limited_state) = super::build_http_router_with_state(
             make_service(),
@@ -5947,9 +5964,12 @@ mod concurrency_tests {
             .expect("second source request");
         assert_eq!(throttled.status(), StatusCode::TOO_MANY_REQUESTS);
         assert_eq!(
-            limited_state.source_bound_preview_readback().unwrap().observations.len(),
+            limited_state
+                .source_bound_preview_readback()
+                .unwrap()
+                .observations
+                .len(),
             1
         );
     }
-
 }
