@@ -6,8 +6,8 @@ use aether_control_bridge::{
 };
 use aether_fabric::{
     f1b_scheduler_policy_identity, f1b_select_resource, local_blocking_pool_observation,
-    realize_selected_placement, PlacementDecision, RealizationRequest, ResourceObservation,
-    ResourceSnapshot, ResourceHealth, SelectorImplementationIdentity,
+    realize_selected_placement, PlacementDecision, RealizationRequest, ResourceHealth,
+    ResourceObservation, ResourceSnapshot, SelectorImplementationIdentity,
 };
 use aether_http::{http_router_with_options, AuthScope, HttpAuthConfig, HttpKernelOptions};
 use aether_pilot::{coordination_pilot_dsl, coordination_pilot_seed_history};
@@ -78,7 +78,7 @@ impl LocalLabResource {
         let request = Request::builder()
             .method("POST")
             .uri("/v1/documents/run")
-            .header(AUTHORIZATION, format!("***"))
+            .header(AUTHORIZATION, format!("Bearer {TOKEN}"))
             .header(CONTENT_TYPE, "application/json")
             .body(Body::from(payload))
             .unwrap();
@@ -378,15 +378,23 @@ async fn nonproduction_real_workload_observed_contention_and_inflight_fallback()
     // resource becomes unavailable before fresh realization. This is still an
     // isolated *fault injection*, not a physical host failure observation.
     let lost_t = millis();
-    let lost_bundle = controller.issue_control_bundle(&admission(lost_t, "resource-loss", &payload_value)).unwrap();
+    let lost_bundle = controller
+        .issue_control_bundle(&admission(lost_t, "resource-loss", &payload_value))
+        .unwrap();
     let lost_placement = match f1b_select_resource(
-        &lost_bundle.envelope_bytes, &lost_bundle.placement_constraint,
+        &lost_bundle.envelope_bytes,
+        &lost_bundle.placement_constraint,
         &snapshot(lost_t, &reference, &spare),
-        &lost_bundle.control_state_witness, &f1b_scheduler_policy_identity(),
+        &lost_bundle.control_state_witness,
+        &f1b_scheduler_policy_identity(),
         &selector(),
-    ).unwrap() {
+    )
+    .unwrap()
+    {
         PlacementDecision::Selected(p) => p,
-        PlacementDecision::Unavailable(_) => panic!("resource-loss setup needs a selected candidate"),
+        PlacementDecision::Unavailable(_) => {
+            panic!("resource-loss setup needs a selected candidate")
+        }
     };
     let mut current_resources = vec![reference.observation(), spare.observation()];
     for resource in &mut current_resources {
@@ -396,21 +404,29 @@ async fn nonproduction_real_workload_observed_contention_and_inflight_fallback()
         }
     }
     let lost_snapshot = ResourceSnapshot::new(
-        "fault-injected-unavailable", lost_t + 2,
-        "nonproduction-fault-injection", current_resources,
-    ).unwrap();
-    let fresh_witness = controller.registry().observe(
-        &lost_bundle.placement_constraint.envelope_id, lost_t + 2,
-    ).unwrap();
+        "fault-injected-unavailable",
+        lost_t + 2,
+        "nonproduction-fault-injection",
+        current_resources,
+    )
+    .unwrap();
+    let fresh_witness = controller
+        .registry()
+        .observe(&lost_bundle.placement_constraint.envelope_id, lost_t + 2)
+        .unwrap();
     let loss_blocked = realize_selected_placement(
-        &lost_bundle.envelope_bytes, &lost_bundle.placement_constraint,
-        &lost_placement, &lost_snapshot, &fresh_witness,
+        &lost_bundle.envelope_bytes,
+        &lost_bundle.placement_constraint,
+        &lost_placement,
+        &lost_snapshot,
+        &fresh_witness,
         &RealizationRequest {
             realization_request_id: "lost-selected-resource".into(),
             realization_time_unix_ms: lost_t + 2,
             occurred_at: "2026-10-09T00:00:00Z".into(),
-        }
-    ).is_err();
+        },
+    )
+    .is_err();
     assert!(loss_blocked);
 
     // An in-flight fallback test switches only the *harness* routing flag.
