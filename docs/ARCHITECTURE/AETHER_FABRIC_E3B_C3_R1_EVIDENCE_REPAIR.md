@@ -1,6 +1,11 @@
 # AETHER/FABRIC E3B-C3-R1 — HTTP evidence integrity repair
 
-Status: CANDIDATE, not yet protected. Issue #127. Parent #110; original C3 issue #124.
+Status: PROTECTED PARTIAL REPAIR. Issue #127 remains OPEN. Parent #110; original C3 issue #124.
+Exact R1 reviewed head: 9a055c676207cdbd8208dbafb1b01842eb4aa22a
+Protected R1 merge/readback: 6185368fdcfa1375a9623de5b776b4b65f684f13
+Exact-head CI, GCL conformance and Supply Chain: PASS.
+Residual positive-case evidence is documented in R2. The original
+unqualified 23-positive certificate remains WITHHELD.
 
 Protected predecessor: `abd43a849dd3fe7acb0abf881ebc3e737f05a15a`.
 

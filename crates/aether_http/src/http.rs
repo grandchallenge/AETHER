@@ -4466,6 +4466,287 @@ mod c2_shadow_tests {
         let _ = std::fs::remove_dir_all(reference_root);
     }
 
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn c3_positive_case_authenticated_http_matrix_evidence() {
+        use aether_ast::{ElementId, FederatedCut, PartitionCut, PartitionId, ReplicaId};
+        use aether_control_bridge::OperationClass as Op;
+        use aether_partition::{AuthorityPartitionConfig, ReplicaConfig, ReplicaRole};
+        use tower::ServiceExt;
+
+        let dsl = aether_pilot::coordination_pilot_dsl("current", "goal task_ready(t)\n  keep t");
+        let parsed = crate::InMemoryKernelService::new()
+            .parse_document(ParseDocumentRequest { dsl: dsl.clone() })
+            .expect("source-locked valid pilot DSL");
+        let schema = parsed.schema;
+        let datoms = aether_pilot::coordination_pilot_seed_history();
+
+        fn seeded_service(
+            dsl: &str,
+            datoms: &[aether_ast::Datom],
+        ) -> (
+            crate::InMemoryKernelService,
+            crate::execution::TraceHandle,
+            aether_ast::TupleId,
+        ) {
+            let mut service = crate::InMemoryKernelService::new();
+            service
+                .append(crate::AppendRequest {
+                    datoms: datoms.to_vec(),
+                })
+                .unwrap();
+            let artifact = crate::ArtifactReference {
+                sidecar_id: "c3-fixture-sidecar".into(),
+                artifact_id: "c3-fixture-artifact".into(),
+                uri: "cas://c3-fixture-artifact".into(),
+                media_type: "application/octet-stream".into(),
+                entity: aether_ast::EntityId::new(1),
+                registered_at: datoms.last().expect("nonempty seed history").element,
+                ..Default::default()
+            };
+            service
+                .register_artifact_reference(RegisterArtifactReferenceRequest {
+                    reference: artifact,
+                })
+                .expect("test fixture must register artifact");
+            let run = service
+                .run_document(RunDocumentRequest {
+                    dsl: dsl.into(),
+                    policy_context: None,
+                })
+                .expect("seeded pilot run must succeed");
+            let receipt = run
+                .execution
+                .as_ref()
+                .expect("seeded run creates execution receipt");
+            let trace = receipt
+                .trace_handles
+                .first()
+                .expect("seeded run creates a trace");
+            (service, trace.handle.clone(), trace.local_tuple_id)
+        }
+        let (service, handle, tuple) = seeded_service(&dsl, &datoms);
+        let (reference_service, reference_handle, reference_tuple) = seeded_service(&dsl, &datoms);
+
+        let root = std::env::temp_dir().join(format!(
+            "aether-c3-positive-{:032x}",
+            rand::random::<u128>()
+        ));
+        let reference_root = root.with_extension("reference");
+        let partition_config = |root: &std::path::Path| {
+            vec![AuthorityPartitionConfig {
+                partition: PartitionId::new("c3-positive-partition"),
+                replicas: vec![ReplicaConfig {
+                    replica_id: ReplicaId::new(1),
+                    database_path: root.join("leader.sqlite"),
+                    role: ReplicaRole::Leader,
+                }],
+            }]
+        };
+        let partitioned =
+            ReplicatedAuthorityPartitionService::open(&root, partition_config(&root)).unwrap();
+        let reference_partitioned = ReplicatedAuthorityPartitionService::open(
+            &reference_root,
+            partition_config(&reference_root),
+        )
+        .unwrap();
+        let auth = || {
+            HttpAuthConfig::new().with_token(
+                "c3-positive-token",
+                "c3-positive-principal",
+                [
+                    AuthScope::Ops,
+                    AuthScope::Query,
+                    AuthScope::Append,
+                    AuthScope::Explain,
+                ],
+            )
+        };
+        let mut config = shadow_config();
+        config.registry_capacity = 80;
+        config.evidence_capacity = 80;
+        let (router, state) = build_http_router_with_partitioned_state(
+            service,
+            partitioned,
+            HttpKernelOptions::default()
+                .with_auth(auth())
+                .with_c2_shadow(config),
+        );
+        let (reference_router, _reference_state) = build_http_router_with_partitioned_state(
+            reference_service,
+            reference_partitioned,
+            HttpKernelOptions::default().with_auth(auth()),
+        );
+
+        let body_for = |op: Op,
+                        handle: &crate::execution::TraceHandle,
+                        tuple: aether_ast::TupleId|
+         -> Vec<u8> {
+            macro_rules! encode {
+                ($request:expr) => {
+                    serde_json::to_vec(&$request).unwrap()
+                };
+            }
+            let cut = PartitionCut::current(PartitionId::new("c3-positive-partition"));
+            match op {
+                Op::History
+                | Op::HistoryPage
+                | Op::AppendReceipts
+                | Op::SchemaCatalog
+                | Op::PartitionStatus => Vec::new(),
+                Op::AppendDryRun => encode!(AppendAdmissionRequest::default()),
+                Op::CurrentState => encode!(CurrentStateRequest {
+                    schema: schema.clone(),
+                    datoms: datoms.clone(),
+                    policy_context: None
+                }),
+                Op::AsOf => encode!(AsOfRequest {
+                    schema: schema.clone(),
+                    datoms: datoms.clone(),
+                    at: ElementId::new(10),
+                    policy_context: None
+                }),
+                Op::ParseDocument => encode!(ParseDocumentRequest { dsl: dsl.clone() }),
+                Op::RunDocument | Op::RunDocumentPage => encode!(RunDocumentRequest {
+                    dsl: dsl.clone(),
+                    policy_context: None
+                }),
+                Op::CoordinationPilotReport => encode!(CoordinationPilotReportRequest::default()),
+                Op::CoordinationDeltaReport => encode!(CoordinationDeltaReportRequest::default()),
+                Op::PartitionHistory => encode!(PartitionHistoryRequest {
+                    cut,
+                    policy_context: None
+                }),
+                Op::PartitionState => encode!(PartitionStateRequest {
+                    cut,
+                    schema: schema.clone(),
+                    policy_context: None
+                }),
+                Op::FederatedHistory => encode!(FederatedHistoryRequest {
+                    cut: FederatedCut { cuts: vec![cut] },
+                    policy_context: None
+                }),
+                Op::FederatedRunDocument | Op::FederatedReport => {
+                    encode!(FederatedRunDocumentRequest {
+                        dsl: dsl.clone(),
+                        imports: vec![],
+                        policy_context: None
+                    })
+                }
+                Op::ExplainTuple => encode!(ExplainTupleRequest {
+                    tuple_id: tuple,
+                    policy_context: None
+                }),
+                Op::ResolveTraceHandle | Op::ResolveTraceHandlePage => {
+                    encode!(ResolveTraceHandleRequest {
+                        handle: handle.clone(),
+                        policy_context: None,
+                        verify_replay: false
+                    })
+                }
+                Op::GetArtifactReference => encode!(GetArtifactReferenceRequest {
+                    sidecar_id: "c3-fixture-sidecar".into(),
+                    artifact_id: "c3-fixture-artifact".into(),
+                    policy_context: None
+                }),
+                Op::SearchVectors => encode!(SearchVectorsRequest::default()),
+            }
+        };
+        let mut results = Vec::new();
+        for operation in Op::ALL_FIRST_LANE {
+            let profile = operation.profile();
+            let query = |body: Vec<u8>| {
+                axum::http::Request::builder()
+                    .method(profile.http_method.as_str())
+                    .uri(profile.http_path.as_str())
+                    .header(AUTHORIZATION, "Bearer c3-positive-token")
+                    .header(CONTENT_TYPE, "application/json")
+                    .body(Body::from(body))
+                    .unwrap()
+            };
+            let response = router
+                .clone()
+                .oneshot(query(body_for(operation, &handle, tuple)))
+                .await
+                .unwrap();
+            let reference = reference_router
+                .clone()
+                .oneshot(query(body_for(
+                    operation,
+                    &reference_handle,
+                    reference_tuple,
+                )))
+                .await
+                .unwrap();
+            assert_eq!(
+                response.status(),
+                reference.status(),
+                "differential HTTP status mismatch: {}",
+                operation.as_str()
+            );
+            let status = response.status();
+            if matches!(operation, Op::ExplainTuple) {
+                let actual: serde_json::Value = serde_json::from_slice(
+                    &to_bytes(response.into_body(), 1024 * 1024).await.unwrap(),
+                )
+                .unwrap();
+                let baseline: serde_json::Value = serde_json::from_slice(
+                    &to_bytes(reference.into_body(), 1024 * 1024).await.unwrap(),
+                )
+                .unwrap();
+                assert_eq!(status, StatusCode::CONFLICT);
+                assert_eq!(actual["code"], "ambiguous_tuple_reference");
+                assert_eq!(actual["code"], baseline["code"]);
+                assert_eq!(actual["error"], baseline["error"]);
+                assert_eq!(actual["details"], baseline["details"]);
+            }
+            results.push((operation.as_str().to_owned(), status.as_u16()));
+        }
+        println!("C3 positive fixture HTTP matrix: {results:?}");
+        assert_eq!(results.len(), 23);
+        let bundle = state.c3_replay_bundle();
+        assert_eq!(bundle.observations.len(), 23);
+        assert_eq!(bundle.evicted_observations, 0);
+        assert_eq!(results.iter().filter(|(_, code)| *code == 200).count(), 22);
+        assert_eq!(
+            results
+                .iter()
+                .find(|(operation, _)| operation == "explain_tuple")
+                .unwrap()
+                .1,
+            409
+        );
+        assert_eq!(
+            bundle
+                .observations
+                .iter()
+                .filter(|record| record.is_equivalent())
+                .count(),
+            22
+        );
+        let denied = bundle
+            .observations
+            .iter()
+            .find(|record| matches!(record.operation_class, Some(Op::ExplainTuple)))
+            .expect("legacy denial must remain present in the lane");
+        assert_eq!(denied.reference_result_status, Some(409));
+        assert_eq!(
+            denied.disagreement_class,
+            Some(crate::C3DisagreementClass::ReferenceResultUnpaired)
+        );
+        assert_eq!(crate::adjudicate_c3_replay_bundle(&bundle),
+            Err(crate::C3CoverageError::DifferentialDisagreement),
+            "the 22+1 observation matrix must not launder a hard-denied legacy endpoint into 23 positives");
+        assert_eq!(
+            state.fabric_routing_mode(),
+            FabricRoutingMode::ReferenceOnly
+        );
+        drop(router);
+        drop(reference_router);
+        drop(state);
+        let _ = std::fs::remove_dir_all(root);
+        let _ = std::fs::remove_dir_all(reference_root);
+    }
+
     #[test]
     fn exact_c2_shadow_replay_is_idempotent() {
         let state = HttpKernelState::with_options(

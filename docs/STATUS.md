@@ -726,3 +726,15 @@ advance to C4 on the original C3 receipt alone.
 C3-R1 additionally rejects individual equivalence verdicts unless a successful
 reference HTTP result and digest are paired; stored labels are independently
 recomputed by the coverage checker. Untrusted JSON is not signed authority.
+
+
+## C3-R2 positive evidence candidate (issue #127)
+
+A seeded positive-case HTTP matrix now exercises all 23 authenticated
+handlers against independently initialized reference-only controls.
+Twenty-two produce successful HTTP 200 results with paired C3 evidence.
+The legacy explain_tuple endpoint returns 409 ambiguous_tuple_reference
+on BOTH paths, by an unconditional primary source implementation.
+The aggregate deliberately remains NOT CERTIFIED: 23 positive cases
+cannot be proved without changing the semantic API or revising the
+protected first-lane acceptance definition. C4/E3B-A remain blocked.
