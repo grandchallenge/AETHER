@@ -5753,6 +5753,43 @@ mod concurrency_tests {
             .and_then(serde_json::Value::as_array)
             .is_some_and(|rows| !rows.is_empty()));
 
+        // Compare the actual typed semantic work with an independently seeded,
+        // default-OFF reference-only router. Diagnostic observation cannot
+        // modify tuple derivation or query rows.
+        let mut reference_service = crate::InMemoryKernelService::new();
+        reference_service
+            .append(AppendRequest {
+                datoms: coordination_pilot_seed_history(),
+            })
+            .expect("identical reference seed");
+        let (reference_router, reference_state) = super::build_http_router_with_state(
+            reference_service,
+            HttpKernelOptions::default().with_auth(
+                super::HttpAuthConfig::new().with_token(
+                    "source-binding-query-token",
+                    "source-probe",
+                    [AuthScope::Query],
+                ),
+            ),
+        );
+        assert!(reference_state.source_bound_preview_readback().is_none());
+        let reference_reply = reference_router
+            .oneshot(make_request(
+                Some("source-binding-query-token"),
+                payload.clone(),
+            ))
+            .await
+            .expect("default-off reference reply");
+        assert_eq!(reference_reply.status(), StatusCode::OK);
+        let reference_result: serde_json::Value = serde_json::from_slice(
+            &to_bytes(reference_reply.into_body(), 8 * 1024 * 1024)
+                .await
+                .expect("default-off body"),
+        )
+        .expect("default-off response JSON");
+        assert_eq!(reference_result.get("derived"), result.get("derived"));
+        assert_eq!(reference_result.get("query"), result.get("query"));
+
         let readback = state.source_bound_preview_readback().unwrap();
         assert_eq!(readback.dropped_observations, 0);
         assert_eq!(readback.observations.len(), 1);
