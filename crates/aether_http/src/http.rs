@@ -5362,4 +5362,174 @@ mod concurrency_tests {
             .admit_namespace(&second)
             .expect("independent namespace permit");
     }
+
+    /// E3B-B2 seam check: read FABRIC's pool snapshot from the same actual
+    /// BoundedBlockingExecutor that processes authenticated AETHER requests.
+    ///
+    /// A test-only worker permit makes the queue state deterministic; no
+    /// synthetic resource or production FABRIC dispatcher is introduced.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn fabric_observes_real_http_execution_queue_without_admitting_denied_work() {
+        use crate::{
+            coordination_pilot_dsl, coordination_pilot_seed_history, AppendRequest, KernelService,
+        };
+        use axum::{
+            body::{to_bytes, Body},
+            http::{header::CONTENT_TYPE, Request},
+        };
+        use tower::ServiceExt;
+
+        let mut service = crate::InMemoryKernelService::new();
+        service
+            .append(AppendRequest {
+                datoms: coordination_pilot_seed_history(),
+            })
+            .expect("seed non-empty coordination workload");
+
+        let (router, state) = super::build_http_router_with_state(
+            service,
+            HttpKernelOptions::default()
+                .with_auth(super::HttpAuthConfig::new().with_token(
+                    "real-boundary-test-token",
+                    "boundary-probe",
+                    [AuthScope::Query],
+                ))
+                .with_namespace_work_limits(1, 2),
+        );
+        assert_eq!(
+            state.fabric_routing_mode(),
+            super::FabricRoutingMode::ReferenceOnly
+        );
+
+        let payload = serde_json::to_vec(&serde_json::json!({
+            "dsl": coordination_pilot_dsl(
+                "current",
+                "goal execution_authorized(t, worker, epoch)\n  keep t, worker, epoch",
+            )
+        }))
+        .expect("serialize query payload");
+
+        let make_request = |authorized: bool| {
+            let mut builder = Request::builder()
+                .method("POST")
+                .uri("/v1/documents/run")
+                .header(CONTENT_TYPE, "application/json");
+            if authorized {
+                builder = builder.header(
+                    AUTHORIZATION,
+                    format!("Bearer {}", "real-boundary-test-token"),
+                );
+            }
+            builder.body(Body::from(payload.clone())).expect("request")
+        };
+
+        let idle = state
+            .fabric_reference_pool_snapshot(1_000)
+            .expect("idle snapshot");
+        assert_eq!(idle.resources.len(), 1);
+        assert_eq!(idle.resources[0].queue_depth, 0);
+        assert_eq!(idle.resources[0].available_capacity.available, 3);
+
+        // Hold the *real* execution worker permit. The next two authenticated
+        // HTTP queries proceed through AETHER's own admission and then wait.
+        // This creates deterministic local queue pressure, not a speed claim.
+        let held = state
+            .blocking
+            .workers
+            .clone()
+            .acquire_owned()
+            .await
+            .expect("real executor worker permit");
+        let first = {
+            let r = router.clone();
+            let req = make_request(true);
+            tokio::spawn(async move { r.oneshot(req).await.expect("first request") })
+        };
+        let second = {
+            let r = router.clone();
+            let req = make_request(true);
+            tokio::spawn(async move { r.oneshot(req).await.expect("second request") })
+        };
+
+        tokio::time::timeout(Duration::from_secs(15), async {
+            loop {
+                if state.blocking.admitted.available_permits() == 1 {
+                    break;
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("both real HTTP queries admitted and queued");
+
+        let busy = state
+            .fabric_reference_pool_snapshot(1_001)
+            .expect("busy snapshot");
+        assert_eq!(busy.resources.len(), 1);
+        assert_eq!(
+            busy.resources[0].resource_id,
+            aether_fabric::AETHER_LOCAL_BLOCKING_POOL_ID
+        );
+        assert_eq!(busy.resources[0].available_capacity.available, 1);
+        assert_eq!(busy.resources[0].queue_depth, 1);
+        // A FABRIC observation cannot reserve an execution slot.
+        assert_eq!(state.blocking.admitted.available_permits(), 1);
+
+        // Denial happens at the actual AETHER HTTP authorization boundary,
+        // before rate/namespace/worker admission; no denied work is enqueued.
+        let denied = tokio::time::timeout(
+            Duration::from_secs(5),
+            router.clone().oneshot(make_request(false)),
+        )
+        .await
+        .expect("unauthorized request must not wait for the worker")
+        .expect("denied response");
+        assert_eq!(denied.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(state.blocking.admitted.available_permits(), 1);
+        assert_eq!(
+            state
+                .fabric_reference_pool_snapshot(1_002)
+                .expect("post-denial snapshot")
+                .resources[0]
+                .queue_depth,
+            1
+        );
+
+        // Releasing the held permit returns control to the unchanged AETHER
+        // reference executor, where both genuinely queued queries complete.
+        drop(held);
+        let first = tokio::time::timeout(Duration::from_secs(15), first)
+            .await
+            .expect("first HTTP completion bound")
+            .expect("first join");
+        let second = tokio::time::timeout(Duration::from_secs(15), second)
+            .await
+            .expect("second HTTP completion bound")
+            .expect("second join");
+        assert_eq!(first.status(), StatusCode::OK);
+        assert_eq!(second.status(), StatusCode::OK);
+        let a: serde_json::Value = serde_json::from_slice(
+            &to_bytes(first.into_body(), 8 * 1024 * 1024)
+                .await
+                .expect("first body"),
+        )
+        .expect("first JSON");
+        let b: serde_json::Value = serde_json::from_slice(
+            &to_bytes(second.into_body(), 8 * 1024 * 1024)
+                .await
+                .expect("second body"),
+        )
+        .expect("second JSON");
+        assert_eq!(a.get("query"), b.get("query"));
+        assert_eq!(a.get("derived"), b.get("derived"));
+        assert!(a
+            .pointer("/query/rows")
+            .and_then(serde_json::Value::as_array)
+            .is_some_and(|rows| !rows.is_empty()));
+        let final_pool = state
+            .fabric_reference_pool_snapshot(1_003)
+            .expect("drained snapshot");
+        assert_eq!(final_pool.resources[0].queue_depth, 0);
+        assert_eq!(final_pool.resources[0].available_capacity.available, 3);
+    }
 }
