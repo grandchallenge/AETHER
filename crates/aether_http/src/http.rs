@@ -5764,13 +5764,11 @@ mod concurrency_tests {
             .expect("identical reference seed");
         let (reference_router, reference_state) = super::build_http_router_with_state(
             reference_service,
-            HttpKernelOptions::default().with_auth(
-                super::HttpAuthConfig::new().with_token(
-                    "source-binding-query-token",
-                    "source-probe",
-                    [AuthScope::Query],
-                ),
-            ),
+            HttpKernelOptions::default().with_auth(super::HttpAuthConfig::new().with_token(
+                "source-binding-query-token",
+                "source-probe",
+                [AuthScope::Query],
+            )),
         );
         assert!(reference_state.source_bound_preview_readback().is_none());
         let reference_reply = reference_router
