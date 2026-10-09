@@ -768,3 +768,15 @@ NON-OPERATIVE and identifies the missing fresh AETHER control-state witness.
 No FABRIC mechanical permit, new routing mode, resource expansion or E3B-A
 activation was admitted. Fresh revocation/expiry/reload and cancellation
 races and C3 #130 / practical acceptance #133 remain unresolved.
+
+## E3B #140 — in-process source-auth epoch diagnostic candidate
+
+Source-owned `HttpAuth::generation` is captured under the actual auth mutex at
+real token admission and advanced atomically by the existing validated reload
+replacement primitive. An opt-in historical `run_document` observation reports
+its admission generation and supports a **read-only non-authorizing** source
+snapshot comparison. ADR 0026 documents the scope and TOCTOU limit. This
+candidate remains subject to exact-head CI, protected review and merge.
+`source_revision` remains None: no durable revocable C1/source control-state
+witness or consumptive authorization exists. C3 #130, practical #133, and
+E3B-A production activation remain separately blocked.
