@@ -18,6 +18,7 @@ mod fabric_cutover;
 mod fabric_equivalence;
 mod fabric_shadow;
 pub mod http;
+mod source_binding;
 pub mod status;
 
 pub use deployment::{
@@ -47,6 +48,7 @@ pub use http::{
     PagedRunDocumentResponse, PagedTraceResponse, StructuredErrorResponse, AETHER_NAMESPACE_HEADER,
     AETHER_REQUEST_ID_HEADER,
 };
+pub use source_binding::{SourceBoundObservation, SourceBoundReadback};
 pub use status::{
     AuthReloadResponse, NamespaceStatusSummary, PrincipalStatusSummary, ReplicaStatusSummary,
     ServiceMode, ServiceResourceControlStatus, ServiceStatusResponse, ServiceStatusStorage,

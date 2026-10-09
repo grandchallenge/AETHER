@@ -751,3 +751,15 @@ legacy explain_tuple 409 denial. The strict all-23-positive
 C3 certificate is WITHHELD, not promoted by synthetic equivalence.
 Governance issue #130 controls the next legitimate classification
 decision; #127 remains open. C4/E3B-A/live FABRIC blocked.
+
+
+## E3B source-binding implementation candidate (#136; not admitted)
+
+The opt-in `run_document` source preview is implemented on an unmerged
+candidate branch, not protected production main. It observes an authentic
+post-policy successful HTTP/executor callback with a typed request digest,
+AETHER effective policy digest, principal/namespace, and semantic result.
+ReferenceOnly remains default; no FABRIC dispatch authority is minted.
+ADR 0025 documents the exact authority timeline and the missing current
+AETHER revocation/config witness. CI, hostile race replay, protected review
+and merge/readback remain required; #130/#133/E3B-A remain blocked.

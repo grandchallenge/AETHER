@@ -352,3 +352,14 @@ No further fixture repair can make explain_tuple return HTTP 200
 without changing the source semantic implementation. Issue #130
 must adjudicate 22 positive + one negative-control profile versus
 a separately governed semantic API replacement before C4 is eligible.
+
+
+## E3B source producer follow-on (#136)
+
+Validate and protect ADR 0025 and the default-OFF one-operation completed-
+reference observer. Then separately design an AETHER-issued, genuinely fresh
+source control witness before any operative E1/E3 bridge can be considered.
+The future work must address revocation after queue admission, reload and
+expiry, worker cancellation, no-duplicate-attempt identity, strict C3 #130,
+source authority and Article IX/XI review. Source observations are not
+FABRIC permissions; E3B-A remains a reserved, unset activation.
