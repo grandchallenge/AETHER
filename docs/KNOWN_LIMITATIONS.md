@@ -415,3 +415,16 @@ in-memory evidence remain unchanged.
 ## E3B #136 preview limitations
 
 This opt-in historical observer is not an execution permit. It records only successful run_document results. No per-operation authorization revision or fresh control-state witness is available through the current interface; revision is left unset. Preview records may be dropped on overflow or lock contention and are not signed or durable. Claims of future routing, cancellation control, and revocation-aware execution remain outside this tranche.
+
+## Source epoch diagnostic is not current mechanical authorization (#140)
+
+The new in-process `HttpAuth::generation` belongs only to the current auth
+mutex and increases on validated auth-config replacement. It is not durable
+across restart or related to policy/control registry revision. An already-
+authenticated queued operation can complete after that generation changes;
+its historical observation becomes stale for a new read-only comparison.
+Exact record replay may still re-match during the same generation: this is
+only diagnostic membership, not one-time authorization. The mutex is released
+before any hypothetical future route, so the normal TOCTOU gap remains.
+There is no live revocation/expiry/cancellation/rollback/attempt consumption
+witness, no route permit, and no C3, #133 or E3B-A promotion.

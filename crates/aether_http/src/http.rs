@@ -390,6 +390,29 @@ impl HttpKernelState {
         self.source_binding_preview.as_ref()?.readback()
     }
 
+    /// A non-operative instant diagnostic, not a mechanical authorization.
+    /// Holds the same source mutex used for authorization/reload while
+    /// comparing the retained exact observation; any later mutation
+    /// invalidates this comparison. No route or worker may consume it.
+    pub fn source_control_preview_check(
+        &self,
+        observation: &crate::SourceBoundObservation,
+    ) -> crate::SourceControlProbeVerdict {
+        use crate::SourceControlProbeVerdict;
+        let Ok(auth) = self.auth.try_lock() else {
+            return SourceControlProbeVerdict::DisabledOrUnavailable;
+        };
+        let evidence = self
+            .source_binding_preview
+            .as_ref()
+            .and_then(|preview| preview.readback());
+        crate::source_control_probe::verify_snapshot(
+            auth.generation,
+            evidence.as_ref(),
+            observation,
+        )
+    }
+
     pub fn c2_shadow_evidence(&self) -> Vec<crate::C2ShadowEvidence> {
         self.c2_shadow
             .as_ref()
@@ -671,7 +694,7 @@ impl HttpKernelState {
         }
         {
             let mut auth = self.auth.lock().map_err(|_| HttpError::LockPoisoned)?;
-            *auth = HttpAuth::from_config(resolved.auth.clone());
+            auth.replace_config(resolved.auth.clone())?;
         }
         status.config_version.clone_from(&resolved.config_version);
         status.schema_version.clone_from(&resolved.schema_version);
@@ -2211,6 +2234,9 @@ struct AuthenticatedPrincipal {
     token_id: Option<String>,
     policy_context: Option<PolicyContext>,
     policy_bound: bool,
+    /// Captured under the same mutex as the actual source token decision.
+    /// Diagnostic only; not an E1/control-state revision or authorization.
+    auth_generation: u64,
 }
 
 #[derive(Clone)]
@@ -2316,6 +2342,8 @@ impl Default for AuditLog {
 #[derive(Clone, Default)]
 struct HttpAuth {
     tokens: HashMap<String, AuthenticatedToken>,
+    /// Monotone for this process, incremented only on successful config replacement.
+    generation: u64,
 }
 
 impl HttpAuth {
@@ -2346,7 +2374,23 @@ impl HttpAuth {
                 },
             );
         }
-        Self { tokens }
+        Self {
+            tokens,
+            generation: 0,
+        }
+    }
+
+    /// Source-owned replacement; caller must hold the existing auth mutex.
+    /// Failed reload validation does not change this generation.
+    fn replace_config(&mut self, config: HttpAuthConfig) -> Result<(), HttpError> {
+        let generation = self
+            .generation
+            .checked_add(1)
+            .ok_or(HttpError::LockPoisoned)?;
+        let mut replacement = Self::from_config(config);
+        replacement.generation = generation;
+        *self = replacement;
+        Ok(())
     }
 
     fn authorize(
@@ -2362,6 +2406,7 @@ impl HttpAuth {
                 token_id: None,
                 policy_context: None,
                 policy_bound: false,
+                auth_generation: self.generation,
             });
         }
 
@@ -2412,6 +2457,7 @@ impl HttpAuth {
             token_id: access.token_id.clone(),
             policy_context: access.policy_context.clone(),
             policy_bound: true,
+            auth_generation: self.generation,
         })
     }
 
@@ -3437,6 +3483,7 @@ async fn run_document(
                         semantic_result_digest,
                         observed_at_unix_ms: now_millis(),
                         source_revision: None,
+                        auth_generation_at_admission: Some(principal.auth_generation),
                         disposition: crate::source_binding::SOURCE_BOUND_DISPOSITION,
                         authority_effect: "none",
                         source_rate_and_namespace_admitted: true,
@@ -6005,6 +6052,163 @@ mod concurrency_tests {
                 .observations
                 .len(),
             1
+        );
+    }
+    /// A queued, already-admitted HTTP query may complete after a real auth
+    /// config replacement. Its historical observation cannot be rechecked as
+    /// a current source claim. A new old-token request must be denied.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn source_control_epoch_rejects_queued_observation_after_auth_replacement() {
+        use crate::{
+            coordination_pilot_dsl, coordination_pilot_seed_history, AppendRequest, KernelService,
+        };
+        use axum::{
+            body::Body,
+            http::{header::CONTENT_TYPE, Request},
+        };
+        use tower::ServiceExt;
+
+        let mut service = crate::InMemoryKernelService::new();
+        service
+            .append(AppendRequest {
+                datoms: coordination_pilot_seed_history(),
+            })
+            .expect("seed real semantic operation");
+        let (router, state) = super::build_http_router_with_state(
+            service,
+            HttpKernelOptions::default()
+                .with_auth(super::HttpAuthConfig::new().with_token(
+                    "old-token",
+                    "old-principal",
+                    [AuthScope::Query],
+                ))
+                .with_namespace_work_limits(1, 1)
+                .with_source_bound_preview_capacity(4),
+        );
+        let payload = serde_json::to_vec(&serde_json::json!({
+            "dsl": coordination_pilot_dsl(
+                "current",
+                "goal execution_authorized(t, worker, epoch)\n  keep t, worker, epoch",
+            )
+        }))
+        .unwrap();
+        let make_request = |token: &str| {
+            Request::builder()
+                .method("POST")
+                .uri("/v1/documents/run")
+                .header(CONTENT_TYPE, "application/json")
+                .header(AUTHORIZATION, format!("Bearer {token}"))
+                .body(Body::from(payload.clone()))
+                .expect("typed source request")
+        };
+
+        let held = state
+            .blocking
+            .workers
+            .clone()
+            .acquire_owned()
+            .await
+            .expect("hold actual reference worker slot");
+        let pending = {
+            let router = router.clone();
+            let request = make_request("old-token");
+            tokio::spawn(async move { router.oneshot(request).await.expect("queued response") })
+        };
+        tokio::time::timeout(Duration::from_secs(15), async {
+            loop {
+                if state.blocking.admitted.available_permits() == 1 {
+                    break;
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("real source HTTP request was admitted and queued");
+        assert!(state
+            .source_bound_preview_readback()
+            .unwrap()
+            .observations
+            .is_empty());
+
+        // Exercise exactly the atomic source replacement used by the reload
+        // handler after its configuration validation. This is a deterministic
+        // test-only invocation, not an external deployment reload claim.
+        {
+            let mut auth = state.auth.lock().expect("same source auth mutex");
+            assert_eq!(auth.generation, 0);
+            auth.replace_config(super::HttpAuthConfig::new().with_token(
+                "new-token",
+                "new-principal",
+                [AuthScope::Query],
+            ))
+            .expect("replace auth under real source lock");
+            assert_eq!(auth.generation, 1);
+        }
+        drop(held);
+
+        let already_admitted = tokio::time::timeout(Duration::from_secs(15), pending)
+            .await
+            .expect("bounded completion")
+            .expect("join");
+        assert_eq!(already_admitted.status(), StatusCode::OK);
+        let prior = state.source_bound_preview_readback().unwrap();
+        assert_eq!(prior.observations.len(), 1);
+        let stale = &prior.observations[0];
+        assert_eq!(stale.auth_generation_at_admission, Some(0));
+        assert!(stale.source_revision.is_none());
+        assert_eq!(
+            state.source_control_preview_check(stale),
+            crate::SourceControlProbeVerdict::SourceGenerationChanged
+        );
+
+        let refused = router
+            .clone()
+            .oneshot(make_request("old-token"))
+            .await
+            .expect("revoked by replacement");
+        assert_eq!(refused.status(), StatusCode::UNAUTHORIZED);
+
+        let fresh = router
+            .clone()
+            .oneshot(make_request("new-token"))
+            .await
+            .expect("fresh source authenticated request");
+        assert_eq!(fresh.status(), StatusCode::OK);
+        let readback = state.source_bound_preview_readback().unwrap();
+        assert_eq!(readback.observations.len(), 2);
+        let newest = &readback.observations[1];
+        assert_eq!(newest.auth_generation_at_admission, Some(1));
+        assert_eq!(
+            state.source_control_preview_check(newest),
+            crate::SourceControlProbeVerdict::SnapshotMatchNonOperative
+        );
+        let mut cross_principal = newest.clone();
+        cross_principal.principal_ref = stale.principal_ref.clone();
+        assert_eq!(
+            state.source_control_preview_check(&cross_principal),
+            crate::SourceControlProbeVerdict::RecordMismatch
+        );
+        let mut cross_namespace = newest.clone();
+        cross_namespace.namespace_ref = "other".into();
+        assert_eq!(
+            state.source_control_preview_check(&cross_namespace),
+            crate::SourceControlProbeVerdict::RecordMismatch
+        );
+        let mut altered_policy = newest.clone();
+        altered_policy.effective_policy_digest = "f".repeat(64);
+        assert_eq!(
+            state.source_control_preview_check(&altered_policy),
+            crate::SourceControlProbeVerdict::RecordMismatch
+        );
+        let mut altered_payload = newest.clone();
+        altered_payload.request_payload_digest = "e".repeat(64);
+        assert_eq!(
+            state.source_control_preview_check(&altered_payload),
+            crate::SourceControlProbeVerdict::RecordMismatch
+        );
+        assert_eq!(
+            state.fabric_routing_mode(),
+            super::FabricRoutingMode::ReferenceOnly
         );
     }
 }

@@ -364,3 +364,13 @@ The future work must address revocation after queue admission, reload and
 expiry, worker cancellation, no-duplicate-attempt identity, strict C3 #130,
 source authority and Article IX/XI review. Source observations are not
 FABRIC permissions; E3B-A remains a reserved, unset activation.
+
+## E3B #140 current-control witness successor boundary
+
+After validating the local HTTP-auth epoch probe, the distinct next task is
+an AETHER-owned, same-attempt, consumptive, revocable mechanical admission
+capability at the genuine executor seam. Do not upgrade a generation or copied
+observation into authorization. Specify atomic control-state validation with
+queue/cancel/retry semantics, source policy freshness and Article IX/XI review
+before any operative implementation. Restart, expiry, C1 revocation and C3
+#130 remain unproved. E3B-A remains unset.
