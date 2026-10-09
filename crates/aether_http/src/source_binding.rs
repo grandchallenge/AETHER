@@ -36,6 +36,9 @@ pub struct SourceBoundObservation {
     /// No revision is invented: the HTTP auth source exposes no reliable
     /// generation tied to this individual operation.
     pub source_revision: Option<String>,
+    /// Genuine HTTP-auth configuration generation captured under the same
+    /// mutex as AETHER's token decision. Not a control-state witness.
+    pub auth_generation_at_admission: Option<u64>,
     pub disposition: &'static str,
     pub authority_effect: &'static str,
     /// True only because the callback ran inside the actual executor after
@@ -111,6 +114,7 @@ mod tests {
             semantic_result_digest: "4".repeat(64),
             observed_at_unix_ms: 1,
             source_revision: None,
+            auth_generation_at_admission: Some(0),
             disposition: SOURCE_BOUND_DISPOSITION,
             authority_effect: "none",
             source_rate_and_namespace_admitted: true,
