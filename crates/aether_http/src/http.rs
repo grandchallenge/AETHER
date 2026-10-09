@@ -5389,16 +5389,17 @@ mod concurrency_tests {
         let (router, state) = super::build_http_router_with_state(
             service,
             HttpKernelOptions::default()
-                .with_auth(
-                    super::HttpAuthConfig::new().with_token(
-                        "real-boundary-test-token",
-                        "boundary-probe",
-                        [AuthScope::Query],
-                    ),
-                )
+                .with_auth(super::HttpAuthConfig::new().with_token(
+                    "real-boundary-test-token",
+                    "boundary-probe",
+                    [AuthScope::Query],
+                ))
                 .with_namespace_work_limits(1, 2),
         );
-        assert_eq!(state.fabric_routing_mode(), super::FabricRoutingMode::ReferenceOnly);
+        assert_eq!(
+            state.fabric_routing_mode(),
+            super::FabricRoutingMode::ReferenceOnly
+        );
 
         let payload = serde_json::to_vec(&serde_json::json!({
             "dsl": coordination_pilot_dsl(
@@ -5422,7 +5423,9 @@ mod concurrency_tests {
             builder.body(Body::from(payload.clone())).expect("request")
         };
 
-        let idle = state.fabric_reference_pool_snapshot(1_000).expect("idle snapshot");
+        let idle = state
+            .fabric_reference_pool_snapshot(1_000)
+            .expect("idle snapshot");
         assert_eq!(idle.resources.len(), 1);
         assert_eq!(idle.resources[0].queue_depth, 0);
         assert_eq!(idle.resources[0].available_capacity.available, 3);
@@ -5459,7 +5462,9 @@ mod concurrency_tests {
         .await
         .expect("both real HTTP queries admitted and queued");
 
-        let busy = state.fabric_reference_pool_snapshot(1_001).expect("busy snapshot");
+        let busy = state
+            .fabric_reference_pool_snapshot(1_001)
+            .expect("busy snapshot");
         assert_eq!(busy.resources.len(), 1);
         assert_eq!(
             busy.resources[0].resource_id,
@@ -5517,12 +5522,13 @@ mod concurrency_tests {
         .expect("second JSON");
         assert_eq!(a.get("query"), b.get("query"));
         assert_eq!(a.get("derived"), b.get("derived"));
-        assert!(
-            a.pointer("/query/rows")
-                .and_then(serde_json::Value::as_array)
-                .is_some_and(|rows| !rows.is_empty())
-        );
-        let final_pool = state.fabric_reference_pool_snapshot(1_003).expect("drained snapshot");
+        assert!(a
+            .pointer("/query/rows")
+            .and_then(serde_json::Value::as_array)
+            .is_some_and(|rows| !rows.is_empty()));
+        let final_pool = state
+            .fabric_reference_pool_snapshot(1_003)
+            .expect("drained snapshot");
         assert_eq!(final_pool.resources[0].queue_depth, 0);
         assert_eq!(final_pool.resources[0].available_capacity.available, 3);
     }
