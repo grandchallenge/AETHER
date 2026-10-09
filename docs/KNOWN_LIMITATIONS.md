@@ -399,3 +399,14 @@ matched intentional denial. The strict all-23-positive C3 certificate
 continues to FAIL CLOSED until protected lane/semantic governance
 resolves this boundary. Continuous signed capture and multi-resource
 equivalence remain outside the demonstrated scope.
+
+
+## Protected C3-R2 acceptance boundary
+
+The protected 22-positive/one-409 first-lane experiment does not
+satisfy an all-23-positive HTTP equivalence certificate. The
+explain_tuple denial is source-mandated, not flaky infrastructure
+or a missing dataset. Historical C3 #124 completion does not
+override later strict C3 evidence correction #127 and issue #130.
+The one-local-resource F1E scope and explicitly exported, bounded
+in-memory evidence remain unchanged.
