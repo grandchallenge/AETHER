@@ -776,7 +776,12 @@ real token admission and advanced atomically by the existing validated reload
 replacement primitive. An opt-in historical `run_document` observation reports
 its admission generation and supports a **read-only non-authorizing** source
 snapshot comparison. ADR 0026 documents the scope and TOCTOU limit. This
-candidate remains subject to exact-head CI, protected review and merge.
+non-operative subset passed required exact-head CI, GCL, Supply Chain and
+GH-OS checks, and PR #141 merged/read back as
+`3bbe48d7c361dd7a740def1da4ce56497a2d24ae` from
+`1e6f3085f2855ce56694ed5d66a2eaff16af2145`.
+The precise verification and withheld authority are recorded in
+`handoffs/AETHER-FABRIC/E3B_SOURCE_CURRENT_CONTROL_140_RECEIPT.md`.
 `source_revision` remains None: no durable revocable C1/source control-state
 witness or consumptive authorization exists. C3 #130, practical #133, and
 E3B-A production activation remain separately blocked.
