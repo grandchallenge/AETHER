@@ -1,6 +1,6 @@
 # ADR 0028 — E3B one-attempt start needs atomic source authority at executor boundary
 
-**Status:** #143 non-operative hostile model candidate; acceptance requires exact-head CI and protected readback.  
+**Status:** #143 non-operative hostile model accepted under protected PR #144 at `566e7f4743a64d33e4a9ef378f4fa6f66466efc9`; operative authority withheld.  
 **Protected predecessor:** `2cae6f3058d581d75fd0e7df92c9f3fc7e9b5433`.  
 **Governing contract:** [E3B C0 authority-issuance contract](../ARCHITECTURE/AETHER_FABRIC_E3B_C0_AUTHORITY_ISSUANCE_CONTRACT.md), ADR 0027 mechanical issuer, ADR 0025 post-success observation, ADR 0026 source-auth epoch, C3 #130 and practical #133.  
 **Classification:** off-path specification and tests only; `NO_ARTICLE_IX_AUTHORITY_CHANGE` under current C0 scope; NO operative Article XI/E3B-A authorization.
