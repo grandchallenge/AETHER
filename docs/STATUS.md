@@ -785,3 +785,16 @@ The precise verification and withheld authority are recorded in
 `source_revision` remains None: no durable revocable C1/source control-state
 witness or consumptive authorization exists. C3 #130, practical #133, and
 E3B-A production activation remain separately blocked.
+
+## E3B #143 — non-operative atomic-attempt hostile model candidate
+
+The protected #140 HTTP-auth generation diagnostic still confers **no**
+mechanical execution authority. A new `#[cfg(test)]` AETHER Rust module models
+one-attempt start as an idealized atomic source+control decision, with hostile
+revoke/supersede/expiry, auth/policy/control revision, replay, cross-identity,
+cancellation and loss cases. A separate real `BoundedBlockingExecutor` test
+checks cancellation before worker start and completion after actual start.
+ADR 0028 documents explicitly which properties are only simulated and the
+unresolved real source/C1 permit issuance and lock-order proof. This candidate
+requires exact-head CI and protected merge/readback; no live FABRIC, C3 #130,
+#133 or E3B-A change is authorized.
