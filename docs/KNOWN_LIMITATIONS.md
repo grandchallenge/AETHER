@@ -428,3 +428,15 @@ only diagnostic membership, not one-time authorization. The mutex is released
 before any hypothetical future route, so the normal TOCTOU gap remains.
 There is no live revocation/expiry/cancellation/rollback/attempt consumption
 witness, no route permit, and no C3, #133 or E3B-A promotion.
+
+## #143 start atomicity remains a model, not live authority
+
+The new test-only `SimulatedAtomicStart` serializes all hypothetical source
+and envelope transitions by exclusive access to one model. Actual AETHER HTTP
+auth, C1 envelope control, namespace/policy binding and blocking executor do
+**not** share that transaction or enforce consumptive start permission. The
+model has no source-issued current C1 witness, persistent replay ledger or real
+mechanical permit. A passing simulated revocation/replay test cannot certify
+an actual FABRIC execution path. Only the separate cancellation test exercises
+real `BoundedBlockingExecutor` semaphore and blocking task semantics. C3 #130,
+#133 workload, and E3B-A activation remain unaccepted.
