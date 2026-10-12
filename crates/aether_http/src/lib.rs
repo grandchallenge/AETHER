@@ -20,10 +20,10 @@ mod fabric_shadow;
 pub mod http;
 #[cfg(test)]
 mod source_attempt_model;
-#[cfg(test)]
-mod source_owner_prototype;
 mod source_binding;
 mod source_control_probe;
+#[cfg(test)]
+mod source_owner_prototype;
 pub mod status;
 
 pub use deployment::{
