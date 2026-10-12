@@ -440,3 +440,14 @@ mechanical permit. A passing simulated revocation/replay test cannot certify
 an actual FABRIC execution path. Only the separate cancellation test exercises
 real `BoundedBlockingExecutor` semaphore and blocking task semantics. C3 #130,
 #133 workload, and E3B-A activation remain unaccepted.
+
+## #146 source-owner prototype is not the production lock structure
+
+The prototype synchronizes real C1 in-process registry changes under a
+TEST mutex, but token/auth generations, policy revisions, namespace epochs,
+worker start and the hypothetical mechanical attempt ID are modeled, not
+atomically bound to live AETHER. Its fake C1 source_operation_admitted input
+is solely a test fixture. Poison/restart fail closed for this harness, not
+a real process-crash recovery proof. No cross-process ledger, revocable
+policy/namespace source API, trusted expiry clock or real FABRIC-directed
+start exists; C3 #130, practical #133 and activation remain withheld.
