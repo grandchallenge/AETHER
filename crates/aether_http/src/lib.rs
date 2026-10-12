@@ -20,6 +20,8 @@ mod fabric_shadow;
 pub mod http;
 mod source_binding;
 mod source_control_probe;
+#[cfg(test)]
+mod source_attempt_model;
 pub mod status;
 
 pub use deployment::{
