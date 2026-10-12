@@ -379,9 +379,11 @@ before any operative implementation. Restart, expiry, C1 revocation and C3
 
 ## #143 source attempt linearization authority boundary
 
-After protecting the test-only start model and real executor cancellation
-experiment (ADR 0028), the next governed task is to design **AETHER-owned**
-consumptive start authority, not to attach the model to production. It must
+The test-only start model and real executor cancellation experiment (ADR 0028)
+were protected in PR #144 at `566e7f4743a64d33e4a9ef378f4fa6f66466efc9`.
+The next governed task is to design **AETHER-owned** consumptive start
+authority, not to attach the model to production. The preparation-only packet
+is `handoffs/AETHER-FABRIC/E3B_SOURCE_CONSUMPTIVE_PERMIT_AUTHORITY_PACKET_001.md`. It must
 integrate real C1 control-registry freshness, source auth, policy and namespace
 state with a one-attempt mechanical start transaction and provable lock ordering
 without taking source locks across user semantic work. Real deployment reload,
