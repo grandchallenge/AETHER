@@ -288,7 +288,10 @@ fn actual_c1_revocation_at_worker_barrier_prevents_model_start() {
 fn real_c1_expiration_is_rechecked_at_model_start() {
     let (owner, binding) = fixture();
     owner.worker_acquired().unwrap();
-    assert_eq!(owner.model_start(&binding, T0 + 5_000), Err(Denial::C1Invalid));
+    assert_eq!(
+        owner.model_start(&binding, T0 + 5_000),
+        Err(Denial::C1Invalid)
+    );
     assert_eq!(owner.with_owner(|s| s.starts), Ok(0));
 }
 
@@ -301,7 +304,10 @@ fn model_single_use_and_post_start_revocation_preserve_completion() {
     assert_eq!(owner.model_start(&binding, T0 + 2), Err(Denial::Phase));
     assert_eq!(owner.cancel(), Err(Denial::Phase));
     owner.complete().unwrap();
-    assert_eq!(owner.with_owner(|s| (s.phase, s.starts)), Ok((Phase::Completed, 1)));
+    assert_eq!(
+        owner.with_owner(|s| (s.phase, s.starts)),
+        Ok((Phase::Completed, 1))
+    );
 }
 
 #[test]
