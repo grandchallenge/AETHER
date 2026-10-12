@@ -6211,4 +6211,98 @@ mod concurrency_tests {
             super::FabricRoutingMode::ReferenceOnly
         );
     }
+    /// Real BoundedBlockingExecutor cancellation boundary. No FABRIC routing
+    /// or source-issued mechanical permit is exercised in this test.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn real_executor_cancel_before_worker_start_and_complete_after_start() {
+        use std::sync::atomic::{AtomicBool, Ordering};
+
+        let queued_executor = BoundedBlockingExecutor::new(1, 1, 15_000);
+        let held = queued_executor
+            .workers
+            .clone()
+            .acquire_owned()
+            .await
+            .expect("hold actual worker slot");
+        let queued_started = Arc::new(AtomicBool::new(false));
+        let queued_started_in_worker = Arc::clone(&queued_started);
+        let queued_task = {
+            let executor = queued_executor.clone();
+            tokio::spawn(async move {
+                executor
+                    .run(move || {
+                        queued_started_in_worker.store(true, Ordering::SeqCst);
+                        Ok::<(), HttpError>(())
+                    })
+                    .await
+            })
+        };
+        tokio::time::timeout(START_SIGNAL_TIMEOUT, async {
+            loop {
+                if queued_executor.admitted.available_permits() == 1 {
+                    break;
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("second admission queued behind worker");
+        assert!(!queued_started.load(Ordering::SeqCst));
+        queued_task.abort();
+        assert!(queued_task.await.unwrap_err().is_cancelled());
+        drop(held);
+        tokio::time::timeout(START_SIGNAL_TIMEOUT, async {
+            loop {
+                if queued_executor.admitted.available_permits() == 2
+                    && queued_executor.workers.available_permits() == 1
+                {
+                    break;
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("cancelled waiting task releases permits");
+        assert!(!queued_started.load(Ordering::SeqCst));
+
+        let started_executor = BoundedBlockingExecutor::new(1, 1, 15_000);
+        let finished = Arc::new(AtomicBool::new(false));
+        let finished_in_worker = Arc::clone(&finished);
+        let (started_sender, started_receiver) = oneshot::channel();
+        let (release_sender, release_receiver) = mpsc::channel::<()>();
+        let started_task = {
+            let executor = started_executor.clone();
+            tokio::spawn(async move {
+                executor
+                    .run(move || {
+                        started_sender
+                            .send(())
+                            .expect("signal blocking worker started");
+                        release_receiver
+                            .recv_timeout(START_SIGNAL_TIMEOUT)
+                            .expect("release real blocking worker");
+                        finished_in_worker.store(true, Ordering::SeqCst);
+                        Ok::<(), HttpError>(())
+                    })
+                    .await
+            })
+        };
+        wait_for_blocking_start(started_receiver, "actual started worker").await;
+        started_task.abort();
+        assert!(started_task.await.unwrap_err().is_cancelled());
+        release_sender.send(()).expect("release after cancellation");
+        tokio::time::timeout(START_SIGNAL_TIMEOUT, async {
+            loop {
+                if finished.load(Ordering::SeqCst)
+                    && started_executor.workers.available_permits() == 1
+                    && started_executor.admitted.available_permits() == 2
+                {
+                    break;
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("started synchronous kernel work completes after HTTP task cancellation");
+    }
 }

@@ -376,3 +376,14 @@ observation into authorization. Specify atomic control-state validation with
 queue/cancel/retry semantics, source policy freshness and Article IX/XI review
 before any operative implementation. Restart, expiry, C1 revocation and C3
 #130 remain unproved. E3B-A remains unset.
+
+## #143 source attempt linearization authority boundary
+
+After protecting the test-only start model and real executor cancellation
+experiment (ADR 0028), the next governed task is to design **AETHER-owned**
+consumptive start authority, not to attach the model to production. It must
+integrate real C1 control-registry freshness, source auth, policy and namespace
+state with a one-attempt mechanical start transaction and provable lock ordering
+without taking source locks across user semantic work. Real deployment reload,
+revocation/expiry, replay, restart, queue cancellation and rollback proofs are
+required before any separately authorized E3B-A live-routing transaction.

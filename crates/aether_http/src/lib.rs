@@ -18,6 +18,8 @@ mod fabric_cutover;
 mod fabric_equivalence;
 mod fabric_shadow;
 pub mod http;
+#[cfg(test)]
+mod source_attempt_model;
 mod source_binding;
 mod source_control_probe;
 pub mod status;
