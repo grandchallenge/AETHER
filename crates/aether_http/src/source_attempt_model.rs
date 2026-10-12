@@ -425,7 +425,10 @@ mod tests {
             m.commit_start("attempt-1", &binding),
             Err(Refusal::InvalidPhase)
         );
-        assert_eq!(m.enqueue("attempt-3", binding), Err(Refusal::DuplicateRequest));
+        assert_eq!(
+            m.enqueue("attempt-3", binding),
+            Err(Refusal::DuplicateRequest)
+        );
         assert_eq!(m.total_starts, 0);
     }
 
@@ -471,10 +474,7 @@ mod tests {
         let mut binding = AttemptBinding::fixture();
         binding.principal.clear();
         assert_eq!(m.enqueue("a1", binding), Err(Refusal::InvalidBinding));
-        assert_eq!(
-            m.worker_acquired("missing"),
-            Err(Refusal::UnknownAttempt)
-        );
+        assert_eq!(m.worker_acquired("missing"), Err(Refusal::UnknownAttempt));
         assert_eq!(
             m.commit_start("missing", &AttemptBinding::fixture()),
             Err(Refusal::UnknownAttempt)
