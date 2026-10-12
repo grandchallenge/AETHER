@@ -795,6 +795,7 @@ revoke/supersede/expiry, auth/policy/control revision, replay, cross-identity,
 cancellation and loss cases. A separate real `BoundedBlockingExecutor` test
 checks cancellation before worker start and completion after actual start.
 ADR 0028 documents explicitly which properties are only simulated and the
-unresolved real source/C1 permit issuance and lock-order proof. This candidate
-requires exact-head CI and protected merge/readback; no live FABRIC, C3 #130,
-#133 or E3B-A change is authorized.
+unresolved real source/C1 permit issuance and lock-order proof. The exact-head Rust/GCL/Supply Chain/GH-OS checks passed and test-only
+implementation PR #144 was protected at `566e7f4743a64d33e4a9ef378f4fa6f66466efc9`.
+Receipt: `handoffs/AETHER-FABRIC/E3B_ONE_ATTEMPT_START_143_RECEIPT.md`.
+No live FABRIC, C3 #130, #133 or E3B-A change is authorized.
