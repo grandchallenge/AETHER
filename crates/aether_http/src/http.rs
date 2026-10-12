@@ -6303,5 +6303,4 @@ mod concurrency_tests {
         .await
         .expect("started synchronous kernel work completes after HTTP task cancellation");
     }
-
 }
