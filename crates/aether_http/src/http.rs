@@ -6275,7 +6275,9 @@ mod concurrency_tests {
             tokio::spawn(async move {
                 executor
                     .run(move || {
-                        started_sender.send(()).expect("signal blocking worker started");
+                        started_sender
+                            .send(())
+                            .expect("signal blocking worker started");
                         release_receiver
                             .recv_timeout(START_SIGNAL_TIMEOUT)
                             .expect("release real blocking worker");
