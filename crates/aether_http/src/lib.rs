@@ -22,6 +22,8 @@ pub mod http;
 mod source_attempt_model;
 mod source_binding;
 mod source_control_probe;
+#[cfg(test)]
+mod source_owner_prototype;
 pub mod status;
 
 pub use deployment::{

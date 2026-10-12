@@ -389,3 +389,14 @@ state with a one-attempt mechanical start transaction and provable lock ordering
 without taking source locks across user semantic work. Real deployment reload,
 revocation/expiry, replay, restart, queue cancellation and rollback proofs are
 required before any separately authorized E3B-A live-routing transaction.
+
+## E3B #146 — source owner and restart boundary
+
+After protection of the test-only C1 source-owner prototype and ADR 0029,
+a distinct classified transaction must expose genuine revisioned policy and
+namespace authority, reconcile status -> auth reload lock ordering, bind
+RouteRealized attempt identity to the issuer and consume one start atomically
+with C1 current control state. A process restart must either recover an
+authenticated durable attempt ledger or deny all old attempts. Require
+actual HTTP/worker hostile races before considering any operative bridge.
+ReferenceOnly, the single local pool and E3B-A reserved activation persist.

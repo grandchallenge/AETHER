@@ -799,3 +799,15 @@ unresolved real source/C1 permit issuance and lock-order proof. The exact-head R
 implementation PR #144 was protected at `566e7f4743a64d33e4a9ef378f4fa6f66466efc9`.
 Receipt: `handoffs/AETHER-FABRIC/E3B_ONE_ATTEMPT_START_143_RECEIPT.md`.
 No live FABRIC, C3 #130, #133 or E3B-A change is authorized.
+
+## E3B #146 — source-owner lock-order prototype candidate (NOT certified)
+
+ADR 0029 records the actual HTTP auth, status reload, namespace/rate, C1
+registry and executor ownership edges. The new test-only
+source_owner_prototype module places an actual C1 issuer/registry under a
+harness mutex together with explicitly SIMULATED policy, namespace and auth
+revisions. C1 revocation/expiry are checked during model start, with
+one-attempt, cancellation, restart and poison failure cases. This cannot
+authorize or trigger FABRIC work and is awaiting exact-head protected checks.
+Live HttpAuth, effective policy, namespace and worker-start locks remain
+separate. No #130/#133/E3B-A disposition is modified.
