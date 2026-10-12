@@ -18,10 +18,10 @@ mod fabric_cutover;
 mod fabric_equivalence;
 mod fabric_shadow;
 pub mod http;
-mod source_binding;
-mod source_control_probe;
 #[cfg(test)]
 mod source_attempt_model;
+mod source_binding;
+mod source_control_probe;
 pub mod status;
 
 pub use deployment::{
