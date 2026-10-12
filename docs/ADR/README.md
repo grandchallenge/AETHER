@@ -56,3 +56,5 @@ The current numbered ADR set is:
 - `docs/ADR/0025-e3b-source-bound-reference-observation-is-not-authorization.md`
 
 - `docs/ADR/0026-e3b-source-auth-generation-probe-is-not-control-authorization.md`
+
+- `docs/ADR/0028-e3b-source-attempt-start-linearization-is-model-only.md`
