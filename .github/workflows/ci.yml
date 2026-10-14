@@ -314,7 +314,7 @@ jobs:
         run: ./scripts/run-pilot-launch-validation.ps1 -HostManifestPath fixtures/performance/hosts/github-windows-latest.json
       - name: Upload pilot gate artifacts
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: pilot-launch-gate-artifacts
           path: |
@@ -344,7 +344,7 @@ jobs:
         shell: pwsh
         run: ./scripts/build-pilot-package.ps1
       - name: Upload pilot package artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: aether-pilot-service-windows-x86_64
           path: |
