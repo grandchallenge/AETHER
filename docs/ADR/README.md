@@ -58,3 +58,7 @@ The current numbered ADR set is:
 - `docs/ADR/0026-e3b-source-auth-generation-probe-is-not-control-authorization.md`
 
 - `docs/ADR/0028-e3b-source-attempt-start-linearization-is-model-only.md`
+
+- [0030: Licensed console dependency and bounded alpha acceptance](0030-licensed-console-dependency-and-alpha-acceptance.md)
+
+- [0031: Portable frozen operator surface](0031-portable-frozen-operator-surface.md)

@@ -3,9 +3,11 @@ use aether_api::{
 };
 use aether_ast::{QueryRow, Value};
 use serde::Deserialize;
+use sha2::{Digest, Sha256};
 use std::{env, fs, path::PathBuf, process::Command};
 
-const FIXTURE_PATH: &str = "fixtures/product/support-desk-real-operator-pilot-v1.json";
+const FIXTURE_JSON: &str =
+    include_str!("../../../fixtures/product/support-desk-real-operator-pilot-v1.json");
 const PROTOCOL_ID: &str = "AETHER-SUPPORT-DESK-REAL-OPERATOR-PILOT-001";
 const CASE_SET_ID: &str = "AETHER-SUPPORT-DESK-REAL-OPERATOR-CASES-001";
 const CLAIM_BOUNDARY: &str = "controlled_single_node_alpha";
@@ -27,6 +29,7 @@ struct CasePack {
 #[derive(Debug, Deserialize)]
 struct PilotCase {
     case_id: String,
+    support_case: String,
     semantic_facts: Vec<Vec<String>>,
 }
 
@@ -35,6 +38,36 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let case_id = args.next().ok_or(
         "usage: cargo run -p aether_api --example support_desk_real_operator_pilot_case --release -- <case-id> [sqlite-path]",
     )?;
+    if case_id == "--identity" {
+        println!(
+            "{}",
+            serde_json::json!({
+                "record_type": "AETHER_SUPPORT_DESK_PACKAGED_SURFACE_V1",
+                "product_sha": option_env!("AETHER_OPERATOR_BUILD_REVISION"),
+                "fixture_sha256": Sha256::digest(FIXTURE_JSON.as_bytes())
+                    .iter().map(|byte| format!("{byte:02x}")).collect::<String>(),
+                "case_set_id": CASE_SET_ID,
+            })
+        );
+        return Ok(());
+    }
+    if case_id == "--explain" {
+        let handle = args.next().ok_or("--explain requires a trace handle")?;
+        let path = args
+            .next()
+            .ok_or("--explain requires the original SQLite path")?;
+        let mut service = SqliteKernelService::open(path)?;
+        let resolved = service.resolve_trace_handle(ResolveTraceHandleRequest {
+            handle: handle.parse()?,
+            policy_context: None,
+            verify_replay: true,
+        })?;
+        if !resolved.digests_verified || !resolved.replay_verified {
+            return Err("operator proof verification did not pass".into());
+        }
+        println!("{}", serde_json::to_string_pretty(&resolved)?);
+        return Ok(());
+    }
     let db_path = args
         .next()
         .map(PathBuf::from)
@@ -42,7 +75,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     verify_source_contract()?;
     let revision = git_revision()?;
-    let pack: CasePack = serde_json::from_str(&fs::read_to_string(FIXTURE_PATH)?)?;
+    let pack: CasePack = serde_json::from_str(FIXTURE_JSON)?;
     verify_pack(&pack)?;
     let case = pack
         .cases
@@ -61,11 +94,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Protocol: {PROTOCOL_ID}");
     println!("Case set: {CASE_SET_ID}");
     println!("Case: {}", case.case_id);
+    println!("Support case: {}", case.support_case);
     println!("AETHER revision: {revision}");
     println!("Journal backend: sqlite");
     println!("Claim boundary: {CLAIM_BOUNDARY}");
     println!("Data classification: synthetic");
     println!("Ground truth is intentionally not loaded by this executable.");
+    println!();
+    println!("You are reviewing a synthetic support case before deciding the next action.");
+    println!("Read the current state below, then inspect the decision inputs and proof.");
+    println!(
+        "Ready means eligible and unassigned; selected means eligible for the current assignment."
+    );
+    println!("A stale assignment belongs to an earlier ownership epoch.");
 
     let active = run_query(&mut service, case, "goal active_case(case)\n  keep case")?;
     print_rows("1. Active support cases now", query_rows(&active));
@@ -128,6 +169,16 @@ fn verify_source_contract() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn git_revision() -> Result<String, Box<dyn std::error::Error>> {
+    if let Some(revision) = option_env!("AETHER_OPERATOR_BUILD_REVISION") {
+        if revision.len() != 40
+            || !revision
+                .bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        {
+            return Err("invalid packaged product revision".into());
+        }
+        return Ok(revision.to_owned());
+    }
     let output = Command::new("git").args(["rev-parse", "HEAD"]).output()?;
     if !output.status.success() {
         return Err("cannot establish exact git revision".into());
@@ -351,7 +402,16 @@ fn print_decision_inputs(case: &PilotCase) {
                 | "resolution_dependency"
                 | "dependency_status"
         ) {
-            println!("  - {}({})", fact[0], fact[1..].join(", "));
+            let label = match fact[0].as_str() {
+                "case_status" => "Case status",
+                "resolution_policy_approval" => "Policy approval",
+                "resolution_confidence" => "Resolution confidence",
+                "resolution_suppression" => "Suppression state",
+                "resolution_dependency" => "Required dependency",
+                "dependency_status" => "Dependency status",
+                _ => unreachable!(),
+            };
+            println!("  - {label}: {}", fact[1..].join(", "));
         }
     }
 }
@@ -373,18 +433,21 @@ fn print_trace(
     else {
         return Ok(false);
     };
-    let trace = service
-        .resolve_trace_handle(ResolveTraceHandleRequest {
-            handle: binding.handle.clone(),
-            policy_context: None,
-            verify_replay: true,
-        })?
-        .record
-        .trace;
+    let resolved = service.resolve_trace_handle(ResolveTraceHandleRequest {
+        handle: binding.handle.clone(),
+        policy_context: None,
+        verify_replay: true,
+    })?;
+    if !resolved.digests_verified || !resolved.replay_verified {
+        return Err("operator proof verification did not pass".into());
+    }
+    let trace = resolved.record.trace;
     println!();
     println!("Proof/provenance trace");
     println!("----------------------");
     println!("  - root tuple: t{}", trace.root.0);
+    println!("  - execution-scoped handle: {}", binding.handle);
+    println!("  - replay verification: passed");
     println!("  - tuples in trace: {}", trace.tuples.len());
     for tuple in trace.tuples.iter().take(12) {
         println!(
@@ -430,10 +493,8 @@ mod tests {
 
     #[test]
     fn every_frozen_case_executes_all_operator_queries() {
-        let fixture = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../")
-            .join(FIXTURE_PATH);
-        let pack: CasePack = serde_json::from_str(&fs::read_to_string(fixture).unwrap()).unwrap();
+        let pack: CasePack = serde_json::from_str(FIXTURE_JSON).unwrap();
+        let expected: serde_json::Value = serde_json::from_str(FIXTURE_JSON).unwrap();
         verify_pack(&pack).unwrap();
         let nonce = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -450,12 +511,38 @@ mod tests {
         assert_eq!(pack.cases.len(), 6);
         for (index, case) in pack.cases.iter().enumerate() {
             let path = env::temp_dir().join(format!("aether-pilot-smoke-{nonce}-{index}.sqlite"));
+            let mut handles = Vec::new();
             {
                 let mut service = SqliteKernelService::open(&path).unwrap();
-                for query in queries {
+                let fields = [
+                    ("active_cases", 0),
+                    ("evidence", 1),
+                    ("ready_resolution", 1),
+                    ("current_owner", 1),
+                    ("stale_owners", 1),
+                    ("selected_resolution", 1),
+                ];
+                for (query, (field, column)) in queries.iter().zip(fields) {
                     let response = run_query(&mut service, case, query)
                         .unwrap_or_else(|error| panic!("{}: {error}", case.case_id));
-                    assert!(response.query.is_some());
+                    let actual: Vec<String> = query_rows(&response)
+                        .iter()
+                        .map(|row| format_value(&row.values[column]))
+                        .collect();
+                    let truth = &expected["cases"][index]["ground_truth"][field];
+                    let expected_values: Vec<String> = match truth {
+                        serde_json::Value::Null => Vec::new(),
+                        serde_json::Value::String(value) => vec![value.clone()],
+                        serde_json::Value::Array(values) => values
+                            .iter()
+                            .map(|value| value.as_str().unwrap().to_owned())
+                            .collect(),
+                        _ => panic!("unexpected ground truth type"),
+                    };
+                    assert_eq!(actual, expected_values, "{} {field}", case.case_id);
+                    if let Some(receipt) = response.execution {
+                        handles.extend(receipt.trace_handles.into_iter().map(|item| item.handle));
+                    }
                 }
                 if !case
                     .semantic_facts
@@ -464,6 +551,20 @@ mod tests {
                 {
                     let response = run_query(&mut service, case, queries[3]).unwrap();
                     assert!(query_rows(&response).is_empty());
+                }
+            }
+            {
+                let mut reopened = SqliteKernelService::open(&path).unwrap();
+                assert!(!handles.is_empty());
+                for handle in handles {
+                    let resolved = reopened
+                        .resolve_trace_handle(ResolveTraceHandleRequest {
+                            handle,
+                            policy_context: None,
+                            verify_replay: true,
+                        })
+                        .unwrap();
+                    assert!(resolved.digests_verified && resolved.replay_verified);
                 }
             }
             for suffix in ["", "-wal", "-shm"] {

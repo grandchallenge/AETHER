@@ -1,5 +1,22 @@
 # KNOWN_LIMITATIONS
 
+Portable Windows operator packaging and readable task inputs are implemented
+under ADR 0031. The frozen questions, cases, comparator and scoring are
+unchanged. Extracted-package rehearsal, protected qualification and actual
+human observations remain required. See
+[OPERATOR_ALPHA.md](OPERATOR_ALPHA.md).
+
+## Current acceptance boundary (2026-10-20)
+
+[The operator alpha milestone](ALPHA_MILESTONE.md) remains open. Baseline
+`c7ade937` has passing CI and a failed Supply Chain license gate; its licensed
+dependency repair requires fresh hosted checks. Successful historical
+qualification, including run `31285674407` for `dd92467d`, cannot qualify a
+new candidate. Statements below about outstanding official runs belong to
+their historical candidates. No completed twelve-observation operator session
+or live FABRIC activation is claimed. The new milestone retains controlled
+alpha.
+
 ## AETHER/FABRIC E3/F1 specification boundary
 
 The E3/F1 specification does not prove that a FABRIC selector is equivalent to

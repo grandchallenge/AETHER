@@ -17,6 +17,11 @@ $packageRoot = if ($OutputDir) {
 $zipPath = "$packageRoot.zip"
 $binarySource = Join-Path $repoRoot "target\release\aether_pilot_service.exe"
 $shellBinarySource = Join-Path $repoRoot "target\release\aetherctl.exe"
+$operatorBinarySource = Join-Path $repoRoot "target\release\examples\support_desk_real_operator_pilot_case.exe"
+$productRevision = (& git -C $repoRoot rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or $productRevision -notmatch '^[0-9a-f]{40}$') {
+    throw "Cannot establish exact product revision"
+}
 $templatePath = Join-Path $repoRoot "fixtures\deployment\pilot-service.template.json"
 $deploymentDocSource = Join-Path $repoRoot "docs\PILOT_DEPLOYMENT.md"
 $playbookDocSource = Join-Path $repoRoot "docs\PILOT_OPERATIONS_PLAYBOOK.md"
@@ -47,9 +52,13 @@ function New-SecureToken {
 if (-not $SkipBuild) {
     Write-Host "Building release binary..." -ForegroundColor Cyan
     Push-Location $repoRoot
+    $previousOperatorRevision = $env:AETHER_OPERATOR_BUILD_REVISION
     try {
-        cargo build -p aether_api --bin aether_pilot_service --release
+        $env:AETHER_OPERATOR_BUILD_REVISION = $productRevision
+        cargo build -p aether_api --bin aether_pilot_service --example support_desk_real_operator_pilot_case --release --locked
+        if ($LASTEXITCODE -ne 0) { throw "Rust package build failed" }
     } finally {
+        $env:AETHER_OPERATOR_BUILD_REVISION = $previousOperatorRevision
         Pop-Location
     }
 
@@ -57,6 +66,7 @@ if (-not $SkipBuild) {
     Push-Location (Join-Path $repoRoot "go")
     try {
         go build -o $shellBinarySource ./cmd/aetherctl
+        if ($LASTEXITCODE -ne 0) { throw "Go operator shell build failed" }
     } finally {
         Pop-Location
     }
@@ -68,6 +78,18 @@ if (-not (Test-Path $binarySource)) {
 if (-not (Test-Path $shellBinarySource)) {
     throw "Go operator shell binary not found at $shellBinarySource"
 }
+if (-not (Test-Path $operatorBinarySource)) {
+    throw "Packaged operator surface not found at $operatorBinarySource"
+}
+$operatorIdentityRaw = & $operatorBinarySource --identity
+if ($LASTEXITCODE -ne 0) { throw "Cannot inspect operator surface identity" }
+$operatorIdentity = $operatorIdentityRaw | ConvertFrom-Json
+$fixtureDigest = (Get-FileHash -LiteralPath (Join-Path $repoRoot "fixtures\product\support-desk-real-operator-pilot-v1.json") -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($operatorIdentity.record_type -ne 'AETHER_SUPPORT_DESK_PACKAGED_SURFACE_V1' -or
+    $operatorIdentity.product_sha -ne $productRevision -or
+    $operatorIdentity.fixture_sha256 -ne $fixtureDigest) {
+    throw "Operator binary is not bound to the current product revision and frozen fixture; rebuild the package"
+}
 
 if (Test-Path $packageRoot) {
     Remove-Item -Recurse -Force $packageRoot
@@ -76,6 +98,9 @@ New-Item -ItemType Directory -Force -Path $binDir, $configDir, $docsDir, $dataDi
 
 Copy-Item -Path $binarySource -Destination (Join-Path $binDir "aether_pilot_service.exe")
 Copy-Item -Path $shellBinarySource -Destination (Join-Path $binDir "aetherctl.exe")
+Copy-Item -LiteralPath $operatorBinarySource -Destination (Join-Path $binDir "support_desk_real_operator_pilot_case.exe")
+Copy-Item -LiteralPath (Join-Path $repoRoot "docs\OPERATOR_ALPHA.md") -Destination $docsDir
+$operatorIdentity | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $packageRoot "operator-surface.json") -Encoding UTF8
 Copy-Item -Path $deploymentDocSource -Destination (Join-Path $docsDir "PILOT_DEPLOYMENT.md")
 Copy-Item -Path $playbookDocSource -Destination (Join-Path $docsDir "PILOT_OPERATIONS_PLAYBOOK.md")
 
