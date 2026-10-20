@@ -1,5 +1,12 @@
 # ROADMAP
 
+Fresh 2026-10-20 cargo-audit found nine inherited vulnerabilities after the Go
+license repair. The successor pins quinn-proto 0.11.18, rustls 0.23.46 and its
+rustls-webpki dependency without changing API major versions. The local
+repaired scan has zero vulnerabilities and one retained yanked-version
+warning. Hosted qualification remains pending. See [the advisory repair
+record](evidence/ALPHA_ADVISORY_REPAIR_2026-10-20.md).
+
 Portable Windows operator packaging and readable task inputs are implemented
 under ADR 0031. The frozen questions, cases, comparator and scoring are
 unchanged. Extracted-package rehearsal, protected qualification and actual
