@@ -119,7 +119,25 @@ def schedule(operator_id: str) -> list[dict[str, Any]]:
     return rows
 
 
-def preflight(operator_id: str) -> dict[str, Any]:
+def operator_binary_identity(path: Path) -> dict[str, Any]:
+    path = path.resolve(strict=True)
+    result = subprocess.run(
+        [str(path), "--identity"], text=True, capture_output=True, timeout=15, check=False
+    )
+    if result.returncode:
+        raise RuntimeError("packaged operator identity command failed")
+    identity = json.loads(result.stdout)
+    if (
+        identity.get("record_type") != "AETHER_SUPPORT_DESK_PACKAGED_SURFACE_V1"
+        or identity.get("product_sha") != current_revision()
+        or identity.get("fixture_sha256") != sha256(FIXTURE)
+        or identity.get("case_set_id") != CASE_SET_ID
+    ):
+        raise RuntimeError("operator binary does not match this product revision and frozen fixture")
+    return {**identity, "binary_sha256": sha256(path)}
+
+
+def preflight(operator_id: str, operator_binary: Path | None = None) -> dict[str, Any]:
     revision = current_revision()
     tracked_dirty = git("status", "--porcelain", "--untracked-files=no")
     if tracked_dirty:
@@ -133,7 +151,7 @@ def preflight(operator_id: str) -> dict[str, Any]:
                 "use an isolated checkout that preserves committed line endings"
             )
     fixture = pack()
-    return {
+    manifest = {
         "record_type": "AETHER_SUPPORT_DESK_OPERATOR_SESSION_MANIFEST",
         "protocol_id": PROTOCOL_ID,
         "case_set_id": CASE_SET_ID,
@@ -149,6 +167,9 @@ def preflight(operator_id: str) -> dict[str, Any]:
         "schedule": schedule(operator_id),
         "claim_boundary": CLAIM_BOUNDARY,
     }
+    if operator_binary is not None:
+        manifest["operator_surface"] = operator_binary_identity(operator_binary)
+    return manifest
 
 
 def case_by_id(case_id: str) -> dict[str, Any]:
@@ -165,13 +186,21 @@ def task_for(operator_id: str, order_index: int) -> dict[str, Any]:
     return rows[order_index - 1]
 
 
-def show_task(operator_id: str, order_index: int, execute_aether: bool, sqlite_path: str | None) -> int:
+def show_task(
+    operator_id: str, order_index: int, execute_aether: bool, sqlite_path: str | None,
+    operator_binary: Path | None = None,
+) -> int:
     task = task_for(operator_id, order_index)
     case = case_by_id(task["case_id"])
     print(f"operator={operator_id}")
     print(f"order_index={order_index}")
     print(f"case_id={task['case_id']}")
     print(f"condition={task['condition']}")
+    print()
+    print("You are reviewing a synthetic support case before deciding the next action.")
+    print("Ready means eligible and unassigned; selected means eligible for the current assignment.")
+    print("A stale assignment belongs to an earlier ownership epoch.")
+    print("Answer the five frozen operator questions; no external action is performed.")
     print()
     if task["condition"] == "conventional_event_log":
         print("Conventional ticket/event-log condition")
@@ -192,6 +221,9 @@ def show_task(operator_id: str, order_index: int, execute_aether: bool, sqlite_p
         "--",
         task["case_id"],
     ]
+    if operator_binary is not None:
+        operator_binary_identity(operator_binary)
+        command = [str(operator_binary.resolve()), task["case_id"]]
     if sqlite_path:
         command.append(sqlite_path)
     if not execute_aether:
@@ -200,7 +232,7 @@ def show_task(operator_id: str, order_index: int, execute_aether: bool, sqlite_p
         print("Run exactly:")
         print(" ".join(command))
         return 0
-    return subprocess.run(command, cwd=ROOT, check=False).returncode
+    return subprocess.run(command, cwd=ROOT, check=False, timeout=120).returncode
 
 
 def validate_evidence(path: Path) -> dict[str, Any]:
@@ -295,12 +327,14 @@ def build_parser() -> argparse.ArgumentParser:
     prepare = sub.add_parser("prepare")
     prepare.add_argument("--operator-id", required=True, choices=ALLOWED_OPERATORS)
     prepare.add_argument("--out", required=True)
+    prepare.add_argument("--operator-binary", type=Path)
 
     show = sub.add_parser("show-task")
     show.add_argument("--operator-id", required=True, choices=ALLOWED_OPERATORS)
     show.add_argument("--order-index", required=True, type=int)
     show.add_argument("--execute-aether", action="store_true")
     show.add_argument("--sqlite-path")
+    show.add_argument("--operator-binary", type=Path)
 
     validate = sub.add_parser("validate")
     validate.add_argument("--evidence", required=True)
@@ -315,13 +349,16 @@ def main() -> int:
     args = build_parser().parse_args()
     try:
         if args.command == "prepare":
-            manifest = preflight(args.operator_id)
+            manifest = preflight(args.operator_id, args.operator_binary)
             write_json(Path(args.out), manifest)
             print(json.dumps(manifest, indent=2))
             return 0
         if args.command == "show-task":
-            preflight(args.operator_id)
-            return show_task(args.operator_id, args.order_index, args.execute_aether, args.sqlite_path)
+            preflight(args.operator_id, args.operator_binary)
+            return show_task(
+                args.operator_id, args.order_index, args.execute_aether, args.sqlite_path,
+                args.operator_binary,
+            )
         if args.command == "validate":
             validate_evidence(Path(args.evidence))
             print("AETHER_SUPPORT_DESK_OPERATOR_EVIDENCE_VALID")
@@ -333,7 +370,7 @@ def main() -> int:
                 write_json(Path(args.out), payload)
             print(json.dumps(payload, indent=2))
             return 0
-    except (RuntimeError, ValueError, OSError, json.JSONDecodeError) as exc:
+    except (RuntimeError, ValueError, OSError, subprocess.TimeoutExpired) as exc:
         print(f"pilot surface error: {exc}", file=sys.stderr)
         return 2
     return 2

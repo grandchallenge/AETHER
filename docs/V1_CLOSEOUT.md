@@ -1,5 +1,13 @@
 # V1 Closeout
 
+## Current evidence readback (2026-10-20)
+
+This is the historical semantic closeout. Later exact readiness runs
+succeeded, including `31285674407` for `dd92467d`; outstanding-run statements
+below describe earlier candidates. They do not qualify current main or change
+the controlled-alpha profile. Current acceptance and remaining dependencies
+are tracked in [ALPHA_MILESTONE.md](ALPHA_MILESTONE.md).
+
 - Status: Reopened in part; immutable qualification remains unsatisfied
 - Date: 2026-03-28
 - Reopened: 2026-07-09 following the comprehensive audit

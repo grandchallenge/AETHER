@@ -1,5 +1,14 @@
 # Commercial Release Readiness
 
+## Current evidence readback (2026-10-20)
+
+Historical readiness runs have passed, including `31285674407` for `dd92467d`
+in `grandchallenge/AETHER`. That did not promote the GCL controlled-alpha
+profile. Baseline `c7ade937` has passing CI but a failed Supply Chain license
+gate and has not been newly qualified. The next delivery is the [operator
+alpha milestone](ALPHA_MILESTONE.md), with a fresh package and real-operator
+evidence; no beta promotion is included.
+
 AETHER's active target is **controlled design-partner alpha**. Commercial beta
 is blocked, and general availability remains separately blocked.
 

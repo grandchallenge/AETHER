@@ -1,5 +1,24 @@
 # STATUS
 
+Portable Windows operator packaging and readable task inputs are implemented
+under ADR 0031. The frozen questions, cases, comparator and scoring are
+unchanged. Extracted-package rehearsal, protected qualification and actual
+human observations remain required. See
+[OPERATOR_ALPHA.md](OPERATOR_ALPHA.md).
+
+## Operator alpha acceptance (2026-10-20)
+
+The current delivery contract is [Reproducible operator
+alpha](ALPHA_MILESTONE.md). Its baseline is protected main
+`c7ade9370da97a7aade4e4fdd893bcc7991c43b7`. CI passed there; Supply Chain
+failed an expired unknown-license exception. ADR 0030 records the licensed
+dependency repair. Hosted validation of the repair and new package
+qualification remain pending. Historical readiness passes do exist, including
+`31285674407` for `dd92467d`; they do not qualify this baseline. Older
+candidate narratives below remain historical records. The original checkout
+and its personal-console work are preserved separately. The operator
+comparison remains incomplete and live FABRIC remains blocked.
+
 ## AETHER/FABRIC E3/F1 resource-selection extraction (F1C protected; F1D pending, 2026-10-06)
 
 Issue #94 binds the first proposed real FABRIC extraction to protected E2 merge
@@ -677,7 +696,7 @@ Local exact-code validation:
 
 C1 exact-head review/check/merge/readback is complete on source head `97c0878d067fcd7cdde978c2d3967c08ead5d006`, protected merge `2e959418f8a27dfb72beb8502e2b3ecdf82c6f65`.
 
-## AETHER/FABRIC E3B-C2 real-HTTP shadow integration — protected complete
+## AETHER/FABRIC E3B-C2 real-HTTP shadow integration â€” protected complete
 
 Issue #120 implements the separately authorized C2 shadow tranche from protected
 C1. PR #121 was validly protected at merge `212abc8774f9c9c7e0ce4bea26ebcd4c0dca8c2c`
@@ -753,7 +772,7 @@ Governance issue #130 controls the next legitimate classification
 decision; #127 remains open. C4/E3B-A/live FABRIC blocked.
 
 
-## E3B source-bound observational implementation — protected readback
+## E3B source-bound observational implementation â€” protected readback
 
 PR #138 was protected merged/read back to main at
 `aae5322ec53cc9dd27f3c4025a89ccf2265d29ea` from candidate
@@ -769,7 +788,7 @@ No FABRIC mechanical permit, new routing mode, resource expansion or E3B-A
 activation was admitted. Fresh revocation/expiry/reload and cancellation
 races and C3 #130 / practical acceptance #133 remain unresolved.
 
-## E3B #140 — in-process source-auth epoch diagnostic candidate
+## E3B #140 â€” in-process source-auth epoch diagnostic candidate
 
 Source-owned `HttpAuth::generation` is captured under the actual auth mutex at
 real token admission and advanced atomically by the existing validated reload
@@ -786,7 +805,7 @@ The precise verification and withheld authority are recorded in
 witness or consumptive authorization exists. C3 #130, practical #133, and
 E3B-A production activation remain separately blocked.
 
-## E3B #143 — non-operative atomic-attempt hostile model candidate
+## E3B #143 â€” non-operative atomic-attempt hostile model candidate
 
 The protected #140 HTTP-auth generation diagnostic still confers **no**
 mechanical execution authority. A new `#[cfg(test)]` AETHER Rust module models
@@ -800,7 +819,7 @@ implementation PR #144 was protected at `566e7f4743a64d33e4a9ef378f4fa6f66466efc
 Receipt: `handoffs/AETHER-FABRIC/E3B_ONE_ATTEMPT_START_143_RECEIPT.md`.
 No live FABRIC, C3 #130, #133 or E3B-A change is authorized.
 
-## E3B #146 — source-owner lock-order prototype candidate (NOT certified)
+## E3B #146 â€” source-owner lock-order prototype candidate (NOT certified)
 
 ADR 0029 records the actual HTTP auth, status reload, namespace/rate, C1
 registry and executor ownership edges. The new test-only
