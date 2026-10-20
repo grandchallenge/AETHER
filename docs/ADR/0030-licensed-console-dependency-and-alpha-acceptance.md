@@ -39,3 +39,7 @@ The build uses a Go pseudo-version because upstream has not tagged its license
 addition. Go module checksums preserve the selected archive identity. No
 exception expiry renewal is needed; unknown licenses continue to fail closed.
 Hosted checks and independent exact-candidate qualification remain required.
+
+## Post-merge advisory follow-through
+
+PR #153 protected this license repair at `d0e6f4a`. A fresh scan then found nine inherited Rust dependency advisories. The separate compatible-lockfile repair is recorded in `docs/evidence/ALPHA_ADVISORY_REPAIR_2026-10-20.md`; it does not renew a license exception or change kernel architecture. Qualification remains required for the successor.

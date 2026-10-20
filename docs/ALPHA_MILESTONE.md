@@ -22,8 +22,8 @@ worktree and `codex/alpha-acceptance`; it does not import the personal profile.
 
 | Packet | Required result | Current disposition |
 | --- | --- | --- |
-| A: baseline and release health | Preserve local work; remove expired license exception through an evidenced dependency repair; required exact-head checks pass | Baseline established; licensed upstream revision selected; hosted checks pending |
-| B: usable operator workflow | Context and readable answers to the five frozen questions; all six cases execute correctly; proof remains inspectable | Portable runner, readable inputs and six-case correctness/restart test implemented; extracted-package rehearsal pending |
+| A: baseline and release health | Preserve local work; remove expired license exception through an evidenced dependency repair; required exact-head checks pass | PR #153 protected at d0e6f4a; fresh advisory scan requires patched TLS/QUIC lockfile; new hosted candidate pending |
+| B: usable operator workflow | Context and readable answers to the five frozen questions; all six cases execute correctly; proof remains inspectable | PR #153 protected; pre-repair extracted package passed six-case correctness, restart/restore and original-handle replay; repeat for final qualified package |
 | C: package qualification | Clean candidate/package identity; clean install; schema-bound writes, idempotency, recursion, Current/AsOf, proof, restart and stopped backup/restore; mandatory hosted gates and independent bundle verification | Pending A/B and protected candidate |
 | D: real operator | Separately identified session, briefing and existing counterbalanced 12-observation schedule; valid evidence and six correct AETHER tasks | Pending C and a participating human; prior stopped/partial records remain intact |
 | E: closeout | Acceptance record linking package, qualification, recovery, operator evidence and residual defects; protected review/readback | Pending C/D |
