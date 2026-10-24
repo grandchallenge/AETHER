@@ -58,7 +58,7 @@ jobs:
           if ($head -ne "${{ inputs.qualification_tooling_sha }}") { throw "qualification tooling checkout mismatch" }
           if ($dirty) { throw "qualification tooling checkout is dirty" }
       - name: Download tested package and qualification subjects
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ inputs.qualification_subject_artifact }}
           path: artifacts/release/qualification
@@ -137,7 +137,7 @@ jobs:
           foreach ($subject in $subjects) { $arguments += @("--subject", "$($subject.BaseName)=$($subject.FullName)") }
           python @arguments
       - name: Upload SHA-named evidence bundle
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: aether-release-evidence-${{ inputs.candidate_sha }}-tooling-${{ inputs.qualification_tooling_sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/release/bundles/aether-release-evidence-*.zip
@@ -160,7 +160,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Download exact producer artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: aether-release-evidence-${{ inputs.candidate_sha }}-tooling-${{ inputs.qualification_tooling_sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/release/downloaded
@@ -180,7 +180,7 @@ jobs:
             --require-passed `
             --out artifacts/release/verified-verdict.json
       - name: Upload independently verified verdict
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: aether-release-evidence-verdict-${{ inputs.candidate_sha }}-tooling-${{ inputs.qualification_tooling_sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/release/verified-verdict.json
