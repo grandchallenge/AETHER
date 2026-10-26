@@ -82,7 +82,9 @@ pub struct TraceHandle(String);
 impl TraceHandle {
     pub fn generate() -> Self {
         let mut bytes = [0u8; 32];
-        SysRng.try_fill_bytes(&mut bytes).expect("OS randomness unavailable");
+        SysRng
+            .try_fill_bytes(&mut bytes)
+            .expect("OS randomness unavailable");
         Self(hex_encode(&bytes))
     }
 
