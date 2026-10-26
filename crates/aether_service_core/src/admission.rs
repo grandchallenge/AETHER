@@ -854,7 +854,9 @@ fn hex_encode(bytes: &[u8]) -> String {
 
 fn random_id() -> String {
     let mut bytes = [0u8; 16];
-    SysRng.try_fill_bytes(&mut bytes).expect("OS randomness unavailable");
+    SysRng
+        .try_fill_bytes(&mut bytes)
+        .expect("OS randomness unavailable");
     hex_encode(&bytes)
 }
 
