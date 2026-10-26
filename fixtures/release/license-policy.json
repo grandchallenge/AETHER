@@ -32,12 +32,5 @@
   "denied_spdx_identifiers": ["AGPL-1.0", "AGPL-3.0"],
   "allow_unknown": false,
   "exceptions": [],
-  "unknown_component_exceptions": [
-    {
-      "purl": "pkg:golang/github.com/mattn/go-localereader@v0.0.1",
-      "reason": "Upstream module contains no license file; retained as a visible beta exception pending replacement or upstream clarification.",
-      "owner": "security",
-      "expires_at": "2026-10-01T00:00:00Z"
-    }
-  ]
+  "unknown_component_exceptions": []
 }

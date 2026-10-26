@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib.util
+import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -66,6 +68,44 @@ def test_preflight_rejects_checkout_bytes_that_differ_from_commit(monkeypatch) -
     monkeypatch.setattr(surface, "committed_sha256", lambda path: "0" * 64)
     with pytest.raises(RuntimeError, match="pilot bytes differ from HEAD"):
         surface.preflight("operator-01")
+
+
+@pytest.mark.parametrize("field", ["product_sha", "fixture_sha256", "case_set_id"])
+def test_packaged_operator_rejects_wrong_identity(tmp_path, monkeypatch, field) -> None:
+    surface = load_surface()
+    binary = tmp_path / "operator.exe"
+    binary.write_bytes(b"qualified candidate bytes")
+    identity = {
+        "record_type": "AETHER_SUPPORT_DESK_PACKAGED_SURFACE_V1",
+        "product_sha": surface.current_revision(),
+        "fixture_sha256": surface.sha256(surface.FIXTURE),
+        "case_set_id": surface.CASE_SET_ID,
+    }
+    identity[field] = "wrong"
+    monkeypatch.setattr(
+        surface.subprocess, "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(args, 0, json.dumps(identity)),
+    )
+    # current_revision must not use the mocked process runner.
+    monkeypatch.setattr(surface, "current_revision", lambda: "a" * 40)
+    if field != "product_sha":
+        identity["product_sha"] = "a" * 40
+    with pytest.raises(RuntimeError, match="does not match"):
+        surface.operator_binary_identity(binary)
+
+
+def test_packaged_task_launches_binary_without_cargo(tmp_path, monkeypatch) -> None:
+    surface = load_surface()
+    binary = tmp_path / "operator.exe"
+    binary.write_bytes(b"qualified candidate bytes")
+    monkeypatch.setattr(surface, "operator_binary_identity", lambda path: {})
+    commands = []
+    def run(command, **kwargs):
+        commands.append(command)
+        return subprocess.CompletedProcess(command, 0)
+    monkeypatch.setattr(surface.subprocess, "run", run)
+    assert surface.show_task("operator-01", 1, True, "case.sqlite", binary) == 0
+    assert commands == [[str(binary.resolve()), surface.case_ids()[0], "case.sqlite"]]
 
 
 def test_rust_surface_does_not_deserialize_or_render_frozen_ground_truth() -> None:

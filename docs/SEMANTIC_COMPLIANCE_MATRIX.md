@@ -1,5 +1,13 @@
 # Semantic Compliance Matrix
 
+## Current evidence readback (2026-10-20)
+
+Implementation and candidate histories below must be read separately.
+Historical exact qualification succeeded (including `31285674407` for
+`dd92467d`), while baseline `c7ade937` still needs release-health repair and
+fresh package qualification. See [ALPHA_MILESTONE.md](ALPHA_MILESTONE.md) for
+current acceptance. Controlled alpha and the live-FABRIC boundary remain.
+
 This document records AETHER's v1 single-node compliance against sections
 `1-11` of [SPEC.md](../SPEC.md). The unrestricted kernel slice remains
 substantial; the policy-aware portion of semantic closure is reopened following

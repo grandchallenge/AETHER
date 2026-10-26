@@ -1,5 +1,28 @@
 # ROADMAP
 
+Fresh 2026-10-20 cargo-audit found nine inherited vulnerabilities after the Go
+license repair. The successor pins quinn-proto 0.11.18, rustls 0.23.46 and its
+rustls-webpki dependency without changing API major versions. The local
+repaired scan has zero vulnerabilities and one retained yanked-version
+warning. Hosted qualification remains pending. See [the advisory repair
+record](evidence/ALPHA_ADVISORY_REPAIR_2026-10-20.md).
+
+Portable Windows operator packaging and readable task inputs are implemented
+under ADR 0031. The frozen questions, cases, comparator and scoring are
+unchanged. Extracted-package rehearsal, protected qualification and actual
+human observations remain required. See
+[OPERATOR_ALPHA.md](OPERATOR_ALPHA.md).
+
+## Immediate: reproducible operator alpha (2026-10-20)
+
+Follow [the bounded acceptance contract](ALPHA_MILESTONE.md): repair current
+release health, rehearse and improve the six-case operator workflow, qualify
+one exact package including restart/restore and proof replay, then complete a
+separately identified real-operator session. Preserve prior stopped and
+partial observations. Fresh hosted qualification and human participation are
+open dependencies. Older successful readiness runs are historical evidence.
+This tranche does not depend on personal-console expansion or live FABRIC.
+
 ## AETHER/FABRIC E3/F1 extraction lane
 
 Protected E2 merge `fce5095cfd0db8766ae0c7d5e80c091b41284862` is the evidence basis for issue #94. The E3/F1 specification milestone is protected at `1ccce8756f7e79fe16753f2c8b3da182addc94c5`; F1A is protected at `24589252ca5584c1ac4385f8fd57b9c680eebbf3`; F1B is protected at `04393c83eebe00ef7b24b5efcd767ffbdbc3b3d3`; F1C is protected at `c21aebe269a83fe729c226189f6643de7f6fc1da`; F1D is next.

@@ -115,21 +115,19 @@ class SupplyChainTests(unittest.TestCase):
             [],
         )
 
-    def test_tracked_license_policy_has_explicit_unknown_exception(self) -> None:
+    def test_tracked_license_policy_rejects_unknowns_and_expired_exceptions(self) -> None:
         policy = json.loads(
             (REPO_ROOT / "fixtures" / "release" / "license-policy.json").read_text(
                 encoding="utf-8"
             )
         )
-        exception = policy["unknown_component_exceptions"][0]
-        self.assertEqual(
-            exception["purl"],
-            "pkg:golang/github.com/mattn/go-localereader@v0.0.1",
-        )
-        self.assertGreater(
-            datetime.fromisoformat(exception["expires_at"].replace("Z", "+00:00")),
-            datetime(2026, 7, 12, tzinfo=timezone.utc),
-        )
+        self.assertFalse(policy["allow_unknown"])
+        for exception in policy["unknown_component_exceptions"]:
+            self.assertGreater(
+                datetime.fromisoformat(exception["expires_at"].replace("Z", "+00:00")),
+                datetime.now(timezone.utc),
+                exception["purl"],
+            )
 
     def test_tracked_actions_and_images_are_immutable_and_allowlisted(self) -> None:
         policy = json.loads(

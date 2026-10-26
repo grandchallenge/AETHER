@@ -1,1 +1,5 @@
 schemas/aether_fabric/e3/f1b_selector_policy.json text eol=lf
+fixtures/product/support-desk-real-operator-pilot-v1.json text eol=lf
+schemas/pilot/support-desk-real-operator-evidence.schema.json text eol=lf
+docs/COMMERCIALIZATION/SUPPORT_DESK_REAL_OPERATOR_PILOT_PROTOCOL.md text eol=lf
+crates/aether_api/examples/support_desk_real_operator_pilot_case.rs text eol=lf
