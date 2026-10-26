@@ -6,7 +6,7 @@ use aether_storage::{
     AppendReceiptDraft, ConditionalAppend, Journal, JournalCutRef, StoredAppendReceipt,
     StoredHistoryCertification, StoredSchemaRevision,
 };
-use rand::{rngs::OsRng, RngCore};
+use rand::{rngs::SysRng, TryRng};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
@@ -854,7 +854,9 @@ fn hex_encode(bytes: &[u8]) -> String {
 
 fn random_id() -> String {
     let mut bytes = [0u8; 16];
-    OsRng.fill_bytes(&mut bytes);
+    SysRng
+        .try_fill_bytes(&mut bytes)
+        .expect("OS randomness unavailable");
     hex_encode(&bytes)
 }
 
