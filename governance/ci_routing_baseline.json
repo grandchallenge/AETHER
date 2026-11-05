@@ -1,0 +1,47 @@
+{
+  "contract_id": "GCL-CIR-001",
+  "version": "1.0.0",
+  "repository": "grandchallenge/AETHER",
+  "mode": "ENFORCE_DISCOVERY_PRESERVE_EXISTING_CI",
+  "checks": [
+    {
+      "id": "aether-python-ci",
+      "test_globs": [
+        "python/tests/test_*.py"
+      ]
+    }
+  ],
+  "legacy_test_paths": [
+    "python/tests/test_aether_fabric_e2.py",
+    "python/tests/test_aether_fabric_f1a.py",
+    "python/tests/test_architecture_boundaries.py",
+    "python/tests/test_capacity_automation.py",
+    "python/tests/test_ci_gate.py",
+    "python/tests/test_ci_scope.py",
+    "python/tests/test_colab_runtime_diagnostic.py",
+    "python/tests/test_commercial_beta_promotion.py",
+    "python/tests/test_commercial_readiness.py",
+    "python/tests/test_customer_workflow_acceptance.py",
+    "python/tests/test_design_partner_qualification.py",
+    "python/tests/test_hardening_promotion.py",
+    "python/tests/test_http_client.py",
+    "python/tests/test_notebook_onboarding.py",
+    "python/tests/test_pages_identity.py",
+    "python/tests/test_performance_beta_gate.py",
+    "python/tests/test_release_evidence.py",
+    "python/tests/test_release_preflight.py",
+    "python/tests/test_release_readiness_contract.py",
+    "python/tests/test_release_rollback_record.py",
+    "python/tests/test_release_subjects.py",
+    "python/tests/test_repository_controls.py",
+    "python/tests/test_required_hosted_gates.py",
+    "python/tests/test_restart_latency_diagnostics.py",
+    "python/tests/test_security_key_lifecycle.py",
+    "python/tests/test_service_v2_operability.py",
+    "python/tests/test_supply_chain.py",
+    "python/tests/test_support_desk_real_operator_pilot_fixture.py",
+    "python/tests/test_support_desk_real_operator_pilot_surface.py",
+    "python/tests/test_tuple_facade.py",
+    "python/tests/test_verify_colab_runtime_diagnostic.py"
+  ]
+}
