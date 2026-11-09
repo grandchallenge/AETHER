@@ -86,7 +86,7 @@ jobs:
 
       - name: Attest package provenance
         if: github.event_name != 'pull_request'
-        uses: actions/attest@f6bf1532d7d6793fce74eac584813a8eee607999 # v4
+        uses: actions/attest@badbb428b0055a04f53d6ce00bda98cf1c04e56e # v4
         with:
           subject-path: artifacts/pilot/packages/aether-pilot-service-windows-x86_64.zip
 
@@ -234,7 +234,7 @@ jobs:
 
       - name: Attest generated SBOMs
         if: github.event_name != 'pull_request'
-        uses: actions/attest@f6bf1532d7d6793fce74eac584813a8eee607999 # v4
+        uses: actions/attest@badbb428b0055a04f53d6ce00bda98cf1c04e56e # v4
         with:
           subject-path: artifacts/pilot/packages/aether-pilot-service-windows-x86_64.zip
           sbom-path: artifacts/release/supply-chain/aether-package.cdx.json
@@ -269,16 +269,16 @@ jobs:
           persist-credentials: false
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@1ad29ea4a422cce9a242a9fae469541dcd08addc # v4
+        uses: github/codeql-action/init@fbfa9f37476c0024508d051f3c34fcca3366b0e2 # v4
         with:
           languages: ${{ matrix.language }}
 
       - name: Autobuild compiled language
         if: matrix.language == 'go'
-        uses: github/codeql-action/autobuild@1ad29ea4a422cce9a242a9fae469541dcd08addc # v4
+        uses: github/codeql-action/autobuild@fbfa9f37476c0024508d051f3c34fcca3366b0e2 # v4
 
       - name: Analyze
-        uses: github/codeql-action/analyze@1ad29ea4a422cce9a242a9fae469541dcd08addc # v4
+        uses: github/codeql-action/analyze@fbfa9f37476c0024508d051f3c34fcca3366b0e2 # v4
         with:
           category: /language:${{ matrix.language }}
 
