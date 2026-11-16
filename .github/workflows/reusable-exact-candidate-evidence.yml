@@ -90,11 +90,11 @@ jobs:
             --attempt "${{ github.run_attempt }}"
       - name: Attest exact package provenance
         id: package-attestation
-        uses: actions/attest@f6bf1532d7d6793fce74eac584813a8eee607999 # v4
+        uses: actions/attest@badbb428b0055a04f53d6ce00bda98cf1c04e56e # v4
         with:
           subject-path: ${{ steps.qualification.outputs.package }}
       - name: Attest assembled-package SBOM
-        uses: actions/attest@f6bf1532d7d6793fce74eac584813a8eee607999 # v4
+        uses: actions/attest@badbb428b0055a04f53d6ce00bda98cf1c04e56e # v4
         with:
           subject-path: ${{ steps.qualification.outputs.package }}
           sbom-path: ${{ steps.qualification.outputs.supply_root }}/aether-package.cdx.json
