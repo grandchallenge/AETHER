@@ -60,7 +60,7 @@ Each edge-context admits two local satisfying assignments, and each vertex's loc
 
 ## Model 4 — No canonical norm-conflict repair
 
-For obligations `{O(a), O(¬a)}`, restoring satisfiability by subset-minimal deletion yields two equally minimal repairs:
+Assume an explicit deontic consistency axiom `¬(O(a) ∧ O(¬a))` (or, equivalently for this finite fixture, a declared institutional constraint forbidding both obligations). This axiom is **not** true in every deontic logic, and the mere presence of the two formulas is not by itself a contradiction in all semantics. Under this stated assumption, for obligations `{O(a), O(¬a)}`, restoring satisfiability by subset-minimal deletion yields two equally minimal repairs:
 
 ```text
 {O(a)}
