@@ -98,6 +98,13 @@ impl OperationClass {
         Self::SearchVectors,
     ];
 
+    /// C0/C3 classified positive mechanical lane. The legacy tuple endpoint
+    /// remains observable but its source semantics always reject (HTTP 409).
+    /// This predicate never grants admission; it only narrows C1 issuance.
+    pub const fn mechanically_eligible(self) -> bool {
+        !matches!(self, Self::ExplainTuple)
+    }
+
     pub fn as_str(self) -> &'static str {
         match self {
             Self::History => "history",
@@ -515,6 +522,10 @@ pub enum AuthorityIssuanceError {
     ExcludedMutation { method: String, path: String },
     #[error("unknown first-lane operation: {method} {path}")]
     UnknownOperation { method: String, path: String },
+    #[error(
+        "first-lane operation is an observable negative control, not mechanically eligible: {0}"
+    )]
+    IneligibleOperation(&'static str),
     #[error("operation profile does not match the exact protected method/path/scope")]
     OperationProfileMismatch,
     #[error("operation admission rejected: {0}")]
@@ -1146,6 +1157,11 @@ impl AetherMechanicalAuthorityIssuer {
         let resolved = OperationClass::from_http(&input.http_method, &input.http_path)?;
         if resolved != input.operation_class {
             return Err(AuthorityIssuanceError::OperationProfileMismatch);
+        }
+        if !input.operation_class.mechanically_eligible() {
+            return Err(AuthorityIssuanceError::IneligibleOperation(
+                input.operation_class.as_str(),
+            ));
         }
         let profile = input.operation_class.profile();
         profile.validate_binding(input)?;
@@ -1840,6 +1856,34 @@ mod tests {
             assert_eq!(profile.max_parallel_copies, 1);
         }
         assert_eq!(seen.len(), 23);
+    }
+
+    #[test]
+    fn legacy_explain_tuple_remains_observable_but_never_issues_mechanical_authority() {
+        let visible = OperationClass::ALL_FIRST_LANE;
+        assert_eq!(visible.len(), 23);
+        assert_eq!(
+            visible
+                .iter()
+                .filter(|op| op.mechanically_eligible())
+                .count(),
+            22
+        );
+        assert_eq!(
+            OperationClass::from_http("POST", "/v1/explain/tuple").unwrap(),
+            OperationClass::ExplainTuple
+        );
+        let mut issuer = AetherMechanicalAuthorityIssuer::for_tests(5_000, 8);
+        let record = input(OperationClass::ExplainTuple);
+        assert!(record.source_operation_admitted);
+        assert!(matches!(
+            issuer.decide_operation(&record),
+            Err(AuthorityIssuanceError::IneligibleOperation("explain_tuple"))
+        ));
+        assert!(matches!(
+            issuer.issue_control_bundle(&record),
+            Err(AuthorityIssuanceError::IneligibleOperation("explain_tuple"))
+        ));
     }
 
     #[test]
