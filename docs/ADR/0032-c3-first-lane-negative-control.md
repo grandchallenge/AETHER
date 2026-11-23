@@ -1,6 +1,7 @@
 # ADR 0032: C3 first-lane HTTP negative control and source issuance narrowing
 
-**Status:** Candidate for protected adjudication, issue #130. No production activation.
+**Status:** Protected and merged via PR #165 at `edd2acfd8533643afe5fe17d2392a72e5598cb50`;
+issue #130 closed with protected readback; no production activation.
 **Starting main:** `511bb12fceddce7dd5a01b3a22051dedae8c54a3`.
 **Source:** C0 authority-issuance contract; R1/R2 actual seeded HTTP results;
 `KernelServiceCore::explain_tuple` deliberately rejects as ambiguous.

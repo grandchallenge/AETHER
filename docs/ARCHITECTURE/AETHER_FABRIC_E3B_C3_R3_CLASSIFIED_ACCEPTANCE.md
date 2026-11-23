@@ -1,8 +1,11 @@
 # E3B-C3-R3: Classified 22-positive + one negative-control HTTP evidence
 
-**State:** Code candidate; not automatically certified until protected exact-head
-checks, logical audits and merge/readback. Parent #110, classification #130,
-reconciliation #127. Does not activate C4 or E3B-A.
+**State:** PROTECTED bounded C3 classification, not a live-routing
+certificate. Implementation PR #165 merged and read back at
+`edd2acfd8533643afe5fe17d2392a72e5598cb50`; exact-head evidence is
+protected in [C3-R3 receipt](../../handoffs/AETHER-FABRIC/E3B_C3_R3_CLASSIFICATION_130_RECEIPT.md).
+Parent #110; classification #130 closed; #127 residual evidence remains open.
+Does not activate C4 or E3B-A.
 
 ## Source discrepancy and repair
 
