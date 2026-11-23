@@ -90,6 +90,33 @@ Closed-world behavior:
 - mutation operation class => reject;
 - operation path/scope/profile mismatch => reject.
 
+### C3-R3 protected eligibility clarification (issue #130)
+
+The closed-world registry above remains **23 HTTP-observable operation classes**.
+It is **not** a declaration that 23 operations can produce successful source
+semantics. The historical `POST /v1/explain/tuple` entry is the unique
+**negative control**, with its existing `409 ambiguous_tuple_reference`
+source semantics unchanged. Only the other **22** classes may be candidates
+for a C1 mechanical authorization bundle. C1 must reject `ExplainTuple`
+before admission/issuance, even where a C2 shadow input asserts
+`source_operation_admitted: true`. A denial cannot be converted to an
+admitted mechanical attempt by a replayed or fabricated status field.
+
+C3 uses separate acceptance semantics: the original **23-positive**
+certificate remains deliberately fail-closed; the new *classified* evidence
+check requires 22 genuinely paired HTTP-200 positive outcomes and one
+authenticated, paired, source-denied HTTP-409 negative control with **no**
+mechanical envelope, placement or attempted start. Neither certificate is
+a live execution permit. See
+[AETHER_FABRIC_E3B_C3_R3_CLASSIFIED_ACCEPTANCE.md](AETHER_FABRIC_E3B_C3_R3_CLASSIFIED_ACCEPTANCE.md)
+and [ADR 0032](../ADR/0032-c3-first-lane-negative-control.md).
+
+This is an explicit **narrowing** of off-path first-lane eligibility, not an
+Article IX semantic API rewrite, second resource, or E3B-A activation. The
+reference route remains authoritative and `FabricRoutingMode::ReferenceOnly`
+remains the default. Production source-bound atomic start remains separately
+unproved under #148.
+
 ## 4. Explicitly excluded first-lane mutations
 
 C1 SHALL NOT issue first-lane authorization for:

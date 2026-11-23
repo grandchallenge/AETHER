@@ -4798,6 +4798,7 @@ mod c2_shadow_tests {
             }
         };
         let mut results = Vec::new();
+        let mut denial_pair = None;
         for operation in Op::ALL_FIRST_LANE {
             let profile = operation.profile();
             let query = |body: Vec<u8>| {
@@ -4844,6 +4845,28 @@ mod c2_shadow_tests {
                 assert_eq!(actual["code"], baseline["code"]);
                 assert_eq!(actual["error"], baseline["error"]);
                 assert_eq!(actual["details"], baseline["details"]);
+                let project_error = |value: &serde_json::Value| {
+                    serde_json::json!({
+                        "code": value["code"],
+                        "error": value["error"],
+                        "details": value["details"]
+                    })
+                };
+                let digest_error = |value: &serde_json::Value| {
+                    aether_fabric::sha256_hex(
+                        &aether_fabric::canonicalize_serializable(&project_error(value))
+                            .expect("canonical error projection"),
+                    )
+                };
+                denial_pair = Some(crate::C3HttpNegativeControlPair {
+                    request_id: String::new(), // bound to the retained C2 identity below
+                    reference_status: StatusCode::CONFLICT.as_u16(),
+                    shadow_status: status.as_u16(),
+                    reference_error_code: baseline["code"].as_str().unwrap().into(),
+                    shadow_error_code: actual["code"].as_str().unwrap().into(),
+                    reference_error_digest: digest_error(&baseline),
+                    shadow_error_digest: digest_error(&actual),
+                });
             }
             results.push((operation.as_str().to_owned(), status.as_u16()));
         }
@@ -4877,7 +4900,48 @@ mod c2_shadow_tests {
         assert_eq!(denied.reference_result_status, Some(409));
         assert_eq!(
             denied.disagreement_class,
-            Some(crate::C3DisagreementClass::ReferenceResultUnpaired)
+            Some(crate::C3DisagreementClass::IneligibleOperation)
+        );
+        assert_eq!(
+            denied.source_disposition,
+            crate::C2ShadowDisposition::ShadowRejected
+        );
+        assert!(denied.envelope_id.is_none());
+        let mut denial_pair = denial_pair.expect("authenticated 409 pair");
+        denial_pair.request_id.clone_from(&denied.request_id);
+        let classified = crate::adjudicate_c3_classified_replay_bundle(&bundle, &denial_pair)
+            .expect("22 genuine successful requests plus one denied negative control");
+        assert_eq!(classified.positive_operation_classes, 22);
+        assert_eq!(classified.negative_control_operation_classes, 1);
+        assert!(classified.negative_control_issued_no_authority);
+        let mut tampered = denial_pair.clone();
+        tampered.shadow_error_code = "success".into();
+        assert!(crate::adjudicate_c3_classified_replay_bundle(&bundle, &tampered).is_err());
+        tampered = denial_pair.clone();
+        tampered.reference_error_digest = "0".repeat(64);
+        assert!(crate::adjudicate_c3_classified_replay_bundle(&bundle, &tampered).is_err());
+        let mut changed_identity = denial_pair.clone();
+        changed_identity.request_id = "foreign-request".into();
+        assert!(crate::adjudicate_c3_classified_replay_bundle(&bundle, &changed_identity).is_err());
+        let mut lost = bundle.clone();
+        lost.evicted_observations = 1;
+        assert_eq!(
+            crate::adjudicate_c3_classified_replay_bundle(&lost, &denial_pair),
+            Err(crate::C3CoverageError::EvidenceLoss)
+        );
+        let mut doubled = bundle.clone();
+        doubled.observations.pop();
+        doubled.observations.push(doubled.observations[0].clone());
+        assert!(crate::adjudicate_c3_classified_replay_bundle(&doubled, &denial_pair).is_err());
+        let mut forged_issuance = bundle.clone();
+        let record = forged_issuance
+            .observations
+            .iter_mut()
+            .find(|record| record.operation_class == Some(Op::ExplainTuple))
+            .unwrap();
+        record.envelope_id = Some("forged-denied-envelope".into());
+        assert!(
+            crate::adjudicate_c3_classified_replay_bundle(&forged_issuance, &denial_pair).is_err()
         );
         assert_eq!(crate::adjudicate_c3_replay_bundle(&bundle),
             Err(crate::C3CoverageError::DifferentialDisagreement),

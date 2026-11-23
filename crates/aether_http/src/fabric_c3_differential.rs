@@ -26,6 +26,7 @@ pub enum C3DisagreementClass {
     ReferenceAuthorityLost,
     ProvenanceMismatch,
     ReferenceResultUnpaired,
+    IneligibleOperation,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -121,6 +122,12 @@ pub fn adjudicate_c3_observation(source: &C2ShadowEvidence) -> C3DifferentialEvi
     let profile = operation.profile();
     if source.method != profile.http_method || source.path != profile.http_path {
         out.disagreement_class = Some(C3DisagreementClass::OperationBindingMismatch);
+        return out;
+    }
+    // An observable legacy endpoint cannot become a positive mechanical
+    // authorization even if a caller spoofs a validated C2 verdict.
+    if !operation.mechanically_eligible() {
+        out.disagreement_class = Some(C3DisagreementClass::IneligibleOperation);
         return out;
     }
 
@@ -272,6 +279,14 @@ pub enum C3CoverageError {
 pub fn adjudicate_c3_first_lane_coverage(
     observations: &[C3DifferentialEvidence],
 ) -> Result<C3CoverageSummary, C3CoverageError> {
+    let required = OperationClass::ALL_FIRST_LANE.into_iter().collect();
+    adjudicate_c3_coverage_for_required(observations, &required)
+}
+
+fn adjudicate_c3_coverage_for_required(
+    observations: &[C3DifferentialEvidence],
+    required: &BTreeSet<OperationClass>,
+) -> Result<C3CoverageSummary, C3CoverageError> {
     if observations.iter().any(|item| !item.is_equivalent()) {
         return Err(C3CoverageError::DifferentialDisagreement);
     }
@@ -280,11 +295,7 @@ pub fn adjudicate_c3_first_lane_coverage(
         .iter()
         .filter_map(|item| item.operation_class)
         .collect::<BTreeSet<_>>();
-    let required = OperationClass::ALL_FIRST_LANE
-        .into_iter()
-        .collect::<BTreeSet<_>>();
-
-    if observed != required {
+    if &observed != required {
         return Err(C3CoverageError::FirstLaneCoverageMismatch);
     }
 
@@ -389,6 +400,134 @@ pub fn adjudicate_c3_first_lane_coverage(
     })
 }
 
+/// A separate C3-R3 certificate over actual paired HTTP outcomes. This does
+/// not revise the legacy strict 23-positive certificate or grant route authority.
+/// The caller must retain the authenticated HTTP fixture/replay receipt; C2
+/// shadow metadata by itself cannot attest the error response body.
+pub const C3_CLASSIFIED_REVISION: &str = "aether-http-c3-classified/1";
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct C3HttpNegativeControlPair {
+    pub request_id: String,
+    pub reference_status: u16,
+    pub shadow_status: u16,
+    pub reference_error_code: String,
+    pub shadow_error_code: String,
+    pub reference_error_digest: String,
+    pub shadow_error_digest: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct C3ClassifiedCoverageSummary {
+    pub revision: String,
+    pub observed_operation_classes: usize,
+    pub positive_operation_classes: usize,
+    pub negative_control_operation_classes: usize,
+    pub all_positive_observations_equivalent: bool,
+    pub negative_control_issued_no_authority: bool,
+    pub authority_effect: String,
+}
+
+/// Requires the unchanged 23-profile closed-world registry: 22 positive paired
+/// completions and the one specific, HTTP-409, source-denied negative control.
+/// A 409 can NEVER count as a positive C3 equivalent operation.
+pub fn adjudicate_c3_classified_replay_bundle(
+    bundle: &C3ReplayBundle,
+    denial: &C3HttpNegativeControlPair,
+) -> Result<C3ClassifiedCoverageSummary, C3CoverageError> {
+    if bundle.revision != C3_DIFFERENTIAL_REVISION {
+        return Err(C3CoverageError::InvalidCoverageEvidence);
+    }
+    if bundle.evicted_observations != 0 {
+        return Err(C3CoverageError::EvidenceLoss);
+    }
+    if bundle.observations.len() != OperationClass::ALL_FIRST_LANE.len() {
+        return Err(C3CoverageError::FirstLaneCoverageMismatch);
+    }
+    let negatives = bundle
+        .observations
+        .iter()
+        .filter(|item| item.operation_class == Some(OperationClass::ExplainTuple))
+        .collect::<Vec<_>>();
+    if negatives.len() != 1 {
+        return Err(C3CoverageError::FirstLaneCoverageMismatch);
+    }
+    let negative = negatives[0];
+    let is_digest = |d: &str| d.len() == 64 && d.bytes().all(|b| b.is_ascii_hexdigit());
+    if denial.request_id != negative.request_id
+        || denial.request_id.is_empty()
+        || denial.reference_status != 409
+        || denial.shadow_status != 409
+        || denial.reference_error_code != "ambiguous_tuple_reference"
+        || denial.shadow_error_code != "ambiguous_tuple_reference"
+        || !is_digest(&denial.reference_error_digest)
+        || denial.reference_error_digest != denial.shadow_error_digest
+        || negative.reference_result_status != Some(409)
+        || negative.reference_result_digest.is_some()
+        || negative.method != "POST"
+        || negative.path != "/v1/explain/tuple"
+        || negative.namespace_ref.is_empty()
+        || negative.principal_ref.is_empty()
+        || !is_digest(negative.issuer_build_digest.as_deref().unwrap_or(""))
+        || !is_digest(negative.selector_build_digest.as_deref().unwrap_or(""))
+        || !is_digest(negative.effective_policy_digest.as_deref().unwrap_or(""))
+        || !is_digest(negative.request_payload_digest.as_deref().unwrap_or(""))
+        || negative.operation_profile_digest.as_ref()
+            != OperationClass::ExplainTuple
+                .profile()
+                .digest()
+                .ok()
+                .as_ref()
+        || !negative.reference_path_authoritative
+        || negative.authority_effect != "none"
+        || negative.verdict != C3DifferentialVerdict::Disagreement
+        || negative.disagreement_class != Some(C3DisagreementClass::IneligibleOperation)
+        || negative.source_disposition != C2ShadowDisposition::ShadowRejected
+        || negative.operation_admission_id.is_some()
+        || negative.envelope_id.is_some()
+        || negative.placement_decision_id.is_some()
+        || negative.candidate_mechanical_attempt_id.is_some()
+        || negative.decision_resource_snapshot_digest.is_some()
+        || negative.fresh_control_witness_revision.is_some()
+        || negative.fresh_resource_snapshot_digest.is_some()
+        || negative.source_permitted_set_equal.is_some()
+        || negative.source_differential_equivalent.is_some()
+        || negative.fabric_selected_resource_id.is_some()
+        || !negative.reference_permitted_resource_ids.is_empty()
+    {
+        return Err(C3CoverageError::InvalidCoverageEvidence);
+    }
+    let positives = bundle
+        .observations
+        .iter()
+        .filter(|item| item.operation_class != Some(OperationClass::ExplainTuple))
+        .cloned()
+        .collect::<Vec<_>>();
+    if positives
+        .iter()
+        .any(|item| item.request_id == denial.request_id)
+    {
+        return Err(C3CoverageError::InvalidCoverageEvidence);
+    }
+    let required = OperationClass::ALL_FIRST_LANE
+        .into_iter()
+        .filter(|operation| operation.mechanically_eligible())
+        .collect::<BTreeSet<_>>();
+    let positive_summary = adjudicate_c3_coverage_for_required(&positives, &required)?;
+    if positive_summary.observed_operation_classes != 22 {
+        return Err(C3CoverageError::FirstLaneCoverageMismatch);
+    }
+    Ok(C3ClassifiedCoverageSummary {
+        revision: C3_CLASSIFIED_REVISION.into(),
+        observed_operation_classes: bundle.observations.len(),
+        positive_operation_classes: positives.len(),
+        negative_control_operation_classes: 1,
+        all_positive_observations_equivalent: true,
+        negative_control_issued_no_authority: true,
+        authority_effect: "none".into(),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -433,6 +572,16 @@ mod tests {
         record.reference_result_status = Some(200);
         record.reference_result_digest = Some("e".repeat(64));
         record
+    }
+
+    fn adjudicate_positive_only(
+        observations: &[C3DifferentialEvidence],
+    ) -> Result<C3CoverageSummary, C3CoverageError> {
+        let required = OperationClass::ALL_FIRST_LANE
+            .into_iter()
+            .filter(|op| op.mechanically_eligible())
+            .collect::<BTreeSet<_>>();
+        adjudicate_c3_coverage_for_required(observations, &required)
     }
 
     #[test]
@@ -500,7 +649,8 @@ mod tests {
     fn coverage_rejects_a_missing_operation() {
         let observations = OperationClass::ALL_FIRST_LANE
             .into_iter()
-            .take(22)
+            .filter(|op| op.mechanically_eligible())
+            .take(21)
             .map(complete_source)
             .map(|item| adjudicate_c3_observation(&item))
             .collect::<Vec<_>>();
@@ -528,6 +678,7 @@ mod tests {
     fn coverage_rechecks_provenance_after_verdict_and_rejects_duplicates() {
         let mut records = OperationClass::ALL_FIRST_LANE
             .into_iter()
+            .filter(|op| op.mechanically_eligible())
             .map(complete_source)
             .map(|item| adjudicate_c3_observation(&item))
             .collect::<Vec<_>>();
@@ -535,17 +686,17 @@ mod tests {
             item.reference_result_status = Some(200);
             item.reference_result_digest = Some("e".repeat(64));
         }
-        assert!(adjudicate_c3_first_lane_coverage(&records).is_ok());
+        assert!(adjudicate_positive_only(&records).is_ok());
         let original = records[0].clone();
         records[0].issuer_build_digest = Some("forged".into());
         assert_eq!(
-            adjudicate_c3_first_lane_coverage(&records),
+            adjudicate_positive_only(&records),
             Err(C3CoverageError::InvalidCoverageEvidence)
         );
         records[0] = original;
         records[0].request_id = records[1].request_id.clone();
         assert_eq!(
-            adjudicate_c3_first_lane_coverage(&records),
+            adjudicate_positive_only(&records),
             Err(C3CoverageError::InvalidCoverageEvidence)
         );
     }
@@ -554,6 +705,7 @@ mod tests {
     fn coverage_rejects_mismatched_profile_even_if_verdict_marked_equivalent() {
         let mut records = OperationClass::ALL_FIRST_LANE
             .into_iter()
+            .filter(|op| op.mechanically_eligible())
             .map(complete_source)
             .map(|item| adjudicate_c3_observation(&item))
             .collect::<Vec<_>>();
@@ -563,7 +715,7 @@ mod tests {
         }
         records[0].path = "/v1/state/current".into();
         assert_eq!(
-            adjudicate_c3_first_lane_coverage(&records),
+            adjudicate_positive_only(&records),
             Err(C3CoverageError::InvalidCoverageEvidence)
         );
     }

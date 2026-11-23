@@ -33,9 +33,11 @@ pub use deployment::{
     ResolvedPilotTokenSummary,
 };
 pub use fabric_c3_differential::{
-    adjudicate_c3_first_lane_coverage, adjudicate_c3_observation, adjudicate_c3_replay_bundle,
+    adjudicate_c3_classified_replay_bundle, adjudicate_c3_first_lane_coverage,
+    adjudicate_c3_observation, adjudicate_c3_replay_bundle, C3ClassifiedCoverageSummary,
     C3CoverageError, C3CoverageSummary, C3DifferentialEvidence, C3DifferentialVerdict,
-    C3DisagreementClass, C3ReplayBundle, C3_DIFFERENTIAL_REVISION,
+    C3DisagreementClass, C3HttpNegativeControlPair, C3ReplayBundle, C3_CLASSIFIED_REVISION,
+    C3_DIFFERENTIAL_REVISION,
 };
 pub use fabric_control_shadow::{C2ShadowConfig, C2ShadowDisposition, C2ShadowEvidence};
 pub use fabric_cutover::FabricCutoverError;
