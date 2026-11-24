@@ -837,3 +837,13 @@ one-attempt, cancellation, restart and poison failure cases. This cannot
 authorize or trigger FABRIC work and is awaiting exact-head protected checks.
 Live HttpAuth, effective policy, namespace and worker-start locks remain
 separate. No #130/#133/E3B-A disposition is modified.
+
+## E3B #148 — real source and worker barrier candidate
+
+C3 #130 is closed through PRs #165/#167. ADR 0033 and cfg(test)
+source_owner_actual replace simulated token-default policy and namespace
+grant revisions with real HttpAuth, validated reload and actual worker
+permits, combining real fixture C1 transitions and pure RouteRealized
+identity at deterministic barriers. No semantic work is dispatched.
+Full atomic start, namespace lifecycle revision, durable ledger and
+trusted clock remain open.

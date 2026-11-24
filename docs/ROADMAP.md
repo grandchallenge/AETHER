@@ -423,3 +423,11 @@ with C1 current control state. A process restart must either recover an
 authenticated durable attempt ledger or deny all old attempts. Require
 actual HTTP/worker hostile races before considering any operative bridge.
 ReferenceOnly, the single local pool and E3B-A reserved activation persist.
+
+## E3B #148 actual-source preparation
+
+See ADR 0033. Reuse HttpAuth generation for token, scope, token-bound policy
+and namespace membership. Next specify the namespace lifecycle contract
+and genuine source-owner/issuer-bound consumption transaction with
+reload/revoke/expiry/restart/cancellation semantics before an operative
+delta. #130 is closed; #133 and E3B-A remain separate.

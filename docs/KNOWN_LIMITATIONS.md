@@ -475,3 +475,12 @@ is solely a test fixture. Poison/restart fail closed for this harness, not
 a real process-crash recovery proof. No cross-process ledger, revocable
 policy/namespace source API, trusted expiry clock or real FABRIC-directed
 start exists; C3 #130, practical #133 and activation remain withheld.
+
+## #148 genuine source probe limits
+
+Actual auth, token-default policy, namespace membership, executor permits
+and fixture C1 transitions are observed. Live source locks are unchanged;
+RouteRealized is pure evidence. The private one-use bit and weak source
+identity do not prove durable consumption, process incarnation or clock
+trust. Namespace lifecycle and request-specific semantic policy remain
+unproved. MatchNonOperative is not a dispatch grant.
