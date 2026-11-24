@@ -58,11 +58,14 @@ the tracked SHA-256 digest. This avoids the action's mutable nested checkout of
 the scanner repository and makes scanner installation part of the recorded
 delivery input boundary.
 
-The security baseline requires Rust 1.86 or newer and Go 1.26.5 or newer. The
-July 2026 gate upgrade deliberately raised the Rust MSRV and Go workflow patch
-level so patched Postgres/Tokio/Rustls and Go standard-library versions could
-replace vulnerable locked components; older toolchains are not a supported
-beta boundary.
+The security baseline requires Rust 1.89 or newer and Go 1.26.5 or newer. The
+July 2026 gate upgrade initially raised the Rust MSRV to 1.86 for patched
+Postgres/Tokio/Rustls and Go standard-library versions, and the November 2026
+remediation (`#166`) raised the supported Rust MSRV to 1.89 so patched
+`rusqlite` / bundled SQLite (`RUSTSEC-2026-0459`, CVE-2026-119375, requiring
+Rust 1.89) and `ctutils` (`RUSTSEC-2026-0385`, requiring Rust 1.87) could
+replace vulnerable locked components without suppressing security gates; older
+toolchains are not a supported beta boundary.
 
 The exact-candidate evidence workflow embeds all three SBOMs, the license
 verdict, and the signed package provenance bundle. Vulnerability, code, secret,

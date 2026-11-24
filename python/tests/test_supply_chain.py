@@ -185,6 +185,42 @@ class SupplyChainTests(unittest.TestCase):
             )
         )
 
+    def test_declared_rust_msrv_is_consistent_across_build_and_release_surfaces(self) -> None:
+        cargo_toml = tomllib.loads((REPO_ROOT / "Cargo.toml").read_text(encoding="utf-8"))
+        msrv = cargo_toml["workspace"]["package"]["rust-version"]
+        msrv_patch = f"{msrv}.0"
+
+        dockerfile = (REPO_ROOT / "Dockerfile").read_text(encoding="utf-8")
+        self.assertIn(f"FROM rust:{msrv}-bookworm@sha256:", dockerfile)
+
+        readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn(f"Rust {msrv}+", readme)
+
+        security_doc = (REPO_ROOT / "docs" / "SUPPLY_CHAIN_SECURITY.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(f"requires Rust {msrv} or newer", security_doc)
+
+        ci_workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(f'toolchain: ["{msrv_patch}", stable]', ci_workflow)
+        self.assertIn(f"cargo +{msrv_patch} check --workspace --all-targets --locked", ci_workflow)
+
+        for workflow_name in (
+            "pages.yml",
+            "pilot-extended-operability.yml",
+            "supply-chain.yml",
+        ):
+            workflow = (
+                REPO_ROOT / ".github" / "workflows" / workflow_name
+            ).read_text(encoding="utf-8")
+            self.assertIn(
+                f"rustup toolchain install {msrv_patch}",
+                workflow,
+                workflow_name,
+            )
+
     def test_mutable_action_image_and_write_all_are_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

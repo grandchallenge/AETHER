@@ -77,8 +77,8 @@ jobs:
       - name: Install Rust toolchain
         shell: pwsh
         run: |
-          rustup toolchain install 1.86.0 --profile minimal
-          rustup default 1.86.0
+          rustup toolchain install 1.89.0 --profile minimal
+          rustup default 1.89.0
 
       - name: Build package once
         shell: pwsh
@@ -131,10 +131,9 @@ jobs:
       - name: Install Rust and pinned scanners
         run: |
           set -euo pipefail
-          rustup toolchain install 1.88.0 --profile minimal
-          rustup toolchain install 1.86.0 --profile minimal
-          rustup default 1.86.0
-          cargo +1.88.0 install cargo-audit --version "$CARGO_AUDIT_VERSION" --locked
+          rustup toolchain install 1.89.0 --profile minimal
+          rustup default 1.89.0
+          cargo +1.89.0 install cargo-audit --version "$CARGO_AUDIT_VERSION" --locked
           go install "golang.org/x/vuln/cmd/govulncheck@$GOVULNCHECK_VERSION"
           python -m pip install --disable-pip-version-check -r requirements-release.txt
 
