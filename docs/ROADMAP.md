@@ -430,7 +430,7 @@ See ADR 0033 and ADR 0034. Tranche 1 (PR #170) reused `HttpAuth::generation`
 for token, scope, token-default policy, and namespace membership across real
 worker barriers. Tranche 2 (`source_owner_transaction.rs`, strictly `#[cfg(test)]`)
 specifies and tests the authoritative namespace lifecycle contract, request-specific
-`bound_policy_context`, complete lock-order audit and two-phase reload migration
+`bound_policy_context`, complete lock-order audit and three-phase reload migration
 proof, canonical issuer-bound `RouteRealized` attempt identity, Mode A/B restart
 consumption ledger, dual-clock rollback/expiry, and cancellation/post-start
 linearization. Any future operative delta (O1 lifecycle/reload migration, O2

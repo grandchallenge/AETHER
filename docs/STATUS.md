@@ -862,5 +862,5 @@ and pure `RouteRealizedEvidence` alongside contract fixtures for
 hash-chained JSONL consumption ledger (Mode A ephemeral + Mode B durable restart),
 dual-clock rollback/expiry checks, cancellation vs. post-start completion
 linearization, and multi-threaded reload/lifecycle/worker stress. Production
-lifecycle APIs, two-phase reload lock migration, unified owner integration,
+lifecycle APIs, three-phase reload lock migration, unified owner integration,
 external signing/time trust, `#133`, and `E3B-A` activation remain withheld.

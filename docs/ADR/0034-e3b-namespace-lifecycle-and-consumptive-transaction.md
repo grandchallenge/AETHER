@@ -12,8 +12,8 @@ ADR 0033 (`crates/aether_http/src/source_owner_actual.rs`) replaced simulated au
 
 1. An explicit **authoritative namespace lifecycle contract** mapped against the real `NamespaceServiceDirectory`.
 2. **Request-specific effective policy binding** (`bound_policy_context(&principal, requested)`) across validated auth reload narrowing/widening and payload/policy substitution.
-3. A complete empirical **lock-order audit and deadlock-free two-phase reload migration proof** across all synchronization primitives in `HttpKernelState`.
-4. A **non-replayable, issuer-bound `RouteRealized` attempt identity** with a non-serializable capability boundary, **two-mode process crash/restart policy** (ephemeral vs. authenticated hash-chained durable consumption ledger), **dual-clock expiry and rollback rejection**, and **cancellation vs. post-start completion linearization**.
+3. A complete empirical **lock-order audit and deadlock-free three-phase reload migration proof** across all synchronization primitives in `HttpKernelState`.
+4. A **non-replayable, issuer-bound `RouteRealized` attempt identity** with a non-serializable capability boundary, **two-mode process crash/restart policy** (ephemeral vs. tamper-evident hash-chained durable consumption ledger), **dual-clock expiry and rollback rejection**, and **cancellation vs. post-start completion linearization**.
 5. An **exact-delta operative classification matrix** separating this `NO_ARTICLE_IX_AUTHORITY_CHANGE` preparation tranche from future Article IX / X / XI operative gates.
 
 Everything implemented in `crates/aether_http/src/source_owner_transaction.rs` is compiled strictly under `#[cfg(test)]`. Production `HttpKernelState`, `HttpAuth`, `NamespaceServiceDirectory`, `BoundedBlockingExecutor`, `C2ShadowController`, `FabricRoutingMode::ReferenceOnly`, `Cargo.toml`, and `Cargo.lock` are unchanged.
@@ -86,9 +86,10 @@ Audited directly against protected `main` (`bd799745`):
 | `rate_limiter.buckets: Mutex<...>` | `http.rs:271` | None (leaf) | No |
 | `namespace_admission: Mutex<HashMap<..., Arc<Semaphore>>>` | `http.rs:616` | None (leaf; clones `Arc<Semaphore>` before `try_acquire_owned`) | No |
 | `services.services: Mutex<HashMap<..., Arc<NamespaceServiceHandle>>>` | `http.rs:2053, 2087` | None (drops before `handle.state.lock()`) | No |
-| `handle.state: Mutex<NamespaceServiceState>` | `http.rs:2066` | Leaf mutex | **Yes**: held across lazy SQLite/Postgres open and synchronous `KernelService` work |
+| `handle.state: Mutex<NamespaceServiceState>` | `http.rs:2066` | `handle.state -> source_binding_preview.evidence (try_lock)` in `run_document` (`http.rs:2066 -> 2078 -> 3466 -> source_binding.rs:75`) | **Yes**: held across lazy SQLite/Postgres open and synchronous `KernelService` work |
+| `source_binding_preview.evidence: Mutex<VecDeque<SourceBoundObservation>>` | `source_binding.rs:59, 75, 88` | None (leaf; `try_lock` only) | No |
 | `audit.entries: Mutex<...>` | `http.rs:2263, 2274, 2304, 2317, 2330` | None (leaf) | No (file I/O runs on dedicated writer thread outside lock) |
-| `c2_shadow.issuer` / `c2_shadow.evidence` | `fabric_control_shadow.rs:156, 178, 192, 323` | Sequential only (`issuer` dropped before `evidence`); reads only atomic semaphore counts | No `.await` or I/O |
+| `c2_shadow.issuer` / `c2_shadow.evidence` | `fabric_control_shadow.rs:156, 178, 192, 323` | **`c2_shadow.issuer -> c2_shadow.evidence`** (blocking nested edge: `observe_request` holds `issuer` from line `323` across `self.retain(base)` -> `evidence.lock()` at line `156`; acyclic because `evidence` is a leaf; Gate `O2` must preserve this order or drop `issuer` before calling `retain()`) | No `.await` or I/O (reads only atomic semaphore counts) |
 | `blocking.admitted` / `blocking.workers` (`tokio::sync::Semaphore`) | `BoundedBlockingExecutor::run` | Async acquire `admitted -> workers`, then `spawn_blocking` | Held across `spawn_blocking` execution (not sync mutexes) |
 
 ### 4.2 Why naive insertion of a source-control owner deadlocks
@@ -116,7 +117,7 @@ Similarly, acquiring `handle.state.lock()` (blocking) inside `SourceControlOwner
    - No mutex is ever acquired while holding `DurableLedgerWriter`.
    - Neither `SourceControlOwner`, `status`, `rate_limiter`, `namespace_admission`, `services.services`, `handle.state`, nor `audit.entries` is ever held across `.await`.
    - `SourceControlOwner` never performs file/network/DB I/O, `sync_all()`, lazy namespace initialization, selector/audit I/O, or semantic work.
-   - In the non-operative `#[cfg(test)]` harness (where production `http.rs` is untouched and `auth` remains external to the test owner), the harness accesses external `state.auth`, `state.services.services`, and `handle.state` strictly via non-blocking `try_lock()`, so it cannot participate in any blocking cycle with unmodified `reload_auth_from_config` (`status -> auth`).
+   - In the non-operative `#[cfg(test)]` harness (where production `http.rs` is untouched and `auth` remains external to the test owner), `prepare()` checks owner identity before calling `state.auth.lock()` strictly **outside** `OwnerCore` (dropping it before locking `OwnerCore`), and while holding `OwnerCore`, the harness accesses external `state.auth`, `state.services.services`, and `handle.state` strictly via non-blocking `try_lock()`, so it cannot participate in any blocking cycle with unmodified `reload_auth_from_config` (`status -> auth`).
 
 ---
 
@@ -139,7 +140,7 @@ Every prepared attempt derives a canonical SHA-256 `AttemptBindingDigest` (`gcl-
 | Mode | Ledger storage | Behavior on restart (`new ProcessIncarnation`) |
 | --- | --- | --- |
 | **Mode A (Ephemeral)** | In-memory map only | Fresh random 128-bit `process_incarnation_id` is generated at startup; every pre-restart attempt is rejected fail-closed (`IncarnationMismatch`). Zero-resetting epochs to replay pre-crash attempts is forbidden. |
-| **Mode B (Durable hash-chained JSONL)** | Append-only file on disk with `sync_all()` per transition; each entry commits `seq`, `prev_hash`, `incarnation_id`, `attempt_digest`, `event`, `wall_ms`, and `entry_hash = sha256(canonical_json(payload))` | Startup verifies the complete hash chain from genesis (`"0".repeat(64)`), strict sequential `seq`, and wall-clock high-water mark (`max_wall_ms`). Any byte tamper, broken chain, or torn/truncated record fails closed (`LedgerIntegrityFailed`). Verified restart permanently rejects replays of prior `ConsumedStarted`/`Completed` (`AttemptAlreadyConsumed`), `Cancelled` (`AttemptCancelled`), and `Denied` (`AttemptAlreadyTerminal`) attempts, rejects unstarted pre-restart attempts (`IncarnationMismatch`), enforces persisted `high_water_wall_ms` against post-restart clock rollback, and permits fresh post-restart attempts under the new `ProcessIncarnation`. |
+| **Mode B (Durable hash-chained JSONL)** | Append-only file on disk with `sync_all()` per transition; each entry commits `seq`, `prev_hash`, `incarnation_id`, `attempt_digest`, `event`, `wall_ms`, and `entry_hash = sha256(canonical_json(payload))` | Startup verifies trailing-`'\n'` termination (rejecting even 1-byte torn tails), the complete hash chain from genesis (`"0".repeat(64)`), strict sequential `seq`, and wall-clock high-water mark (`max_wall_ms`); any byte tamper, broken chain, or torn/truncated record fails closed at startup (`LedgerError::IntegrityFailed`). Mid-run appends verify the full on-disk file SHA-256 digest before appending so truncation or same-length byte tampering fails closed (`ConsumeVerdict::LedgerIntegrityFailed`) without issuing a token. Verified restart permanently rejects replays of prior `ConsumedStarted`/`Completed` (`AttemptAlreadyConsumed`), `Cancelled` (`AttemptCancelled`), and `Denied` (`AttemptAlreadyTerminal`) attempts, rejects unstarted pre-restart attempts (`IncarnationMismatch`), enforces persisted `high_water_wall_ms` against post-restart clock rollback, and permits fresh post-restart attempts under the new `ProcessIncarnation`. |
 
 *Scope note:* The Mode B SHA-256 hash chain detects accidental truncation, torn tails, and unauthenticated file tampering without adding external crates. A production deployment facing an adversary with write access to the ledger filesystem additionally requires an external MAC/signature key or authenticated journal boundary (deferred to future operative gate `O2`).
 
@@ -149,10 +150,9 @@ Start validation checks **both** clocks:
 
 1. **Wall clock (`wall_ms`):**
    - Rejects `wall_ms < high_water_wall_ms` fail-closed already at `prepare` (`PrepareError::ClockRollback`, including after a Mode B restart with a regressed host clock) and rejects `wall_ms < issued_wall_ms` or `wall_ms < high_water_wall_ms` at `consume_start` (`ConsumeVerdict::ClockRollbackDenied`).
-   - Rejects `wall_ms >= expires_at_unix_ms` with `ClockExpired`.
-   - Passes `wall_ms` to real `EnvelopeControlRegistry::observe(&envelope_id, wall_ms)` and requires `ControlState::Active` at the exact issued `control_revision`.
+   - Passes `wall_ms` to real `EnvelopeControlRegistry::observe(&envelope_id, wall_ms)` before the local wall-expiry defense-in-depth check, requiring `ControlState::Active` at the exact issued `control_revision` and mapping `ControlState::Expired` (or `wall_ms >= expires_at_unix_ms`) to `ClockExpired`.
 2. **Monotonic clock (`elapsed_ms`):**
-   - Rejects `elapsed_ms >= ttl_ms` with `ClockExpired` even if the wall clock is frozen or held below `expires_at_unix_ms`.
+   - Derives `ttl_ms` directly from the issued C1 bundle (`expires_at_unix_ms - issued_wall_ms`) and rejects `elapsed_ms >= ttl_ms` with `ClockExpired` even if the wall clock is frozen or held below `expires_at_unix_ms`.
 
 *Scope note:* Local monotonic elapsed bounds plus persisted wall high-water marks detect local wall-clock freezes and regressions, but do not by themselves establish a cross-node cryptographic time authority.
 
@@ -168,7 +168,7 @@ Start validation checks **both** clocks:
 | Delta | Scope | Classification | Status in this PR |
 | --- | --- | --- | --- |
 | **This PR (`#148` Tranche 2)** | ADR 0034 + `#[cfg(test)]` `source_owner_transaction.rs` + docs/receipt only; zero production code, routing, API, journal, or dependency changes | **`NO_ARTICLE_IX_AUTHORITY_CHANGE`** (no Article X permission expansion, no Article XI amendment) | Implemented & verified |
-| **Future Gate O1** | Production `AuthoritativeNamespaceLifecycle` API + two-phase lock-free-I/O `reload_auth_from_config` refactor (default-OFF, `ReferenceOnly` unchanged) | Requires fresh exact-source Article IX/X check (touches production `HttpKernelState` lock/lifecycle code, still no FABRIC dispatch) | **NOT implemented / NOT approved** |
+| **Future Gate O1** | Production `AuthoritativeNamespaceLifecycle` API + three-phase lock-free-I/O `reload_auth_from_config` refactor (default-OFF, `ReferenceOnly` unchanged) | Requires fresh exact-source Article IX/X check (touches production `HttpKernelState` lock/lifecycle code, still no FABRIC dispatch) | **NOT implemented / NOT approved** |
 | **Future Gate O2** | Production default-OFF unified `SourceControlOwner` + authenticated durable attempt ledger + production key/clock trust profile | Requires fresh exact-source Article IX/X/XI classification and security/clock-trust sign-off | **NOT implemented / NOT approved** |
 | **Future Gate O3 (`E3B-A`)** | Live FABRIC-directed routing cutover + `#133` practical workload acceptance | Reserved control-plane / Human Steward disposition + Article XI where authority boundary shifts | **Explicitly withheld / unapproved** |
 

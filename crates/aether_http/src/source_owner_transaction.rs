@@ -23,7 +23,6 @@ use aether_fabric::{
     PlacementDecision, RealizationRequest, RouteRealizedEvidence, SelectorImplementationIdentity,
     AETHER_LOCAL_BLOCKING_POOL_ID,
 };
-use std::io::{BufRead, BufReader};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Weak;
 use std::time::{Duration, Instant};
@@ -187,8 +186,17 @@ impl AuthoritativeNamespaceLifecycle {
         }
     }
 
-    fn clear(&mut self, ns: &NamespaceId) {
+    /// Test-only fault injection removing a non-retired lifecycle record to exercise
+    /// `NamespaceLifecycleMissing`; never allowed to erase terminal `Retired`.
+    fn fault_inject_clear_non_retired(&mut self, ns: &NamespaceId) -> Result<(), &'static str> {
+        if matches!(
+            self.states.get(ns),
+            Some(NamespaceLifecycleState::Retired { .. })
+        ) {
+            return Err("retired namespace is terminal and cannot be cleared");
+        }
         self.states.remove(ns);
+        Ok(())
     }
 
     fn active_revision(&self, ns: &NamespaceId) -> Result<u64, ConsumeVerdict> {
@@ -368,7 +376,7 @@ struct DurableLedgerWriter {
     next_seq: u64,
     tail_hash: String,
     high_water_wall_ms: u64,
-    expected_file_len: u64,
+    expected_file_sha256: String,
 }
 
 impl DurableLedgerWriter {
@@ -388,58 +396,64 @@ impl DurableLedgerWriter {
                     next_seq,
                     tail_hash,
                     high_water_wall_ms,
-                    expected_file_len: 0,
+                    expected_file_sha256: sha256_hex(b""),
                 },
                 attempts,
                 high_water_wall_ms,
             ));
         }
 
-        let file = fs::File::open(&path).map_err(|_| LedgerError::IoFailed)?;
-        let expected_file_len = file.metadata().map_err(|_| LedgerError::IoFailed)?.len();
-        let reader = BufReader::new(file);
-        for line_result in reader.lines() {
-            let line = line_result.map_err(|_| LedgerError::IntegrityFailed("unreadable line"))?;
-            if line.is_empty() {
-                return Err(LedgerError::IntegrityFailed("empty ledger line"));
-            }
-            let record: LedgerRecord = serde_json::from_str(&line)
-                .map_err(|_| LedgerError::IntegrityFailed("malformed json record"))?;
-            if record.payload.seq != next_seq {
-                return Err(LedgerError::IntegrityFailed("non-monotonic sequence"));
-            }
-            if record.payload.prev_hash != tail_hash {
-                return Err(LedgerError::IntegrityFailed("broken prev_hash link"));
-            }
-            let recomputed = canonical_digest(&record.payload)
-                .ok_or(LedgerError::IntegrityFailed("canonicalization failed"))?;
-            if recomputed != record.entry_hash {
-                return Err(LedgerError::IntegrityFailed("entry_hash mismatch"));
-            }
-            if record.payload.wall_ms < high_water_wall_ms {
-                return Err(LedgerError::IntegrityFailed("persisted wall_ms regressed"));
-            }
+        let raw_bytes = fs::read(&path).map_err(|_| LedgerError::IoFailed)?;
+        let expected_file_sha256 = sha256_hex(&raw_bytes);
+        if !raw_bytes.is_empty() && !raw_bytes.ends_with(b"\n") {
+            return Err(LedgerError::IntegrityFailed("unterminated trailing record"));
+        }
+        let text = std::str::from_utf8(&raw_bytes)
+            .map_err(|_| LedgerError::IntegrityFailed("non-utf8 ledger bytes"))?;
+        let trimmed = text.strip_suffix('\n').unwrap_or(text);
+        if !raw_bytes.is_empty() {
+            for line in trimmed.split('\n') {
+                if line.is_empty() {
+                    return Err(LedgerError::IntegrityFailed("empty ledger line"));
+                }
+                let record: LedgerRecord = serde_json::from_str(line)
+                    .map_err(|_| LedgerError::IntegrityFailed("malformed json record"))?;
+                if record.payload.seq != next_seq {
+                    return Err(LedgerError::IntegrityFailed("non-monotonic sequence"));
+                }
+                if record.payload.prev_hash != tail_hash {
+                    return Err(LedgerError::IntegrityFailed("broken prev_hash link"));
+                }
+                let recomputed = canonical_digest(&record.payload)
+                    .ok_or(LedgerError::IntegrityFailed("canonicalization failed"))?;
+                if recomputed != record.entry_hash {
+                    return Err(LedgerError::IntegrityFailed("entry_hash mismatch"));
+                }
+                if record.payload.wall_ms < high_water_wall_ms {
+                    return Err(LedgerError::IntegrityFailed("persisted wall_ms regressed"));
+                }
 
-            let next_status = match (
-                attempts.get(&record.payload.attempt_digest),
-                record.payload.event,
-            ) {
-                (None, LedgerEvent::ConsumedStarted) => AttemptStatus::ConsumedStarted,
-                (None, LedgerEvent::Cancelled) => AttemptStatus::Cancelled,
-                (None, LedgerEvent::Denied) => AttemptStatus::Denied,
-                (Some(AttemptStatus::ConsumedStarted), LedgerEvent::Completed) => {
-                    AttemptStatus::Completed
-                }
-                _ => {
-                    return Err(LedgerError::IntegrityFailed(
-                        "illegal attempt state transition in ledger",
-                    ))
-                }
-            };
-            attempts.insert(record.payload.attempt_digest, next_status);
-            high_water_wall_ms = record.payload.wall_ms;
-            tail_hash = record.entry_hash;
-            next_seq = next_seq.saturating_add(1);
+                let next_status = match (
+                    attempts.get(&record.payload.attempt_digest),
+                    record.payload.event,
+                ) {
+                    (None, LedgerEvent::ConsumedStarted) => AttemptStatus::ConsumedStarted,
+                    (None, LedgerEvent::Cancelled) => AttemptStatus::Cancelled,
+                    (None, LedgerEvent::Denied) => AttemptStatus::Denied,
+                    (Some(AttemptStatus::ConsumedStarted), LedgerEvent::Completed) => {
+                        AttemptStatus::Completed
+                    }
+                    _ => {
+                        return Err(LedgerError::IntegrityFailed(
+                            "illegal attempt state transition in ledger",
+                        ))
+                    }
+                };
+                attempts.insert(record.payload.attempt_digest, next_status);
+                high_water_wall_ms = record.payload.wall_ms;
+                tail_hash = record.entry_hash;
+                next_seq = next_seq.saturating_add(1);
+            }
         }
 
         Ok((
@@ -448,7 +462,7 @@ impl DurableLedgerWriter {
                 next_seq,
                 tail_hash,
                 high_water_wall_ms,
-                expected_file_len,
+                expected_file_sha256,
             },
             attempts,
             high_water_wall_ms,
@@ -462,14 +476,12 @@ impl DurableLedgerWriter {
         event: LedgerEvent,
         wall_ms: u64,
     ) -> Result<(), LedgerError> {
-        let current_len = if self.path.exists() {
-            fs::metadata(&self.path)
-                .map_err(|_| LedgerError::IoFailed)?
-                .len()
+        let mut current_bytes = if self.path.exists() {
+            fs::read(&self.path).map_err(|_| LedgerError::IoFailed)?
         } else {
-            0
+            Vec::new()
         };
-        if current_len != self.expected_file_len {
+        if sha256_hex(&current_bytes) != self.expected_file_sha256 {
             return Err(LedgerError::IntegrityFailed(
                 "external ledger modification detected",
             ));
@@ -502,7 +514,8 @@ impl DurableLedgerWriter {
             .map_err(|_| LedgerError::IoFailed)?;
         file.sync_all().map_err(|_| LedgerError::IoFailed)?;
 
-        self.expected_file_len = self.expected_file_len.saturating_add(encoded.len() as u64);
+        current_bytes.extend_from_slice(encoded.as_bytes());
+        self.expected_file_sha256 = sha256_hex(&current_bytes);
         self.tail_hash = entry_hash;
         self.high_water_wall_ms = persisted_wall_ms;
         self.next_seq = self.next_seq.saturating_add(1);
@@ -512,6 +525,7 @@ impl DurableLedgerWriter {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum PrepareError {
+    OwnerMismatch,
     SourceDenied,
     PolicyEscalation,
     RateLimited,
@@ -691,8 +705,25 @@ impl NonOperativeSourceOwner {
         self.core.lock().unwrap().lifecycle.retire(ns)
     }
 
-    fn clear_namespace_lifecycle(&self, ns: &NamespaceId) {
-        self.core.lock().unwrap().lifecycle.clear(ns);
+    fn fault_inject_clear_non_retired_namespace(
+        &self,
+        ns: &NamespaceId,
+    ) -> Result<(), &'static str> {
+        self.core
+            .lock()
+            .unwrap()
+            .lifecycle
+            .fault_inject_clear_non_retired(ns)
+    }
+
+    fn observe_envelope_state(&self, envelope_id: &str) -> ControlState {
+        let core = self.core.lock().unwrap();
+        let (wall_ms, _) = core.clock.read();
+        core.issuer
+            .registry()
+            .observe(envelope_id, wall_ms)
+            .unwrap()
+            .observed_state
     }
 
     fn revoke_envelope(&self, envelope_id: &str, reason: &str) {
@@ -721,8 +752,22 @@ impl NonOperativeSourceOwner {
         state: &HttpKernelState,
         headers: &HeaderMap,
         payload: RunDocumentRequest,
-        ttl_ms: u64,
     ) -> Result<(PreparedAttempt, tokio::sync::OwnedSemaphorePermit), PrepareError> {
+        // Verify exact owner identity BEFORE touching external state or consuming
+        // rate-limit / namespace / C1 capacity.
+        {
+            let core = self
+                .core
+                .lock()
+                .map_err(|_| PrepareError::OwnerUnavailable)?;
+            if !Weak::ptr_eq(&core.auth_owner, &Arc::downgrade(&state.auth))
+                || !Weak::ptr_eq(&core.workers, &Arc::downgrade(&state.blocking.workers))
+            {
+                return Err(PrepareError::OwnerMismatch);
+            }
+        }
+
+        // Acquire external `state.auth` strictly OUTSIDE `OwnerCore` and drop before re-entering.
         let grant = {
             let auth = state
                 .auth
@@ -764,8 +809,10 @@ impl NonOperativeSourceOwner {
         core.high_water_wall_ms = issued_wall_ms;
 
         let profile = OperationClass::RunDocument.profile();
-        let payload_value = serde_json::to_value(&payload).expect("serialize RunDocumentRequest");
-        let payload_digest = canonical_digest(&payload_value).expect("payload digest");
+        let payload_value =
+            serde_json::to_value(&payload).map_err(|_| PrepareError::OwnerUnavailable)?;
+        let payload_digest =
+            canonical_digest(&payload_value).ok_or(PrepareError::OwnerUnavailable)?;
         let input = OperationAdmissionInput {
             request_id: format!("tx-148-{:032x}", rand::random::<u128>()),
             correlation_id: format!("tx-148-corr-{:032x}", rand::random::<u128>()),
@@ -787,12 +834,25 @@ impl NonOperativeSourceOwner {
             decided_at_unix_ms: issued_wall_ms,
             source_authority_ref: "test-only-no-dispatch-148-tranche2".into(),
         };
-        let bundle = core.issuer.issue_control_bundle(&input).unwrap();
-        core.issuer.verify_bundle(&bundle).unwrap();
-        assert_eq!(
-            bundle.admission.effective_policy_digest,
-            grant.effective_policy_digest
-        );
+        let bundle = core
+            .issuer
+            .issue_control_bundle(&input)
+            .map_err(|_| PrepareError::OwnerUnavailable)?;
+        core.issuer
+            .verify_bundle(&bundle)
+            .map_err(|_| PrepareError::OwnerUnavailable)?;
+        if bundle.admission.effective_policy_digest != grant.effective_policy_digest {
+            return Err(PrepareError::OwnerUnavailable);
+        }
+        // Derive monotonic TTL directly from the C1 bundle expiry so monotonic
+        // and wall expiry can never diverge.
+        let bound_ttl_ms = bundle
+            .authorization
+            .expires_at_unix_ms
+            .saturating_sub(issued_wall_ms);
+        if bound_ttl_ms == 0 {
+            return Err(PrepareError::OwnerUnavailable);
+        }
         let selector = SelectorImplementationIdentity {
             selector_id: "source-148-tranche2-test".into(),
             source_commit: "test-only".into(),
@@ -807,11 +867,15 @@ impl NonOperativeSourceOwner {
                 issued_wall_ms,
                 &selector,
             )
-            .unwrap();
-        assert!(comparison.permitted_set_equal);
+            .map_err(|_| PrepareError::OwnerUnavailable)?;
+        if !comparison.permitted_set_equal {
+            return Err(PrepareError::OwnerUnavailable);
+        }
         let PlacementDecision::Selected(selected) = comparison.fabric_decision else {
-            panic!("fixture requires one admissible local pool");
+            return Err(PrepareError::OwnerUnavailable);
         };
+        let occurred_at =
+            unix_ms_to_rfc3339(issued_wall_ms).map_err(|_| PrepareError::OwnerUnavailable)?;
         let route = realize_selected_placement(
             &bundle.envelope_bytes,
             &bundle.placement_constraint,
@@ -821,12 +885,13 @@ impl NonOperativeSourceOwner {
             &RealizationRequest {
                 realization_request_id: format!("tx-realize:{}", input.request_id),
                 realization_time_unix_ms: issued_wall_ms,
-                occurred_at: unix_ms_to_rfc3339(issued_wall_ms).unwrap(),
+                occurred_at,
             },
         )
-        .unwrap();
-        assert_eq!(route.authority_effect, "none");
-        assert_eq!(route.endpoint_id, AETHER_LOCAL_BLOCKING_POOL_ID);
+        .map_err(|_| PrepareError::OwnerUnavailable)?;
+        if route.authority_effect != "none" || route.endpoint_id != AETHER_LOCAL_BLOCKING_POOL_ID {
+            return Err(PrepareError::OwnerUnavailable);
+        }
 
         let binding = AttemptBinding {
             process_incarnation_id: core.incarnation_id.clone(),
@@ -865,7 +930,7 @@ impl NonOperativeSourceOwner {
                 payload_digest,
                 route,
                 issued_monotonic_ms: monotonic_ms,
-                ttl_ms,
+                ttl_ms: bound_ttl_ms,
             },
             ns_permit,
         ))
@@ -935,14 +1000,15 @@ impl NonOperativeSourceOwner {
             Step1Outcome::RejectedNoWrite(verdict) => Err(verdict),
             Step1Outcome::DeniedRecorded { verdict, wall_ms } => {
                 if let Some(writer) = &self.ledger_writer {
-                    if let Ok(mut ledger) = writer.lock() {
-                        let _ = ledger.append(
+                    let mut ledger = writer.lock().map_err(|_| ConsumeVerdict::Unavailable)?;
+                    ledger
+                        .append(
                             &incarnation_id,
                             &prepared.attempt_digest,
                             LedgerEvent::Denied,
                             wall_ms,
-                        );
-                    }
+                        )
+                        .map_err(|_| ConsumeVerdict::LedgerIntegrityFailed)?;
                 }
                 Err(verdict)
             }
@@ -1021,6 +1087,7 @@ impl NonOperativeSourceOwner {
         let ledger_wall_ms = wall_ms.max(core.high_water_wall_ms);
 
         let deny = |core: &mut OwnerCore, verdict: ConsumeVerdict| -> Step1Outcome {
+            core.high_water_wall_ms = ledger_wall_ms;
             core.attempts
                 .insert(prepared.attempt_digest.clone(), AttemptStatus::Denied);
             Step1Outcome::DeniedRecorded {
@@ -1089,7 +1156,7 @@ impl NonOperativeSourceOwner {
             Err(verdict) => return deny(core, verdict),
         }
 
-        // 6. Dual-clock rollback and expiry validation.
+        // 6. Dual-clock rollback and monotonic expiry validation.
         if wall_ms < prepared.binding.issued_wall_ms
             || wall_ms < core.high_water_wall_ms
             || monotonic_ms < prepared.issued_monotonic_ms
@@ -1097,13 +1164,13 @@ impl NonOperativeSourceOwner {
             return deny(core, ConsumeVerdict::ClockRollbackDenied);
         }
         core.high_water_wall_ms = wall_ms;
-        if monotonic_ms.saturating_sub(prepared.issued_monotonic_ms) >= prepared.ttl_ms
-            || wall_ms >= prepared.binding.expires_at_unix_ms
-        {
+        if monotonic_ms.saturating_sub(prepared.issued_monotonic_ms) >= prepared.ttl_ms {
             return deny(core, ConsumeVerdict::ClockExpired);
         }
 
-        // 7. Revalidate REAL C1 `EnvelopeControlRegistry` state and exact revision.
+        // 7. Revalidate REAL C1 `EnvelopeControlRegistry` state and exact revision
+        //    (runs BEFORE local wall-expiry defense-in-depth so real C1 `ControlState::Expired`
+        //    is exercised directly on wall expiry).
         let Ok(witness) = core
             .issuer
             .registry()
@@ -1111,7 +1178,9 @@ impl NonOperativeSourceOwner {
         else {
             return deny(core, ConsumeVerdict::ControlInvalid);
         };
-        if witness.observed_state == ControlState::Expired {
+        if witness.observed_state == ControlState::Expired
+            || wall_ms >= prepared.binding.expires_at_unix_ms
+        {
             return deny(core, ConsumeVerdict::ClockExpired);
         }
         if witness.observed_state != ControlState::Active
@@ -1282,7 +1351,6 @@ async fn run_at_real_worker_barrier<M>(
     fixture: &mut TransactionFixture,
     owner: &Arc<NonOperativeSourceOwner>,
     payload: RunDocumentRequest,
-    ttl_ms: u64,
     queued: bool,
     mutate: M,
 ) -> (Result<(), ConsumeVerdict>, usize)
@@ -1291,7 +1359,7 @@ where
 {
     let state = fixture.state.clone();
     let (prepared, ns_permit) = owner
-        .prepare(&state, &fixture.headers, payload.clone(), ttl_ms)
+        .prepare(&state, &fixture.headers, payload.clone())
         .unwrap();
     let prepared = Arc::new(prepared);
     let held_worker = Arc::clone(&state.blocking.workers)
@@ -1387,7 +1455,7 @@ async fn request_specific_policy_narrowing_widening_and_payload_substitution() {
             visibilities: vec!["public".into()],
         }));
         assert!(matches!(
-            owner.prepare(&fixture.state, &fixture.headers, escalated, 30_000),
+            owner.prepare(&fixture.state, &fixture.headers, escalated),
             Err(PrepareError::PolicyEscalation)
         ));
     }
@@ -1409,7 +1477,6 @@ async fn request_specific_policy_narrowing_widening_and_payload_substitution() {
             &mut fixture,
             &owner,
             sample_request(Some(narrowed_policy())),
-            30_000,
             false,
             |_, _, _| {},
         )
@@ -1431,7 +1498,6 @@ async fn request_specific_policy_narrowing_widening_and_payload_substitution() {
             &mut fixture,
             &owner,
             sample_request(Some(narrowed_policy())),
-            30_000,
             queued,
             |f, _, _| {
                 f.reload(|c| {
@@ -1460,7 +1526,6 @@ async fn request_specific_policy_narrowing_widening_and_payload_substitution() {
             &mut fixture,
             &owner,
             sample_request(Some(narrowed_policy())),
-            30_000,
             false,
             |f, _, _| {
                 f.reload(|c| {
@@ -1487,7 +1552,6 @@ async fn request_specific_policy_narrowing_widening_and_payload_substitution() {
                 &fixture.state,
                 &fixture.headers,
                 sample_request(Some(narrowed_policy())),
-                30_000,
             )
             .unwrap();
         let substituted = sample_request(Some(PolicyContext {
@@ -1572,7 +1636,6 @@ async fn authoritative_namespace_lifecycle_and_real_directory_failure_at_both_ba
                 &mut fixture,
                 &owner,
                 sample_request(Some(narrowed_policy())),
-                30_000,
                 queued,
                 |f, o, _| match transition {
                     NsTransition::Drain => {
@@ -1584,12 +1647,13 @@ async fn authoritative_namespace_lifecycle_and_real_directory_failure_at_both_ba
                     NsTransition::Retire => {
                         o.retire_namespace(&ns).unwrap();
                         assert!(o.activate_namespace(&ns).is_err());
+                        assert!(o.fault_inject_clear_non_retired_namespace(&ns).is_err());
                     }
                     NsTransition::RotateRevision => {
                         o.activate_namespace(&ns).unwrap();
                     }
                     NsTransition::ClearLifecycle => {
-                        o.clear_namespace_lifecycle(&ns);
+                        o.fault_inject_clear_non_retired_namespace(&ns).unwrap();
                     }
                     NsTransition::FailRealDirectory => {
                         // Force a genuine SQLite initialization failure in the REAL
@@ -1612,22 +1676,12 @@ async fn authoritative_namespace_lifecycle_and_real_directory_failure_at_both_ba
     let owner =
         NonOperativeSourceOwner::new_ephemeral(&fixture.state, 30_000, ClockSource::system());
     assert!(matches!(
-        owner.prepare(
-            &fixture.state,
-            &fixture.headers,
-            sample_request(None),
-            30_000,
-        ),
+        owner.prepare(&fixture.state, &fixture.headers, sample_request(None)),
         Err(PrepareError::NamespaceLifecycleMissing)
     ));
     owner.register_uninitialized_namespace(&ns);
     assert!(matches!(
-        owner.prepare(
-            &fixture.state,
-            &fixture.headers,
-            sample_request(None),
-            30_000,
-        ),
+        owner.prepare(&fixture.state, &fixture.headers, sample_request(None)),
         Err(PrepareError::NamespaceLifecycleMissing)
     ));
     assert_eq!(owner.activate_namespace(&ns), Ok(1));
@@ -1648,6 +1702,17 @@ fn issuer_bound_attempt_identity_tamper_replay_and_concurrent_start_race() {
     );
     owner.activate_namespace(&NamespaceId::default()).unwrap();
 
+    // 0. Passing a foreign HttpKernelState to `prepare()` fails closed before touching
+    //    rate/namespace/C1 resources (cannot bypass real_state admission).
+    assert!(matches!(
+        owner.prepare(
+            &other_fixture.state,
+            &other_fixture.headers,
+            sample_request(Some(narrowed_policy())),
+        ),
+        Err(PrepareError::OwnerMismatch)
+    ));
+
     // 1. Tampering any RouteRealized field or using a foreign HttpKernelState denies.
     for tamper in [
         "mechanical_attempt_id",
@@ -1662,7 +1727,6 @@ fn issuer_bound_attempt_identity_tamper_replay_and_concurrent_start_race() {
                 &fixture.state,
                 &fixture.headers,
                 sample_request(Some(narrowed_policy())),
-                30_000,
             )
             .unwrap();
         let mut route = prepared.route.clone();
@@ -1713,7 +1777,6 @@ fn issuer_bound_attempt_identity_tamper_replay_and_concurrent_start_race() {
             &fixture.state,
             &fixture.headers,
             sample_request(Some(narrowed_policy())),
-            30_000,
         )
         .unwrap();
     let prepared = Arc::new(prepared);
@@ -1777,12 +1840,7 @@ fn process_crash_restart_mode_a_ephemeral_and_mode_b_durable_hash_chained_ledger
             NonOperativeSourceOwner::new_ephemeral(&fixture.state, 30_000, ClockSource::system());
         owner_before.activate_namespace(&ns).unwrap();
         let (pre_restart, _p) = owner_before
-            .prepare(
-                &fixture.state,
-                &fixture.headers,
-                sample_request(None),
-                30_000,
-            )
+            .prepare(&fixture.state, &fixture.headers, sample_request(None))
             .unwrap();
 
         let owner_after =
@@ -1802,12 +1860,7 @@ fn process_crash_restart_mode_a_ephemeral_and_mode_b_durable_hash_chained_ledger
             Some(ConsumeVerdict::IncarnationMismatch)
         );
         let (fresh, _p2) = owner_after
-            .prepare(
-                &fixture.state,
-                &fixture.headers,
-                sample_request(None),
-                30_000,
-            )
+            .prepare(&fixture.state, &fixture.headers, sample_request(None))
             .unwrap();
         let token = owner_after
             .consume_start(
@@ -1835,12 +1888,7 @@ fn process_crash_restart_mode_a_ephemeral_and_mode_b_durable_hash_chained_ledger
 
     // 1. Consumed & completed before restart.
     let (consumed_attempt, p1) = owner_before
-        .prepare(
-            &fixture.state,
-            &fixture.headers,
-            sample_request(None),
-            30_000,
-        )
+        .prepare(&fixture.state, &fixture.headers, sample_request(None))
         .unwrap();
     clock_before.advance_wall_ms(50);
     clock_before.advance_monotonic_ms(50);
@@ -1858,12 +1906,7 @@ fn process_crash_restart_mode_a_ephemeral_and_mode_b_durable_hash_chained_ledger
 
     // 2. Cancelled before restart.
     let (cancelled_attempt, p2) = owner_before
-        .prepare(
-            &fixture.state,
-            &fixture.headers,
-            sample_request(None),
-            30_000,
-        )
+        .prepare(&fixture.state, &fixture.headers, sample_request(None))
         .unwrap();
     clock_before.advance_wall_ms(50);
     owner_before
@@ -1873,12 +1916,7 @@ fn process_crash_restart_mode_a_ephemeral_and_mode_b_durable_hash_chained_ledger
 
     // 3. Denied before restart (expired).
     let (denied_attempt, p3) = owner_before
-        .prepare(
-            &fixture.state,
-            &fixture.headers,
-            sample_request(None),
-            30_000,
-        )
+        .prepare(&fixture.state, &fixture.headers, sample_request(None))
         .unwrap();
     clock_before.advance_wall_ms(40_000);
     clock_before.advance_monotonic_ms(40_000);
@@ -1898,12 +1936,7 @@ fn process_crash_restart_mode_a_ephemeral_and_mode_b_durable_hash_chained_ledger
 
     // 4. ConsumedStarted in-flight at crash (durable flush succeeded, never reached Completed).
     let (in_flight_attempt, p_inflight) = owner_before
-        .prepare(
-            &fixture.state,
-            &fixture.headers,
-            sample_request(None),
-            30_000,
-        )
+        .prepare(&fixture.state, &fixture.headers, sample_request(None))
         .unwrap();
     let in_flight_token = owner_before
         .consume_start(
@@ -1920,12 +1953,7 @@ fn process_crash_restart_mode_a_ephemeral_and_mode_b_durable_hash_chained_ledger
 
     // 5. Prepared but unstarted before crash.
     let (unstarted_attempt, p4) = owner_before
-        .prepare(
-            &fixture.state,
-            &fixture.headers,
-            sample_request(None),
-            30_000,
-        )
+        .prepare(&fixture.state, &fixture.headers, sample_request(None))
         .unwrap();
     drop(p4);
     let prior_incarnation = owner_before.incarnation_id();
@@ -2011,12 +2039,7 @@ fn process_crash_restart_mode_a_ephemeral_and_mode_b_durable_hash_chained_ledger
     // Restarted owner refuses even to prepare a new attempt while wall clock is behind
     // the persisted durable ledger high-water mark.
     assert!(matches!(
-        owner_after.prepare(
-            &fixture.state,
-            &fixture.headers,
-            sample_request(None),
-            30_000,
-        ),
+        owner_after.prepare(&fixture.state, &fixture.headers, sample_request(None)),
         Err(PrepareError::ClockRollback)
     ));
 
@@ -2024,12 +2047,7 @@ fn process_crash_restart_mode_a_ephemeral_and_mode_b_durable_hash_chained_ledger
     // between prepare and start still fails closed at consume_start.
     rolled_back_clock.set_wall_ms(base_wall + 50_000);
     let (rollback_attempt, p5) = owner_after
-        .prepare(
-            &fixture.state,
-            &fixture.headers,
-            sample_request(None),
-            30_000,
-        )
+        .prepare(&fixture.state, &fixture.headers, sample_request(None))
         .unwrap();
     rolled_back_clock.set_wall_ms(base_wall + 49_999);
     assert_eq!(
@@ -2049,12 +2067,7 @@ fn process_crash_restart_mode_a_ephemeral_and_mode_b_durable_hash_chained_ledger
     // Restoring wall clock past high-water mark allows a fresh post-restart attempt to succeed.
     rolled_back_clock.set_wall_ms(base_wall + 50_001);
     let (fresh_post_restart, p6) = owner_after
-        .prepare(
-            &fixture.state,
-            &fixture.headers,
-            sample_request(None),
-            30_000,
-        )
+        .prepare(&fixture.state, &fixture.headers, sample_request(None))
         .unwrap();
     let token = owner_after
         .consume_start(
@@ -2068,16 +2081,43 @@ fn process_crash_restart_mode_a_ephemeral_and_mode_b_durable_hash_chained_ledger
     owner_after.complete_started(token).unwrap();
     drop(p6);
 
-    // Mid-run external ledger truncation fails Step 2 closed without issuing a token.
-    let (mid_run_tamper_attempt, p7) = owner_after
-        .prepare(
-            &fixture.state,
-            &fixture.headers,
-            sample_request(None),
-            30_000,
-        )
+    // Mid-run same-length 1-byte tamper in the ledger fails Step 2 closed without issuing a token.
+    let (same_len_tamper_attempt, p_same_len) = owner_after
+        .prepare(&fixture.state, &fixture.headers, sample_request(None))
         .unwrap();
     let original_bytes = fs::read(&fixture.ledger_path).unwrap();
+    let mut flipped_bytes = original_bytes.clone();
+    assert!(!flipped_bytes.is_empty());
+    let flip_idx = flipped_bytes.len() / 2;
+    flipped_bytes[flip_idx] = if flipped_bytes[flip_idx] == b'a' {
+        b'b'
+    } else {
+        b'a'
+    };
+    assert_eq!(flipped_bytes.len(), original_bytes.len());
+    fs::write(&fixture.ledger_path, &flipped_bytes).unwrap();
+    assert_eq!(
+        owner_after
+            .consume_start(
+                &fixture.state,
+                &fixture.headers,
+                &same_len_tamper_attempt,
+                &same_len_tamper_attempt.route,
+                &same_len_tamper_attempt.payload,
+            )
+            .err(),
+        Some(ConsumeVerdict::LedgerIntegrityFailed)
+    );
+    assert_eq!(
+        owner_after.status_of(&same_len_tamper_attempt.attempt_digest),
+        Some(AttemptStatus::Denied)
+    );
+    drop(p_same_len);
+
+    // Mid-run external ledger truncation also fails Step 2 closed without issuing a token.
+    let (mid_run_tamper_attempt, p7) = owner_after
+        .prepare(&fixture.state, &fixture.headers, sample_request(None))
+        .unwrap();
     fs::write(
         &fixture.ledger_path,
         &original_bytes[..original_bytes.len().saturating_sub(12)],
@@ -2112,6 +2152,24 @@ fn process_crash_restart_mode_a_ephemeral_and_mode_b_durable_hash_chained_ledger
         Err(LedgerError::IntegrityFailed(_))
     ));
 
+    // Reopening a 1-byte torn tail (missing trailing '\n') fails closed rather than
+    // allowing a subsequent append to concatenate onto the last record.
+    fs::write(
+        &fixture.ledger_path,
+        &original_bytes[..original_bytes.len().saturating_sub(1)],
+    )
+    .unwrap();
+    assert_eq!(
+        NonOperativeSourceOwner::open_durable(
+            &fixture.state,
+            30_000,
+            ClockSource::system(),
+            fixture.ledger_path.clone(),
+        )
+        .err(),
+        Some(LedgerError::IntegrityFailed("unterminated trailing record"))
+    );
+
     // Reopening a byte-tampered ledger fails closed.
     let mut tampered = String::from_utf8(original_bytes).unwrap();
     assert!(tampered.contains("consumed_started"));
@@ -2144,12 +2202,7 @@ async fn dual_clock_rollback_monotonic_expiry_and_real_ttl_expiry() {
         );
         owner.activate_namespace(&ns).unwrap();
         let (prepared, _p) = owner
-            .prepare(
-                &fixture.state,
-                &fixture.headers,
-                sample_request(None),
-                30_000,
-            )
+            .prepare(&fixture.state, &fixture.headers, sample_request(None))
             .unwrap();
         clock.set_wall_ms(start_wall - 1);
         assert_eq!(
@@ -2176,8 +2229,9 @@ async fn dual_clock_rollback_monotonic_expiry_and_real_ttl_expiry() {
         );
         owner.activate_namespace(&ns).unwrap();
         let (prepared, _p) = owner
-            .prepare(&fixture.state, &fixture.headers, sample_request(None), 500)
+            .prepare(&fixture.state, &fixture.headers, sample_request(None))
             .unwrap();
+        assert_eq!(prepared.ttl_ms, 500);
         // Wall clock stays completely frozen while monotonic elapsed hits TTL.
         clock.advance_monotonic_ms(500);
         assert_eq!(
@@ -2194,7 +2248,8 @@ async fn dual_clock_rollback_monotonic_expiry_and_real_ttl_expiry() {
         );
     }
 
-    // 3. Wall clock advances past expires_at_unix_ms while monotonic stays < TTL.
+    // 3. Wall clock advances past expires_at_unix_ms while monotonic stays < TTL:
+    //    real C1 `EnvelopeControlRegistry` observes `ControlState::Expired`.
     {
         let clock = ControlledClock::new(start_wall);
         let owner = NonOperativeSourceOwner::new_ephemeral(
@@ -2204,9 +2259,13 @@ async fn dual_clock_rollback_monotonic_expiry_and_real_ttl_expiry() {
         );
         owner.activate_namespace(&ns).unwrap();
         let (prepared, _p) = owner
-            .prepare(&fixture.state, &fixture.headers, sample_request(None), 500)
+            .prepare(&fixture.state, &fixture.headers, sample_request(None))
             .unwrap();
         clock.advance_wall_ms(500);
+        assert_eq!(
+            owner.observe_envelope_state(&prepared.binding.envelope_id),
+            ControlState::Expired
+        );
         assert_eq!(
             owner
                 .consume_start(
@@ -2235,10 +2294,13 @@ async fn dual_clock_rollback_monotonic_expiry_and_real_ttl_expiry() {
             &mut live_fixture,
             &owner,
             sample_request(Some(narrowed_policy())),
-            ttl_ms,
             false,
-            |_, _, _| {
+            |_, o, prepared| {
                 std::thread::sleep(Duration::from_millis(ttl_ms + 30));
+                assert_eq!(
+                    o.observe_envelope_state(&prepared.binding.envelope_id),
+                    ControlState::Expired
+                );
             },
         )
         .await;
@@ -2268,7 +2330,6 @@ async fn cancellation_before_start_and_post_start_completion_linearization() {
             &mut fixture,
             &owner,
             sample_request(Some(narrowed_policy())),
-            30_000,
             queued,
             |_, o, prepared| {
                 o.cancel_before_start(prepared).unwrap();
@@ -2296,7 +2357,6 @@ async fn cancellation_before_start_and_post_start_completion_linearization() {
             &mut fixture,
             &owner,
             sample_request(Some(narrowed_policy())),
-            30_000,
             false,
             |_, o, prepared| {
                 if is_supersede {
@@ -2327,7 +2387,7 @@ async fn cancellation_before_start_and_post_start_completion_linearization() {
         owner.activate_namespace(&ns).unwrap();
         let payload = sample_request(Some(narrowed_policy()));
         let (prepared, ns_permit) = owner
-            .prepare(&fixture.state, &fixture.headers, payload.clone(), 30_000)
+            .prepare(&fixture.state, &fixture.headers, payload.clone())
             .unwrap();
         let prepared = Arc::new(prepared);
 
@@ -2422,12 +2482,7 @@ async fn lock_contention_poison_and_multithreaded_deadlock_freedom_stress() {
             NonOperativeSourceOwner::new_ephemeral(&fixture.state, 30_000, ClockSource::system());
         owner.activate_namespace(&ns).unwrap();
         let (prepared, _p) = owner
-            .prepare(
-                &fixture.state,
-                &fixture.headers,
-                sample_request(None),
-                30_000,
-            )
+            .prepare(&fixture.state, &fixture.headers, sample_request(None))
             .unwrap();
         let guard = fixture.state.auth.lock().unwrap();
         assert_eq!(
@@ -2464,12 +2519,7 @@ async fn lock_contention_poison_and_multithreaded_deadlock_freedom_stress() {
             NonOperativeSourceOwner::new_ephemeral(&fixture.state, 30_000, ClockSource::system());
         owner.activate_namespace(&ns).unwrap();
         let (prepared, _p) = owner
-            .prepare(
-                &fixture.state,
-                &fixture.headers,
-                sample_request(None),
-                30_000,
-            )
+            .prepare(&fixture.state, &fixture.headers, sample_request(None))
             .unwrap();
         let guard = fixture.state.services.services.lock().unwrap();
         assert_eq!(
@@ -2497,12 +2547,7 @@ async fn lock_contention_poison_and_multithreaded_deadlock_freedom_stress() {
         ));
         owner.activate_namespace(&ns).unwrap();
         let (prepared, _p) = owner
-            .prepare(
-                &fixture.state,
-                &fixture.headers,
-                sample_request(None),
-                30_000,
-            )
+            .prepare(&fixture.state, &fixture.headers, sample_request(None))
             .unwrap();
         let poison_core = Arc::clone(&owner.core);
         assert!(std::thread::spawn(move || {
@@ -2530,10 +2575,10 @@ async fn lock_contention_poison_and_multithreaded_deadlock_freedom_stress() {
     }
 
     // 4. Multi-threaded deadlock-freedom stress test:
-    //    Concurrent real `reload_auth_from_config` (`status -> auth`),
+    //    Synchronized startup + concurrent real `reload_auth_from_config` (`status -> auth`),
     //    authoritative namespace lifecycle rotation, and real worker-barrier
     //    Mode B durable transactions complete inside a bounded timeout and leave
-    //    a hash-chain-verifiable ledger on disk.
+    //    a hash-chain-verifiable ledger on disk (zero scheduling-flake assumptions).
     let fixture = TransactionFixture::new(2, 8);
     let owner = Arc::new(
         NonOperativeSourceOwner::open_durable(
@@ -2546,12 +2591,15 @@ async fn lock_contention_poison_and_multithreaded_deadlock_freedom_stress() {
     );
     owner.activate_namespace(&ns).unwrap();
 
+    let start_barrier = Arc::new(std::sync::Barrier::new(3));
     let stop = Arc::new(AtomicBool::new(false));
     let reload_state = fixture.state.clone();
     let reload_stop = Arc::clone(&stop);
+    let reload_barrier = Arc::clone(&start_barrier);
     let reload_thread = std::thread::spawn(move || {
+        reload_barrier.wait();
         let mut reloads = 0usize;
-        while !reload_stop.load(Ordering::Acquire) && reloads < 40 {
+        while (!reload_stop.load(Ordering::Acquire) && reloads < 40) || reloads == 0 {
             reload_state.reload_auth_from_config().unwrap();
             reloads += 1;
             std::thread::yield_now();
@@ -2561,10 +2609,12 @@ async fn lock_contention_poison_and_multithreaded_deadlock_freedom_stress() {
 
     let lifecycle_owner = Arc::clone(&owner);
     let lifecycle_stop = Arc::clone(&stop);
+    let lifecycle_barrier = Arc::clone(&start_barrier);
     let lifecycle_thread = std::thread::spawn(move || {
+        lifecycle_barrier.wait();
         let ns = NamespaceId::default();
         let mut transitions = 0usize;
-        while !lifecycle_stop.load(Ordering::Acquire) && transitions < 40 {
+        while (!lifecycle_stop.load(Ordering::Acquire) && transitions < 40) || transitions == 0 {
             let _ = lifecycle_owner.quarantine_namespace(&ns);
             let _ = lifecycle_owner.activate_namespace(&ns);
             transitions += 1;
@@ -2573,8 +2623,12 @@ async fn lock_contention_poison_and_multithreaded_deadlock_freedom_stress() {
         transitions
     });
 
+    // Ensure both mutator OS threads are active before launching worker tasks.
+    start_barrier.wait();
+
     let completed_attempts = Arc::new(AtomicUsize::new(0));
     let denied_or_cancelled = Arc::new(AtomicUsize::new(0));
+    let ledger_tx_attempts = Arc::new(AtomicUsize::new(0));
     let mut workers = Vec::new();
     for worker_idx in 0..2usize {
         let owner = Arc::clone(&owner);
@@ -2582,11 +2636,11 @@ async fn lock_contention_poison_and_multithreaded_deadlock_freedom_stress() {
         let headers = fixture.headers.clone();
         let completed_attempts = Arc::clone(&completed_attempts);
         let denied_or_cancelled = Arc::clone(&denied_or_cancelled);
+        let ledger_tx_attempts = Arc::clone(&ledger_tx_attempts);
         workers.push(tokio::spawn(async move {
             for iter in 0..16usize {
                 let payload = sample_request(Some(narrowed_policy()));
-                let Ok((prepared, ns_permit)) =
-                    owner.prepare(&state, &headers, payload.clone(), 30_000)
+                let Ok((prepared, ns_permit)) = owner.prepare(&state, &headers, payload.clone())
                 else {
                     denied_or_cancelled.fetch_add(1, Ordering::AcqRel);
                     tokio::task::yield_now().await;
@@ -2600,10 +2654,12 @@ async fn lock_contention_poison_and_multithreaded_deadlock_freedom_stress() {
                 let exec_headers = headers.clone();
                 let exec_completed = Arc::clone(&completed_attempts);
                 let exec_denied = Arc::clone(&denied_or_cancelled);
+                let exec_ledger = Arc::clone(&ledger_tx_attempts);
                 state
                     .blocking
                     .run(move || {
                         let _ns = ns_permit;
+                        exec_ledger.fetch_add(1, Ordering::AcqRel);
                         match exec_owner.consume_start(
                             &exec_state,
                             &exec_headers,
@@ -2644,6 +2700,26 @@ async fn lock_contention_poison_and_multithreaded_deadlock_freedom_stress() {
         completed_attempts.load(Ordering::Acquire) + denied_or_cancelled.load(Ordering::Acquire)
             >= 32
     );
+
+    // Guarantee at least one post-quiescence Mode B durable transaction even if every
+    // chaotic iteration happened to collide with `Quarantined` during `prepare`.
+    if ledger_tx_attempts.load(Ordering::Acquire) == 0 {
+        let _ = owner.activate_namespace(&ns);
+        let payload = sample_request(Some(narrowed_policy()));
+        let (prepared, _ns_permit) = owner
+            .prepare(&fixture.state, &fixture.headers, payload.clone())
+            .unwrap();
+        let token = owner
+            .consume_start(
+                &fixture.state,
+                &fixture.headers,
+                &prepared,
+                &prepared.route,
+                &payload,
+            )
+            .unwrap();
+        owner.complete_started(token).unwrap();
+    }
 
     // Reopen durable ledger from disk and confirm the entire hash chain verifies cleanly.
     let (_reopened, recovered_attempts, _high_water) =
