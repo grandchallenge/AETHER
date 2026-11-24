@@ -66,14 +66,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Install stable toolchain
+      - name: Install stable and MSRV toolchains
         run: |
           rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+          rustup toolchain install 1.89.0 --profile minimal --no-self-update
           rustup default stable
 
       - name: Check Rust boundary
         run: |
           cargo fmt --all --check
+          cargo +1.89.0 check --workspace --all-targets --locked
           cargo clippy --workspace --all-targets -- -D warnings
           cargo test --workspace
 
@@ -122,7 +124,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        toolchain: ["1.86.0", stable]
+        toolchain: ["1.89.0", stable]
 
     steps:
       - name: Checkout
