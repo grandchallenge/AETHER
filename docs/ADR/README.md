@@ -59,6 +59,14 @@ The current numbered ADR set is:
 
 - `docs/ADR/0028-e3b-source-attempt-start-linearization-is-model-only.md`
 
+- `docs/ADR/0029-e3b-source-owner-lock-order.md`
+
 - [0030: Licensed console dependency and bounded alpha acceptance](0030-licensed-console-dependency-and-alpha-acceptance.md)
 
 - [0031: Portable frozen operator surface](0031-portable-frozen-operator-surface.md)
+
+- `docs/ADR/0032-c3-first-lane-negative-control.md`
+
+- `docs/ADR/0033-e3b-actual-source-worker-boundary.md`
+
+- `docs/ADR/0034-e3b-namespace-lifecycle-and-consumptive-transaction.md`

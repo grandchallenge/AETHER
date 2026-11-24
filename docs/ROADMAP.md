@@ -426,8 +426,14 @@ ReferenceOnly, the single local pool and E3B-A reserved activation persist.
 
 ## E3B #148 actual-source preparation
 
-See ADR 0033. Reuse HttpAuth generation for token, scope, token-bound policy
-and namespace membership. Next specify the namespace lifecycle contract
-and genuine source-owner/issuer-bound consumption transaction with
-reload/revoke/expiry/restart/cancellation semantics before an operative
-delta. #130 is closed; #133 and E3B-A remain separate.
+See ADR 0033 and ADR 0034. Tranche 1 (PR #170) reused `HttpAuth::generation`
+for token, scope, token-default policy, and namespace membership across real
+worker barriers. Tranche 2 (`source_owner_transaction.rs`, strictly `#[cfg(test)]`)
+specifies and tests the authoritative namespace lifecycle contract, request-specific
+`bound_policy_context`, complete lock-order audit and two-phase reload migration
+proof, canonical issuer-bound `RouteRealized` attempt identity, Mode A/B restart
+consumption ledger, dual-clock rollback/expiry, and cancellation/post-start
+linearization. Any future operative delta (O1 lifecycle/reload migration, O2
+default-OFF unified owner/ledger, or O3 `E3B-A` cutover) requires fresh exact-source
+Article IX/X/XI classification and reserved approval. `#130` is closed; `#133`
+and `E3B-A` remain separate and unapproved.

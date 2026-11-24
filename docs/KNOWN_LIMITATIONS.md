@@ -476,11 +476,17 @@ a real process-crash recovery proof. No cross-process ledger, revocable
 policy/namespace source API, trusted expiry clock or real FABRIC-directed
 start exists; C3 #130, practical #133 and activation remain withheld.
 
-## #148 genuine source probe limits
+## #148 genuine source probe and non-operative transaction contract limits
 
-Actual auth, token-default policy, namespace membership, executor permits
-and fixture C1 transitions are observed. Live source locks are unchanged;
-RouteRealized is pure evidence. The private one-use bit and weak source
-identity do not prove durable consumption, process incarnation or clock
-trust. Namespace lifecycle and request-specific semantic policy remain
-unproved. MatchNonOperative is not a dispatch grant.
+Actual auth, token-default and request-specific `bound_policy_context`,
+namespace membership, non-blocking `NamespaceServiceDirectory` state,
+executor permits, and fixture C1 transitions are exercised in `#[cfg(test)]`
+(`source_owner_actual.rs` and `source_owner_transaction.rs`; ADRs 0033–0034).
+Live production source locks, `HttpKernelState::reload_auth_from_config`
+(`status -> auth`), `NamespaceServiceDirectory` lifecycle states, and
+`FabricRoutingMode::ReferenceOnly` remain unchanged. `AuthoritativeNamespaceLifecycle`,
+`NonOperativeSourceOwner`, `NonOperativeStartToken`, and the Mode B SHA-256
+hash-chained JSONL ledger are non-operative test-only contracts, not live
+dispatch permits or production cryptographic/time-authority proofs. Future
+operative gates O1/O2/O3, `#133`, and `E3B-A` remain separately governed and
+withheld.
