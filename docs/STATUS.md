@@ -847,3 +847,20 @@ permits, combining real fixture C1 transitions and pure RouteRealized
 identity at deterministic barriers. No semantic work is dispatched.
 Full atomic start, namespace lifecycle revision, durable ledger and
 trusted clock remain open.
+
+## E3B #148 Tranche 2 — non-operative namespace lifecycle and consumptive transaction contract
+
+ADR 0034 and `#[cfg(test)]` `crates/aether_http/src/source_owner_transaction.rs`
+extend `#148` preparation without modifying production routing or authority
+(`NO_ARTICLE_IX_AUTHORITY_CHANGE`, `FabricRoutingMode::ReferenceOnly` unchanged).
+The suite exercises real `HttpAuth`, `reload_auth_from_config`, request-specific
+`bound_policy_context(&principal, requested)`, non-blocking `NamespaceServiceDirectory`
+state observation (including real `NamespaceServiceState::Failed`), `RateLimiter`,
+`admit_namespace`, `BoundedBlockingExecutor`, fixture `AetherMechanicalAuthorityIssuer`,
+and pure `RouteRealizedEvidence` alongside contract fixtures for
+`AuthoritativeNamespaceLifecycle`, 3-step RAM-only owner / out-of-lock durable
+hash-chained JSONL consumption ledger (Mode A ephemeral + Mode B durable restart),
+dual-clock rollback/expiry checks, cancellation vs. post-start completion
+linearization, and multi-threaded reload/lifecycle/worker stress. Production
+lifecycle APIs, three-phase reload lock migration, unified owner integration,
+external signing/time trust, `#133`, and `E3B-A` activation remain withheld.

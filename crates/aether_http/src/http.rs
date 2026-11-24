@@ -4292,6 +4292,10 @@ fn now_millis() -> u64 {
 mod source_owner_actual;
 
 #[cfg(test)]
+#[path = "source_owner_transaction.rs"]
+mod source_owner_transaction;
+
+#[cfg(test)]
 mod c2_shadow_tests {
     use super::*;
     use aether_control_bridge::IssuerBuildIdentity;
