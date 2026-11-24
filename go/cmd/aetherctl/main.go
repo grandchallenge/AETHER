@@ -6,10 +6,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/fyremael/aether/go/internal/client"
+	opsconsole "github.com/fyremael/aether/go/internal/console"
 	opstui "github.com/fyremael/aether/go/internal/tui"
 )
 
@@ -196,6 +199,34 @@ func runWithArgs(
 			return err
 		}
 		return opstui.Run(api, *baseURL, buildPolicyContext(*capabilities, *visibilities), *refresh)
+	case "console":
+		command := flag.NewFlagSet("console", flag.ContinueOnError)
+		command.SetOutput(ioDiscard{})
+		listen := command.String("listen", "127.0.0.1:3080", "Loopback bind address for the read-only Tufte operator console")
+		namespace := command.String("namespace", "", "Default namespace to inspect")
+		refresh := command.Duration("refresh", 3*time.Second, "Polling interval for live snapshots (minimum 1s)")
+		historyLimit := command.Int("history-limit", 25, "Maximum journal datoms fetched per poll (1-100)")
+		if err := command.Parse(commandArgs); err != nil {
+			return err
+		}
+		if strings.TrimSpace(token) == "" {
+			return usageError("console requires --token, --token-file, or AETHER_TOKEN")
+		}
+		if _, err := opsconsole.ValidateLoopbackAddr(*listen); err != nil {
+			return err
+		}
+		if err := api.RequireCapabilities(ctx, client.RequiredServiceCapabilities()...); err != nil {
+			return err
+		}
+		sigCtx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+		defer stop()
+		return opsconsole.Run(sigCtx, api, opsconsole.Config{
+			ListenAddr:       *listen,
+			BaseURL:          *baseURL,
+			DefaultNamespace: *namespace,
+			RefreshInterval:  *refresh,
+			HistoryLimit:     *historyLimit,
+		})
 	default:
 		return usageError("unknown command: " + commandName)
 	}
@@ -286,7 +317,7 @@ func parseUint(raw string) (uint64, error) {
 }
 
 func usageError(message string) error {
-	return fmt.Errorf("%s\nusage: aetherctl [-base-url URL] [-token TOKEN | -token-file PATH] <health|status|reload-auth|history|run|explain|coordination-report|coordination-diff|tui> [flags]", message)
+	return fmt.Errorf("%s\nusage: aetherctl [-base-url URL] [-token TOKEN | -token-file PATH] <health|status|reload-auth|history|run|explain|coordination-report|coordination-diff|tui|console> [flags]", message)
 }
 
 type ioDiscard struct{}

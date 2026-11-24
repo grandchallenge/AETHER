@@ -306,15 +306,44 @@ type PagedHistoryResponse struct {
 }
 
 type ServiceStatusStorage struct {
-	Backend               string  `json:"backend"`
-	DatabasePath          *string `json:"database_path,omitempty"`
-	DataRoot              *string `json:"data_root,omitempty"`
-	PostgresSchema        *string `json:"postgres_schema,omitempty"`
-	PostgresURLConfigured bool    `json:"postgres_url_configured,omitempty"`
-	SidecarMode           string  `json:"sidecar_mode"`
-	SidecarPath           *string `json:"sidecar_path,omitempty"`
-	AuditLogPath          *string `json:"audit_log_path,omitempty"`
-	PartitionRoot         *string `json:"partition_root,omitempty"`
+	Backend                             string  `json:"backend"`
+	DatabasePath                        *string `json:"database_path,omitempty"`
+	DataRoot                            *string `json:"data_root,omitempty"`
+	PostgresSchema                      *string `json:"postgres_schema,omitempty"`
+	PostgresURLConfigured               bool    `json:"postgres_url_configured,omitempty"`
+	PostgresTLSMode                     *string `json:"postgres_tls_mode,omitempty"`
+	PostgresCACertificateCount          *int    `json:"postgres_ca_certificate_count,omitempty"`
+	PostgresClientCertificateConfigured *bool   `json:"postgres_client_certificate_configured,omitempty"`
+	PostgresSystemRootsEnabled          *bool   `json:"postgres_system_roots_enabled,omitempty"`
+	SidecarMode                         string  `json:"sidecar_mode"`
+	SidecarPath                         *string `json:"sidecar_path,omitempty"`
+	AuditLogPath                        *string `json:"audit_log_path,omitempty"`
+	PartitionRoot                       *string `json:"partition_root,omitempty"`
+}
+
+type ServiceTransportStatus struct {
+	HTTPMode            string  `json:"http_mode"`
+	ListenerLoopback    bool    `json:"listener_loopback"`
+	ListenerTLS         bool    `json:"listener_tls"`
+	ExternalHTTPSOrigin *string `json:"external_https_origin,omitempty"`
+	TrustedIngress      *string `json:"trusted_ingress,omitempty"`
+}
+
+type ServiceResourceControlStatus struct {
+	MaxRequestBodyBytes          int    `json:"max_request_body_bytes"`
+	MaxDocumentBytes             int    `json:"max_document_bytes"`
+	MaxDocumentRules             int    `json:"max_document_rules"`
+	MaxRuntimeIterations         int    `json:"max_runtime_iterations"`
+	MaxDerivedTuples             int    `json:"max_derived_tuples"`
+	OperationTimeoutMS           uint64 `json:"operation_timeout_ms"`
+	MaxPageSize                  int    `json:"max_page_size"`
+	RequestsPerMinute            int    `json:"requests_per_minute"`
+	GlobalWorkerLimit            int    `json:"global_worker_limit"`
+	PerNamespaceConcurrencyLimit int    `json:"per_namespace_concurrency_limit"`
+	PerNamespaceQueueLimit       int    `json:"per_namespace_queue_limit"`
+	AuditQueueLimit              int    `json:"audit_queue_limit"`
+	ExecutionRetention           int    `json:"execution_retention"`
+	CancellationSemantics        string `json:"cancellation_semantics"`
 }
 
 type PrincipalStatusSummary struct {
@@ -341,19 +370,21 @@ type ReplicaStatusSummary struct {
 }
 
 type ServiceStatusResponse struct {
-	Status               string                   `json:"status"`
-	BuildVersion         string                   `json:"build_version"`
-	ConfigVersion        string                   `json:"config_version"`
-	SchemaVersion        string                   `json:"schema_version"`
-	BindAddr             *string                  `json:"bind_addr,omitempty"`
-	EffectiveNamespace   *string                  `json:"effective_namespace,omitempty"`
-	ServiceMode          string                   `json:"service_mode"`
-	Storage              ServiceStatusStorage     `json:"storage"`
-	ActiveNamespaceCount int                      `json:"active_namespace_count"`
-	Capabilities         []string                 `json:"capabilities"`
-	Namespaces           []NamespaceStatusSummary `json:"namespaces"`
-	Principals           []PrincipalStatusSummary `json:"principals"`
-	Replicas             []ReplicaStatusSummary   `json:"replicas"`
+	Status               string                       `json:"status"`
+	BuildVersion         string                       `json:"build_version"`
+	ConfigVersion        string                       `json:"config_version"`
+	SchemaVersion        string                       `json:"schema_version"`
+	BindAddr             *string                      `json:"bind_addr,omitempty"`
+	EffectiveNamespace   *string                      `json:"effective_namespace,omitempty"`
+	ServiceMode          string                       `json:"service_mode"`
+	Transport            ServiceTransportStatus       `json:"transport"`
+	Storage              ServiceStatusStorage         `json:"storage"`
+	ActiveNamespaceCount int                          `json:"active_namespace_count"`
+	Capabilities         []string                     `json:"capabilities"`
+	Namespaces           []NamespaceStatusSummary     `json:"namespaces"`
+	Principals           []PrincipalStatusSummary     `json:"principals"`
+	Replicas             []ReplicaStatusSummary       `json:"replicas"`
+	ResourceControls     ServiceResourceControlStatus `json:"resource_controls"`
 }
 
 func (s ServiceStatusResponse) Supports(capability string) bool {

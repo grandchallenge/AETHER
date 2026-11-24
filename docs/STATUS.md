@@ -864,3 +864,18 @@ dual-clock rollback/expiry checks, cancellation vs. post-start completion
 linearization, and multi-threaded reload/lifecycle/worker stress. Production
 lifecycle APIs, three-phase reload lock migration, unified owner integration,
 external signing/time trust, `#133`, and `E3B-A` activation remain withheld.
+
+## Go `aetherctl console` — read-only Tufte loopback operator cockpit
+
+The Go operator shell (`go/cmd/aetherctl` + `go/internal/console`) now ships a
+zero-dependency, offline-safe read-only Tufte web operator console (`aetherctl
+console`, `NO_ARTICLE_IX_AUTHORITY_CHANGE`). It binds strictly to explicit
+loopback addresses (`127.0.0.1` / `::1` / `localhost`), rejects non-`GET`/`HEAD`
+methods and cross-site/non-loopback `Host`/`Origin` requests, keeps bearer
+credentials server-side inside `go/internal/client` with defensive error
+redaction, and projects live `/health`, `/v1/status` (including transport/TLS
+posture and all 14 `resource_controls` ceilings), `/v1/audit` sparkline and
+policy-decision telemetry, namespace small multiples, active schema catalog,
+append receipts, tailed `/v1/history/page` datoms, principals, and replicas.
+Zero new Go dependencies, zero external CDNs, and zero routing or semantic
+runtime changes.

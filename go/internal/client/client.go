@@ -54,6 +54,15 @@ func (c *Client) WithNamespace(namespace string) *Client {
 	return &next
 }
 
+// RedactSecret scrubs the configured bearer token from diagnostic text so
+// read-only operator surfaces never echo credentials back to a browser.
+func (c *Client) RedactSecret(text string) string {
+	if c == nil || c.token == "" || text == "" {
+		return text
+	}
+	return strings.ReplaceAll(text, c.token, "[redacted]")
+}
+
 func (c *Client) Health(ctx context.Context) (*HealthResponse, error) {
 	var response HealthResponse
 	if err := c.doJSON(ctx, http.MethodGet, "/health", nil, &response); err != nil {

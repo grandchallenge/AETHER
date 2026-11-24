@@ -64,3 +64,25 @@ func TestResolveBearerTokenFallsBackToEnvironment(t *testing.T) {
 		t.Fatalf("unexpected token %q", token)
 	}
 }
+
+func TestConsoleCommandRequiresTokenAndLoopbackBind(t *testing.T) {
+	t.Helper()
+
+	err := runWithArgs(
+		[]string{"--base-url", "http://127.0.0.1:3000", "console"},
+		func(string) string { return "" },
+		func(string) ([]byte, error) { return nil, nil },
+	)
+	if err == nil {
+		t.Fatalf("expected console without bearer token to fail closed")
+	}
+
+	err = runWithArgs(
+		[]string{"--base-url", "http://127.0.0.1:3000", "--token", "test-token", "console", "--listen", "0.0.0.0:3080"},
+		func(string) string { return "" },
+		func(string) ([]byte, error) { return nil, nil },
+	)
+	if err == nil {
+		t.Fatalf("expected non-loopback --listen address to fail closed")
+	}
+}

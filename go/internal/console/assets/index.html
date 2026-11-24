@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AETHER · Tufte Operator Console</title>
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="masthead">
+      <div class="masthead-top">
+        <div class="title-block">
+          <div class="title-row">
+            <h1>AETHER Operator Console</h1>
+            <span id="meta-version" class="mono muted">—</span>
+            <span id="meta-boundary" class="mono muted">read-only · authority_effect=none · loopback</span>
+          </div>
+          <div class="subtitle-row mono muted">
+            <span id="meta-upstream">upstream: —</span>
+            <span>·</span>
+            <span id="meta-transport">transport: —</span>
+            <span>·</span>
+            <span id="meta-storage">storage: —</span>
+          </div>
+        </div>
+        <div class="controls mono">
+          <label class="ctrl-label">
+            ns
+            <select id="sel-namespace" class="ctrl-input" aria-label="Namespace"></select>
+          </label>
+          <label class="ctrl-label">
+            poll
+            <select id="sel-interval" class="ctrl-input" aria-label="Poll interval">
+              <option value="2000">2s</option>
+              <option value="3000" selected>3s</option>
+              <option value="5000">5s</option>
+              <option value="10000">10s</option>
+              <option value="0">paused</option>
+            </select>
+          </label>
+          <button id="btn-refresh" class="ctrl-btn" type="button" title="Refresh now (r)">Refresh</button>
+          <button id="btn-theme" class="ctrl-btn" type="button" title="Toggle light/dark ink">Theme</button>
+        </div>
+      </div>
+
+      <div class="kpi-strip mono" id="kpi-strip">
+        <div class="kpi"><span class="kpi-label">HEALTH</span><span id="kpi-health" class="kpi-val">—</span></div>
+        <div class="kpi"><span class="kpi-label">SERVICE MODE</span><span id="kpi-mode" class="kpi-val">—</span></div>
+        <div class="kpi"><span class="kpi-label">NAMESPACES</span><span id="kpi-ns" class="kpi-val">—</span></div>
+        <div class="kpi"><span class="kpi-label">PRINCIPALS</span><span id="kpi-principals" class="kpi-val">—</span></div>
+        <div class="kpi"><span class="kpi-label">JOURNAL CUT</span><span id="kpi-journal" class="kpi-val">—</span></div>
+        <div class="kpi"><span class="kpi-label">AUDIT 2xx / 4xx / 5xx</span><span id="kpi-audit" class="kpi-val">—</span></div>
+        <div class="kpi"><span class="kpi-label">FETCH / UPDATED</span><span id="kpi-fetch" class="kpi-val">—</span></div>
+      </div>
+      <div id="error-banner" class="error-banner mono hidden" role="status"></div>
+    </header>
+
+    <main class="main-grid">
+      <!-- Row 1: Small Multiples Namespaces + Audit Sparkline & Top Paths -->
+      <section class="panel span-7">
+        <div class="section-head">
+          <h2>1. Audit Telemetry &amp; Policy Decisions</h2>
+          <span id="audit-compat-meta" class="mono muted">—</span>
+        </div>
+        <div class="subgrid-2">
+          <div class="subpanel">
+            <div class="subhead mono muted">
+              <span>CHRONOLOGICAL STATUS SPARKLINE (16 BUCKETS)</span>
+              <span id="spark-legend">2xx · 4xx · 5xx</span>
+            </div>
+            <div id="audit-sparkline" class="spark-host"></div>
+            <div class="subhead mono muted mt-sm">
+              <span>POLICY DECISIONS</span>
+              <span id="policy-total">—</span>
+            </div>
+            <div id="policy-breakdown" class="kv-list mono"></div>
+          </div>
+          <div class="subpanel border-left">
+            <div class="subhead mono muted">
+              <span>ENDPOINT DENSITY (CLEVELAND DOT-PLOT)</span>
+              <span>count · err</span>
+            </div>
+            <div id="path-dotplot" class="dotplot mono"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel span-5">
+        <div class="section-head">
+          <h2>2. Resource Controls &amp; Capacity Ceilings</h2>
+          <span id="rc-cancel-semantics" class="mono muted">—</span>
+        </div>
+        <div id="resource-controls-grid" class="kv-grid-2 mono"></div>
+        <div class="subhead mono muted mt-sm">
+          <span>NEGOTIATED CAPABILITIES</span>
+          <span id="cap-count">—</span>
+        </div>
+        <div id="capabilities-line" class="mono muted cap-line">—</div>
+      </section>
+
+      <!-- Row 2: Small Multiples Namespaces -->
+      <section class="panel span-12">
+        <div class="section-head">
+          <h2>3. Namespace Small Multiples &amp; Active Schema Posture</h2>
+          <span id="ns-active-label" class="mono muted">—</span>
+        </div>
+        <div id="ns-multiples" class="multiples-grid"></div>
+      </section>
+
+      <!-- Row 3: Live Audit Stream + Journal Tail / Receipts -->
+      <section class="panel span-7">
+        <div class="section-head">
+          <h2>4. Live Audit Stream</h2>
+          <div class="inline-controls mono">
+            <input id="audit-filter" class="ctrl-input filter-input" type="search" placeholder="filter path / principal / status / decision…" aria-label="Filter audit entries" />
+            <span id="audit-showing" class="muted">—</span>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="tufte-table mono">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Status</th>
+                <th>Method &amp; Path</th>
+                <th>Principal</th>
+                <th>NS</th>
+                <th>Policy</th>
+                <th>Outcome / Detail</th>
+              </tr>
+            </thead>
+            <tbody id="audit-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel span-5">
+        <div class="section-head">
+          <h2>5. Journal Tail, Schema &amp; Append Receipts</h2>
+          <span id="history-meta" class="mono muted">—</span>
+        </div>
+        <div id="schema-summary" class="kv-list mono mb-sm"></div>
+        <div class="subhead mono muted">
+          <span>RECENT APPEND RECEIPTS</span>
+          <span id="receipts-meta">—</span>
+        </div>
+        <div class="table-wrap compact mb-sm">
+          <table class="tufte-table mono">
+            <thead>
+              <tr>
+                <th>Batch</th>
+                <th>Schema</th>
+                <th>Cut</th>
+                <th class="num">Appended</th>
+                <th>Flags</th>
+              </tr>
+            </thead>
+            <tbody id="receipts-tbody"></tbody>
+          </table>
+        </div>
+        <div class="subhead mono muted">
+          <span>PAGED JOURNAL DATOMS</span>
+          <span id="datoms-meta">—</span>
+        </div>
+        <div class="table-wrap compact">
+          <table class="tufte-table mono">
+            <thead>
+              <tr>
+                <th class="num">Elem</th>
+                <th class="num">Ent</th>
+                <th class="num">Attr</th>
+                <th>Op</th>
+                <th>Value</th>
+                <th>Policy</th>
+              </tr>
+            </thead>
+            <tbody id="history-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Row 4: Principals & Replicas -->
+      <section class="panel span-7">
+        <div class="section-head">
+          <h2>6. Configured Principals &amp; Policy Bounds</h2>
+          <span class="mono muted">non-secret status projection only</span>
+        </div>
+        <div class="table-wrap compact">
+          <table class="tufte-table mono">
+            <thead>
+              <tr>
+                <th>Principal</th>
+                <th>Token ID</th>
+                <th>Scopes</th>
+                <th>Namespaces</th>
+                <th>Policy Bound</th>
+                <th>State</th>
+              </tr>
+            </thead>
+            <tbody id="principals-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel span-5">
+        <div class="section-head">
+          <h2>7. Replicated Partition Posture</h2>
+          <span id="replicas-meta" class="mono muted">—</span>
+        </div>
+        <div class="table-wrap compact">
+          <table class="tufte-table mono">
+            <thead>
+              <tr>
+                <th>Partition</th>
+                <th class="num">Replica</th>
+                <th>Role</th>
+                <th class="num">Epoch</th>
+                <th class="num">Applied</th>
+                <th class="num">Lag</th>
+                <th>Health</th>
+              </tr>
+            </thead>
+            <tbody id="replicas-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer mono muted">
+      <span>AETHER aetherctl console · strictly read-only loopback observer (GET/HEAD) · authority_effect=none</span>
+      <span>Bearer credentials stay server-side in go/internal/client · zero external CDNs · ReferenceOnly unchanged</span>
+    </footer>
+  </div>
+  <script src="/assets/app.js"></script>
+</body>
+</html>

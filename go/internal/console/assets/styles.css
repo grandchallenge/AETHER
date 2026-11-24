@@ -1,0 +1,437 @@
+/* AETHER Tufte Operator Console — High Data-Ink Ratio, Zero External Dependencies */
+:root {
+  --bg: #fafaf7;
+  --surface: #f2f1ec;
+  --ink: #161614;
+  --muted: #5d5c56;
+  --rule: #c8c6bc;
+  --subrule: #e1dfd6;
+  --ok: #1d6f42;
+  --warn: #9a5b00;
+  --err: #b42318;
+  --accent: #1d4e89;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111214;
+    --surface: #181a1d;
+    --ink: #e8e7e1;
+    --muted: #98978f;
+    --rule: #34373d;
+    --subrule: #24262b;
+    --ok: #4ec986;
+    --warn: #e5a93c;
+    --err: #f06a60;
+    --accent: #6ea8fe;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #111214;
+  --surface: #181a1d;
+  --ink: #e8e7e1;
+  --muted: #98978f;
+  --rule: #34373d;
+  --subrule: #24262b;
+  --ok: #4ec986;
+  --warn: #e5a93c;
+  --err: #f06a60;
+  --accent: #6ea8fe;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.42;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 16px 22px 24px;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+.muted { color: var(--muted); }
+.ok { color: var(--ok); font-weight: 600; }
+.warn { color: var(--warn); font-weight: 600; }
+.err { color: var(--err); font-weight: 600; }
+.hidden { display: none !important; }
+.mt-sm { margin-top: 10px; }
+.mb-sm { margin-bottom: 10px; }
+
+/* Masthead */
+.masthead {
+  border-bottom: 2px solid var(--rule);
+  padding-bottom: 10px;
+  margin-bottom: 16px;
+}
+
+.masthead-top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.title-row h1 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.subtitle-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 3px;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ctrl-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+}
+
+.ctrl-input, .ctrl-btn {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  padding: 3px 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.ctrl-input option {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.ctrl-btn {
+  cursor: pointer;
+}
+
+.ctrl-btn:hover {
+  border-color: var(--ink);
+  background: var(--surface);
+}
+
+.filter-input {
+  width: 240px;
+}
+
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--subrule);
+}
+
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.kpi-label {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.kpi-val {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.error-banner {
+  margin-top: 8px;
+  padding: 5px 8px;
+  border-left: 3px solid var(--err);
+  background: var(--surface);
+  color: var(--err);
+}
+
+/* Main Tufte Editorial Grid */
+.main-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 20px 24px;
+}
+
+.span-12 { grid-column: span 12; }
+.span-7 { grid-column: span 7; }
+.span-5 { grid-column: span 5; }
+
+.panel { min-width: 0; }
+
+.section-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+}
+
+.section-head h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.inline-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.subgrid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.subpanel { min-width: 0; }
+.border-left {
+  border-left: 1px solid var(--subrule);
+  padding-left: 14px;
+}
+
+.subhead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  border-bottom: 1px solid var(--subrule);
+  padding-bottom: 2px;
+  margin-bottom: 6px;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+}
+
+/* Sparkline & Cleveland Dot-Plot */
+.spark-host {
+  height: 54px;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.spark-host svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.dotplot {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.dot-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(70px, 1fr) 56px;
+  align-items: center;
+  gap: 8px;
+}
+
+.dot-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dot-track {
+  position: relative;
+  height: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.dot-line {
+  width: 100%;
+  height: 1px;
+  background: var(--subrule);
+}
+
+.dot-mark {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.dot-mark-err {
+  background: var(--err);
+}
+
+.dot-num {
+  text-align: right;
+  color: var(--muted);
+}
+
+/* Key-Value Micro Tables */
+.kv-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.kv-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--subrule);
+}
+
+.kv-row:last-child { border-bottom: none; }
+
+.kv-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 18px;
+}
+
+.cap-line {
+  line-height: 1.55;
+  word-break: break-word;
+}
+
+/* Namespace Small Multiples */
+.multiples-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px 18px;
+}
+
+.ns-card {
+  border-top: 1px solid var(--rule);
+  padding: 6px 4px 4px;
+  cursor: pointer;
+}
+
+.ns-card:hover { background: var(--surface); }
+
+.ns-card[data-selected="true"] {
+  border-top: 2px solid var(--ink);
+}
+
+.ns-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.ns-card-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Tufte Hairline Tables */
+.table-wrap {
+  overflow-x: auto;
+  max-height: 310px;
+  overflow-y: auto;
+}
+
+.table-wrap.compact {
+  max-height: 180px;
+}
+
+.tufte-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.tufte-table th {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  color: var(--muted);
+  font-weight: 500;
+  border-bottom: 1px solid var(--rule);
+  padding: 4px 6px 4px 0;
+  white-space: nowrap;
+}
+
+.tufte-table td {
+  border-bottom: 1px solid var(--subrule);
+  padding: 3px 6px 3px 0;
+  vertical-align: top;
+  white-space: nowrap;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tufte-table th.num, .tufte-table td.num {
+  text-align: right;
+  padding-right: 10px;
+}
+
+.footer {
+  margin-top: 20px;
+  padding-top: 8px;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+@media (max-width: 1040px) {
+  .span-7, .span-5 { grid-column: span 12; }
+  .kpi-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .subgrid-2 { grid-template-columns: 1fr; }
+  .border-left { border-left: none; padding-left: 0; border-top: 1px solid var(--subrule); padding-top: 10px; }
+}

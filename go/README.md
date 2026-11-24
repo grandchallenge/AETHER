@@ -18,6 +18,7 @@ Implemented today:
 
 - `cmd/aetherctl`, a real CLI over the stable HTTP boundary
 - `cmd/aetherctl tui`, a pilot-focused read-mostly operator cockpit for live service health, coordination state, cut diffs, audit entries, history, and tuple proof traces
+- `cmd/aetherctl console`, a loopback-only read-only Tufte web operator console (`net/http` + `embed.FS`, zero external CDNs, server-side bearer token inside `internal/client`) surfacing live health, service status, transport/storage TLS posture, resource controls, audit sparklines and policy-decision telemetry, namespace small multiples, schema catalog, append receipts, journal tail, principals, and replica status
 - `internal/client`, a typed Go HTTP client for health, service status, history, audit, pilot coordination reports, pilot coordination delta reports, document runs, and execution-scoped proof resolution
 - request-level policy-context support for document execution, with authenticated tokens able to impose the maximum semantic visibility that requests may narrow but not exceed
 - explain, report, and history calls now follow the same token-bound effective policy as document execution on authenticated services
@@ -36,6 +37,7 @@ go run ./cmd/aetherctl --base-url http://127.0.0.1:3000 run --file ./document.ae
 go run ./cmd/aetherctl --base-url http://127.0.0.1:3000 run --file ./document.aether --capabilities executor --visibilities ops
 go run ./cmd/aetherctl --base-url http://127.0.0.1:3000 explain --trace-handle <64-hex-handle> --verify-replay --capabilities executor
 go run ./cmd/aetherctl --base-url http://127.0.0.1:3000 --token-file ./pilot-operator.token tui --refresh 2s
+go run ./cmd/aetherctl --base-url http://127.0.0.1:3000 --token-file ./pilot-operator.token console --listen 127.0.0.1:3080 --refresh 3s
 ```
 
 Semantic CLI and TUI commands preflight the service capability set from
